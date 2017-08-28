@@ -1,0 +1,1055 @@
+      SUBROUTINE CALPUV2C  
+C  
+C **  PREVIOUS NAME WAS CALPUV2TC  
+C CHANGE RECORD  
+C  MODIFIED DRYING AND WETTING SCHEME. THE OLD FORMULATION REMAINS  
+C  SEE (ISDRY.GT.0.AND.ISDRY.LT.98). THE NEW FORMULATION IS ACTIVATED  
+C  BY (ISDRY.EQ.99). ALSO ADDED OPTION TO WASTE WATER FROM ESSENTIALLY  
+C  DRY CELLS HAVING WATER DEPTHS GREATER THAN HDRY.  IE THE HIGH AND  
+C  WET CELLS BLOCKED BY DRY CELLS. THIS IS ACTIVED BY A NEGATIVE VALUE  
+C  OF NDRYSTP PARAMETER IS THE EFDC.INP FILE  
+C  ADDED SAVE OF OLD VALUES OF HORIZONTAL FLOW FACE SWITCHES SUB1 & SVB1  
+C  AND TRANSPORT BYPASS MASK, IMASKDRY FOR DRY CELLS. ADD VARIABLE  
+C  IDRYDWN TO MARK WASTING FROM BLOCKED CELLS  
+C  ADDED QDWASTE(L) TO SAVE SOURCE EQUIVALENT OF VOLUME LOSS RATE  
+C  FOR REDUCING DEPTH OF HIGH/DRY CELLS.  ALSO ADDED CONCENTRATION  
+C  ADJUSTMENT  
+C ** SUBROUTINE CALPUV2TC CALCULATES THE EXTERNAL SOLUTION FOR P, UHDYE,  
+C ** AND VHDXE, FOR FREE SURFACE FLOWS WITH PROVISIONS FOR WETTING  
+C ** AND DRYING OF CELLS  
+C  
+      USE GLOBAL  
+!$    USE OMP_LIB
+#ifdef key_mpi
+      USE parallel_mpi
+      USE mpi
+#endif
+      REAL(wp) CCMNM,CCMNM_LOC
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IACTIVE  
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IQDRYDWN  
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::QCHANUT  
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::QCHANVT  
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::QSUMTMP 
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::SUB1
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::SVB1
+      IF(.NOT.ALLOCATED(IACTIVE))THEN
+        ALLOCATE(IACTIVE(NCHANM))  
+        ALLOCATE(IQDRYDWN(LCM))  
+        ALLOCATE(QCHANUT(NCHANM))  
+        ALLOCATE(QCHANVT(NCHANM))  
+        ALLOCATE(QSUMTMP(LCM))  
+        ALLOCATE(SUB1(LCM))  
+        ALLOCATE(SVB1(LCM))
+        IACTIVE=0 
+        IQDRYDWN=0
+        QCHANUT=0.
+        QCHANVT=0.
+        QSUMTMP=0.
+        SUB1=0.
+        SVB1=0.
+      ENDIF
+C  
+      IF(N.EQ.1.AND.DEBUG)THEN  
+        OPEN(1,FILE='MODCHAN.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+      ENDIF  
+      IF(N.EQ.1.AND.ISDSOLV.EQ.1.AND.DEBUG)THEN  
+        OPEN(1,FILE='FUV1.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQCOEF1.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQTERM1.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='FP1.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+      ENDIF  
+      IF(N.EQ.2.AND.ISDSOLV.EQ.1.AND.DEBUG)THEN  
+        OPEN(1,FILE='FUV2.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQCOEF2.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQTERM2.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='FP2.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+      ENDIF  
+      IF(ISDSOLV.EQ.1.AND.DEBUG)THEN  
+        OPEN(1,FILE='FUV.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQCOEF.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='EQTERM.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+        OPEN(1,FILE='FP.OUT',STATUS='UNKNOWN')  
+        CLOSE(1,STATUS='DELETE')  
+      ENDIF  
+      IF(ISDYNSTP.EQ.0)THEN  
+        DELT=DT  
+        DELTD2=0.5*DT  
+        DELTI=1./DELT  
+      ELSE  
+        DELT=DTDYN  
+        DELTD2=0.5*DTDYN  
+        DELTI=1./DELT  
+      ENDIF  
+      ISTL=2  
+      RLAMN=QCHERR  
+      RLAMO=1.-RLAMN  
+C  
+C **  SET SWITCHES FOR DRYING AND WETTING  
+C  
+      ITERHP=0  
+      NCORDRY=0  
+      ICORDRY=0  
+      NEWDRY=0  
+      DO L=1,LC  
+        IQDRYDWN(L)=0  
+        ISCDRY(L)=0
+      ENDDO
+      DO L=1,LC  
+        SUB1(L)=SUB(L)
+        SVB1(L)=SVB(L)
+      ENDDO  
+C  
+C **  INITIALIZE SUBGRID SCALE CHANNEL INTERACTIONS  
+C  
+      IF(MDCHH.GE.1)THEN  
+        DO NMD=1,MDCHH  
+          QCHANUT(NMD)=QCHANU(NMD)  
+          QCHANVT(NMD)=QCHANV(NMD)  
+        ENDDO  
+      ENDIF  
+C  
+C **  CALCULATE EXTERNAL BUOYANCY INTEGRALS AT TIME LEVEL (N)  
+C  
+      IF(BSC.GT.1.E-6)  CALL CALEBI  
+C
+        ! *** CALCULATE EXPLICIT EXTERNAL PRESSURE GRADIENTS  
+!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(LS,LW)
+      IF(BSC.GT.1.E-6)THEN
+!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
+        DO L=2,LA  
+          LS=LSC(L)
+          LW=LWEST(L)
+          FPGXE(L)=-SBX(L)*HU(L)*GP*((BI2(L)+BI2(LW))*(HP(L)-HP(LW))  
+     &        +2.0*HU(L)*(BI1(L)-BI1(LW))    
+     &        +(BE(L)+BE(LW))*(BELV(L)-BELV(LW)))  
+          FPGYE(L)=-SBY(L)*HV(L)*GP*((BI2(L)+BI2(LS))*(HP(L)-HP(LS))  
+     &        +2.0*HV(L)*(BI1(L)-BI1(LS)) 
+     &        +(BE(L)+BE(LS))*(BELV(L)-BELV(LS)))  
+        ENDDO  
+!$OMP END DO NOWAIT
+      ENDIF
+C  
+C **  CALCULATE EXPLICIT EXTERNAL UHDYE AND VHDXE EQUATION TERMS  
+C **  HRU=SUB*HMU*DYU/DXU & HRV=SVB*HMV*DXV/DYV  
+C  
+!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
+      DO L=2,LA  
+        LS=LSC(L)  
+        H2P(L)=HP(L)  ! *** DSLLC SINGLE LINE
+        FUHDYE(L)=UHDYE(L)  
+     &      -DELTD2*SUB(L)*HRUO(L)*HU(L)*(P(L)-P(LWEST(L)))  
+     &      +SUB(L)*DELT*DXIU(L)*(DXYU(L)*(TSX(L)-RITB1*TBX(L))  
+     &      +FCAXE(L)+FPGXE(L)-SNLT*FXE(L))  
+        FVHDXE(L)=VHDXE(L)  
+     &      -DELTD2*SVB(L)*HRVO(L)*HV(L)*(P(L)-P(LS))  
+     &      +SVB(L)*DELT*DYIV(L)*(DXYV(L)*(TSY(L)-RITB1*TBY(L))  
+     &      -FCAYE(L)+FPGYE(L)-SNLT*FYE(L)) 
+        RCX(L)=1.  
+        RCY(L)=1.  
+      ENDDO  
+!$OMP END PARALLEL
+      IF(ISDSOLV.GE.1.AND.DEBUG) CALL DGN_PUV
+
+
+C **  SET IMPLICIT BOTTOM AND VEGETATION DRAG AS APPROPRIATE  
+C  
+      RCX(1)=0.
+      RCY(1)=0.  
+      RCX(LC)=0.  
+      RCY(LC)=0.  
+C  
+C * SINGLE LAYER NO VEGETATION  
+C  
+      IF(KC.EQ.1)THEN
+        IF(ISVEG.EQ.0.AND.RITB.GT.0.)THEN  
+	      DO L=2,LA  
+	        RCX(L)=1./( 1.  
+     &        +RITB*DELT*HUI(L)*STBX(L)*SQRT(VU(L)*VU(L)+U(L,1)*U(L,1)))  
+	        RCY(L)=1./( 1.  
+     &        +RITB*DELT*HVI(L)*STBY(L)*SQRT(UV(L)*UV(L)+V(L,1)*V(L,1)))  
+	        FUHDYE(L)=FUHDYE(L)*RCX(L)  
+	        FVHDXE(L)=FVHDXE(L)*RCY(L)  
+	      ENDDO  
+	    ENDIF  
+C  
+C * SINGLE LAYER WITH VEGETATION  
+C  
+	    IF(ISVEG.GE.1)THEN  
+	      DO L=2,LA  
+	        RCX(L)=1./( 1.  
+     &        +RITB*DELT*HUI(L)*STBX(L)*SQRT(VU(L)*VU(L)+U(L,1)*U(L,1))  
+     &        +DELT*FXVEGE(L) )  
+	        RCY(L)=1./( 1.  
+     &        +RITB*DELT*HVI(L)*STBY(L)*SQRT(UV(L)*UV(L)+V(L,1)*V(L,1))  
+     &        +DELT*FYVEGE(L) )  
+	        FUHDYE(L)=FUHDYE(L)*RCX(L)  
+	        FVHDXE(L)=FVHDXE(L)*RCY(L)  
+	      ENDDO  
+	    ENDIF 
+      ENDIF 
+C  
+C * MULTIPLE LAYERS WITH VEGETATION  
+C  
+      IF(KC.GT.1.AND.ISVEG.GE.1)THEN  
+        DO L=2,LA  
+          RCX(L)=1./( 1.+DELT*FXVEGE(L) )  
+          RCY(L)=1./( 1.+DELT*FYVEGE(L) )  
+          FUHDYE(L)=FUHDYE(L)*RCX(L)  
+          FVHDXE(L)=FVHDXE(L)*RCY(L)  
+        ENDDO  
+      ENDIF  
+CCC FOD ADDED SECTION TO PARAMETERISE SUSPENDED CANOPY WITHIN FUHDYE
+C * SINGLE LAYER WITH PARAMETERISATION OF SUSPENDED CANOPY
+C  
+      IF(AQUAINCL == 1)THEN  
+        IF (KC .EQ. 1) THEN   
+          DO L=2,LA  
+            RCX(L)=1./( 1.  
+     &        +RITB*DELT*HUI(L)*STBX(L)*SQRT(VU(L)*VU(L)+U(L,1)*U(L,1))  
+     &        +DELT*FXDRPRE(L) )  
+            RCY(L)=1./( 1.  
+     &        +RITB*DELT*HVI(L)*STBY(L)*SQRT(UV(L)*UV(L)+V(L,1)*V(L,1))  
+     &        +DELT*FYDRPRE(L) )  
+            FUHDYE(L)=FUHDYE(L)*RCX(L)  
+            FVHDXE(L)=FVHDXE(L)*RCY(L)  
+          ENDDO  
+        ENDIF
+C  
+C * MULTIPLE LAYERS WITH SUSPENDED CANOPY  
+C * NEED TO CONSIDER THIS IN GREATER DETAIL; THE FACT THAT CANOPY DOES NOT 
+C   EXTEND HE ENTIRE LENGTH OF THE WATER COLUMN IS REFLECTED IN THE sum(FXDRPR(L,K)).
+C   HOWEVER, NEED TO CONSIDER ALTERNATIVE REPRESENTATIONS 
+        IF(KC.GT.1)THEN  
+          DO L=2,LA  
+            RCX(L)=1./( 1.+DELT*FXDRPRE(L) )  
+            RCY(L)=1./( 1.+DELT*FYDRPRE(L) ) 
+            FUHDYE(L)=FUHDYE(L)*RCX(L)  
+            FVHDXE(L)=FVHDXE(L)*RCY(L)  
+          ENDDO  
+        ENDIF  
+      ENDIF  
+
+CC !!END FOD SECTION
+
+C  
+C **  ADJUST VOLUME SOURCE AND SINKS  
+C  
+      IF(ISGWIE.EQ.0)THEN  
+        DO L=2,LA  
+          IF(QSUME(L).LE.0.)THEN  
+            IF(H1P(L).LE.HDRY)THEN  
+              QSUMTMP(L)=0.  
+            ELSE  
+              QSUMTMP(L)=-(H1P(L)-HDRY)*DXYP(L)*DELTI  
+              QSUMTMP(L)=MAX(QSUMTMP(L),QSUME(L))  
+            ENDIF  
+          ELSE  
+            QSUMTMP(L)=QSUME(L)  
+          ENDIF  
+        ENDDO  
+        DO L=2,LA  
+          DIFQVOL=QSUME(L)-QSUMTMP(L)  
+          DO K=1,KC  
+            QSUM(L,K)=QSUM(L,K)-DIFQVOL*DZC(K)  
+          ENDDO  
+          QSUME(L)=QSUMTMP(L)  
+        ENDDO  
+      ENDIF  
+C  
+C **  ADJUST SOURCES AND SINKS ESTIMATING SURFACE AND GROUNDWATER  
+C **  AVAILABLE FOR EVAPOTRANSPIRATON AND INFILTRATION  
+C  
+      IF(ISGWIE.GE.1)THEN  
+        DO L=2,LA  
+          RIFTR(L)=0.  
+          EVAPSW(L)=0.  
+          EVAPGW(L)=0.  
+          IF(H1P(L).GT.HDRY)THEN  
+C  
+C       APPLY MAXIMUM ET  
+C  
+            IF(EVAPCVT.LT.0.)THEN  
+              SVPW=(10.**((0.7859+0.03477*TEM(L,KC))/  
+     &            (1.+0.00412*TEM(L,KC))))  
+              EVAPT(L)=CLEVAP(L)*0.7464E-3*WINDST(L)*(SVPW-VPA(L))
+     &            /PATMT(L)  
+            ENDIF  
+            EVAPSW(L)=EVAPT(L)*DXYP(L)  
+            RIFTR(L)=0.  
+C  
+C       CALCULATE DEPTH OF ACTIVE GROUNDWATER ELEV BELOW SURFACE  
+C  
+            DTAGW=BELV(L)-AGWELV(L)  
+            IF(DTAGW.GT.0.0)THEN  
+C  
+C         INFLITRATION CAN OCCUR, CALCULATE LIMITING RATE TO BRING  
+C         GW ELEV TO SOIL SURFACE  
+C  
+              RIFTRL=RNPOR*DTAGW*DELTI  
+C  
+C         SET RIFTRL TO MIN OF LIMITING RATE OR ACTUAL RATE  
+C  
+              RIFTRL=MIN(RIFTRM,RIFTRL)  
+C  
+C         ESTIMATE RATE BASED ON AVAILABLE SURFACE WATER  
+C  
+              RAVAIL=(H1P(L)-HDRY)*DELTI-EVAPT(L)  
+C  
+C         SET RIFTRL TO MIN OF AVAILABLE RATE OR LIMITING RATE  
+C  
+              RIFTRL=MIN(RAVAIL,RIFTRL)  
+C  
+C         CONVERT TO VOLUME FLOW UNITS  
+C  
+              RIFTR(L)=RIFTRL*DXYP(L)  
+            ENDIF  
+C  
+C       ADJUST VOLUME OUTFLOWS OF WET CELLS  
+C  
+            IF(QSUME(L).LT.0.0)THEN  
+              QSUMIET=RIFTR(L)+EVAPSW(L)  
+              QEAVAIL=DXYP(L)*(H1P(L)-HDRY)*DELTI-QSUMIET  
+              QEAVAIL=MAX(QEAVAIL,0.0)  
+              QEAVAIL=-QEAVAIL  
+              QSUMTMP(L)=MAX(QSUME(L),QEAVAIL)  
+            ELSE  
+              QSUMTMP(L)=QSUME(L)  
+            ENDIF  
+          ELSE  
+            RIFTR(L)=0.  
+            EVAPSW(L)=0.  
+            QSUMTMP(L)=MAX(QSUME(L),0.0)  
+          ENDIF  
+        ENDDO  
+        DO L=2,LA  
+          DIFQVOL=QSUME(L)-QSUMTMP(L)  
+          DO K=1,KC  
+            QSUM(L,K)=QSUM(L,K)-DIFQVOL*DZC(K)  
+          ENDDO  
+          QSUME(L)=QSUMTMP(L)  
+        ENDDO  
+      ENDIF  
+      IF(ISGWIE.GE.1)THEN
+        DO L=2,LA  
+          AGWELV2(L)=AGWELV1(L)  
+          AGWELV1(L)=AGWELV(L)  
+        ENDDO
+      ENDIF  
+
+
+C  
+C **  RESET BOUNDARY CONDITIONS SWITCHES  
+C  
+!$OMP PARALLEL DO SCHEDULE(STATIC,CHUNKSIZE)  SHARED(DEFAULT) PRIVATE(LN,LE)
+      DO L=2,LA  
+        LN=LNC(L)  
+        LE=LEAST(L)
+        SUB(L)=SUBO(L)  
+        SVB(L)=SVBO(L)  
+        SBX(L)=SBXO(L)  
+        SBY(L)=SBYO(L)  
+        SUB(LEAST(L))=SUBO(LE)  
+        SBX(LEAST(L))=SBXO(LE)  
+        SVB(LN)=SVBO(LN)  
+        SBY(LN)=SBYO(LN)  
+C  
+C **  ADVANCE EXTERNAL VARIABLES  
+C  
+        UHDY1E(L)=UHDYE(L)  
+        VHDX1E(L)=VHDXE(L)  
+        P1(L)=P(L)  
+        H1U(L)=HU(L)  
+        H1V(L)=HV(L)  
+        H1UI(L)=HUI(L)  
+        H1VI(L)=HVI(L)  
+        H1P(L)=HP(L)
+C
+C  
+C **  SET OLD TIME LEVEL TERMS IN CONTINUITY EQUATION FOR NON BOUNDARY POINTS  
+C **  HRU=HMU*DYU/DXU & HRV=HMV*DXV/DYV  
+C **  DXYIP=1/(DXP*DYP)  
+C  
+C *** DSLLC BEGIN BLOCK
+        FP1(L)=DELTI*DXYP(L)*P(L)-0.5*G*(UHDYE(LEAST(L))-UHDYE(L)
+     &                                  +VHDXE(LN )-VHDXE(L))
+      ENDDO  
+C  
+C **  SET NEW TIME LEVEL TERMS IN CONTINUITY EQUATION INCLUDING  
+C **  HOST-GUEST CHANNAL INTERACTION FOR NON BOUNDARY POINTS  
+C **  REENTER AT 1000 FOR WETTING-DRYING CORRECTION AND CHANNEL  
+C **  INTERACTION  
+C  
+ 1000 CONTINUE  
+      C1=0.5*G
+      C1_=-0.5*DELTD2*G  
+!$OMP PARALLEL DO SCHEDULE(STATIC,CHUNKSIZE)  SHARED(DEFAULT) PRIVATE(LN,LE)
+      DO L=2,LA
+        LN=LNC(L)
+        LE=LEAST(L)
+        ! ***  THE SUB & SVB SWITCHES ALREADY ACCOUNTED FOR
+        FP(L)=FP1(L)-C1*(FUHDYE(LE)-FUHDYE(L)  
+     &                  +FVHDXE(LN )-FVHDXE(L)
+     &              -2.0*QSUME(L) )
+        CS(L)=C1_*SVB(L  )*HRVO(L  )*RCY(L  )*HV(L  )  
+        CW(L)=C1_*SUB(L  )*HRUO(L  )*RCX(L  )*HU(L  )  
+        CE(L)=C1_*SUB(LE )*HRUO(LE )*RCX(LE )*HU(LE )  
+        CN(L)=C1_*SVB(LN )*HRVO(LN )*RCY(LN )*HV(LN )  
+      ENDDO  
+      IF(ISGWIE.GE.1)THEN  
+        DO L=2,LA  
+          FP(L)=FP(L)-G*SPB(L)*(RIFTR(L)+EVAPSW(L))  
+        ENDDO  
+      ENDIF  
+
+C
+C *** APPLY THE OPEN BOUNDARY CONDITIONS
+C
+      IF(NBCSOP.GT.0) CALL SETOPENBC(DELT,DELTD2,DELTI,HU,HV)    
+C  
+C
+C **  INSERT IMPLICT SUB-GRID SCALE CHANNEL INTERACTIONS  
+C  
+      IF(MDCHH.GE.1)CALL SUBCHAN(QCHANUT,QCHANVT,IACTIVE,RLAMN,RLAMO,  
+     &    DELT,IACTALL)  
+C  
+      ! *** SCALE COEFFICIENTS IN EXTERNAL MODEL LINEAR EQUATION SYSTEM  
+      CCMNM_LOC=1.E+18  
+!$OMP PARALLEL DO SCHEDULE(STATIC) SHARED(DEFAULT) PRIVATE(L) REDUCTION(MIN:CCMNM_LOC)
+      DO L = 2,LA
+        CC(L)=DELTI*DXYP(L)-CS(L)-CW(L)-CE(L)-CN(L)  
+        FPTMP(L)=FP(L)  
+         CCMNM_LOC=MIN(CCMNM_LOC,CC(L))  
+      ! *** SCALE COEFFICIENTS IN EXTERNAL MODEL LINEAR EQUATION SYSTEM  
+      ENDDO  
+#ifdef key_mpi
+      CALL MPI_ALLREDUCE(CCMNM_LOC,CCMNM,1,MPI_REAL8,MPI_MIN,EFDC_COMM,IERR)
+#else
+      CCMNM = CCMNM_LOC
+#endif
+      CCMNMI=1./CCMNM  
+C
+C *** APPLY THE OPEN BOUNDARY CONDITIONS FOR ADJACENT CELLS
+C
+      IF(NBCSOP.GT.0) CALL SETOPENBC2   
+      IF(ISDSOLV.GE.1.AND.DEBUG) CALL DGN_PUV_2
+C
+      CC(1)=1.  
+      CC(LC)=1.  
+C  
+C **  SCALE BY MINIMUM DIAGONAL  
+C  
+      IF(IRVEC.EQ.9)THEN  
+!$OMP PARALLEL DO SCHEDULE(STATIC,CHUNKSIZE)
+        DO L=2,LA  
+          CCS(L)=CS(L)*CCMNMI  
+          CCW(L)=CW(L)*CCMNMI  
+          CCE(L)=CE(L)*CCMNMI  
+          CCN(L)=CN(L)*CCMNMI  
+          CCC(L)=CC(L)*CCMNMI  
+          FPTMP(L)=FPTMP(L)*CCMNMI  
+          CCCI(L)=1./CCC(L)  
+        ENDDO  
+        IF(MDCHH.GE.1)THEN  
+          DO NMD=1,MDCHH  
+            CCCCHH(NMD)=CCCCHH(NMD)*CCMNMI  
+          ENDDO  
+        ENDIF  
+      ENDIF  
+C  
+C **  CALL EQUATION SOLVER  
+C  
+#ifdef key_mpi
+          CALL CONGRAD_MPI
+          CALL COMMUNICATE_P(P)
+#else
+          CALL CONGRAD(ISTL)
+#endif  
+
+      IF(MDCHH.GE.1) CALL CONGRADC(ISTL)    !MDCHH not parallelised yet; do not use
+C  
+C ** DIAGNOSTICS  
+C  
+      IF(ISDSOLV.GE.1.AND.DEBUG) CALL DGN_PUV_3
+C  
+C **  CALCULATE UHEX AND VHEX AND TOTAL DEPTHS AT TIME LEVEL (N+1)  
+C **  HRU=SUB*DYU/DXU & HRV=SVB*DXV/DYV  
+C  
+!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(LS,LN)
+!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
+      DO L=2,LA
+        LS=LSC(L)  
+        LW=LWEST(L)
+        UHDYE(L)=SUB(L)*( FUHDYE(L)  
+     &      -DELTD2*HRUO(L)*RCX(L)*HU(L)*(P(L)-P(LW)) )  
+        VHDXE(L)=SVB(L)*( FVHDXE(L)  
+     &      -DELTD2*HRVO(L)*RCY(L)*HV(L)*(P(L)-P(LS )) )  
+        UHE(L)=UHDYE(L)*DYIU(L)  
+        VHE(L)=VHDXE(L)*DXIV(L)  
+      ENDDO  
+C*
+C **  CALCULATE REVISED CELL DEPTHS BASED ON NEW HORIZONTAL  
+C **  TRANSPORTS AT (N+1)  
+C  
+!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
+      DO L=2,LA  
+        LN=LNC(L)  
+        HP(L)=H1P(L)+DELTD2*DXYIP(L)*(2.*QSUME(L) !+QSUM1E(L) PMC
+     &           -(UHDYE(LEAST(L))+UHDY1E(LEAST(L))-UHDYE(L)-UHDY1E(L)  
+     &            +VHDXE(LN) +VHDX1E(LN )-VHDXE(L)-VHDX1E(L)))  
+      ENDDO  
+!$OMP END PARALLEL
+
+#ifdef key_mpi
+      CALL COMMUNICATE_P(HP)
+#endif
+C
+      IF(ISGWIE.GE.1)THEN  
+        DO L=2,LA  
+          HP(L)=HP(L)-DELT*DXYIP(L)*(RIFTR(L)+EVAPSW(L))  
+        ENDDO  
+      ENDIF  
+C
+      ! *** APPLY OPEN BOUNDARYS 
+      DO LL=1,NBCSOP
+        L=LOBCS(LL)
+        HP(L)=GI*P(L)-BELV(L)  
+      ENDDO 
+C  
+C **  ADD CHANNEL INTERACTION EXCHANGES  
+C  
+      IF(MDCHH.GE.1)THEN  
+        DO NMD=1,MDCHH  
+          IF(IACTIVE(NMD).GT.0)THEN  
+            LHOST=LMDCHH(NMD)  
+            LCHNU=LMDCHU(NMD)  
+            LCHNV=LMDCHV(NMD)  
+            IF(MDCHTYP(NMD).EQ.1)THEN  
+              TMPVAL=DELT*(RLAMN*QCHANU(NMD)+RLAMO*QCHANUT(NMD))  
+              HP(LHOST)=HP(LHOST)+TMPVAL*DXYIP(LHOST)  
+              HP(LCHNU)=HP(LCHNU)-TMPVAL*DXYIP(LCHNU)  
+            ENDIF  
+            IF(MDCHTYP(NMD).EQ.2)THEN  
+              TMPVAL=DELT*(RLAMN*QCHANV(NMD)+RLAMO*QCHANVT(NMD))  
+              HP(LHOST)=HP(LHOST)+TMPVAL*DXYIP(LHOST)  
+              HP(LCHNV)=HP(LCHNV)-TMPVAL*DXYIP(LCHNV)  
+            ENDIF  
+          ENDIF  
+        ENDDO  
+      ENDIF  
+C  
+C **  PERFORM INTERMEDIATE UPDATES OF P
+C  
+      DO L=2,LA  
+        P(L)=G*(HP(L)+BELV(L))  
+      ENDDO  
+C  
+C **  CHECK FOR DRYING AND RESOLVE EQUATIONS IF NECESSARY  
+C  
+      IF(ISDRY.GT.0.AND.ISDRY.LT.98)THEN  
+        ICORDRY=0
+        ICORDRY_GLOB = 0
+!$OMP PARALLEL DO SHARED(DEFAULT) PRIVATE(LS,LN,LE) REDUCTION(+:ICORDRY)
+        DO L=2,LA  
+          LS=LSC(L)  
+          LN=LNC(L)  
+          LE=LEAST(L)
+          IF(HP(L).LE.HDRY)THEN  
+            IF(ISCDRY(L).EQ.0)THEN  
+              ISCDRY(L)=1  
+              ICORDRY=ICORDRY+1  
+            ENDIF  
+            SUB(L)=0.  
+            SVB(L)=0.  
+            SUB(LEAST(L))=0.  
+            SVB(LN)=0.  
+            SBX(L)=0.  
+            SBY(L)=0.  
+            SBX(LEAST(L))=0.  
+            SBY(LN)=0.  
+          ENDIF  
+        ENDDO 
+#ifdef key_mpi
+        CALL MPI_ALLREDUCE(ICORDRY,ICORDRY_GLOB,1,MPI_INTEGER,MPI_SUM,EFDC_COMM,IERR)
+#else
+        ICORDRY_GLOB = ICORDRY
+#endif
+        IF(ICORDRY_GLOB.NE.0)THEN
+          NCORDRY=NCORDRY+1
+          GOTO 1000
+        ENDIF 
+      ENDIF  
+ 6960 FORMAT(' NCORDRY =', I5)  
+ 6961 FORMAT(' UNSTABLE, NCORDRY =', I5)  
+ 9999 CONTINUE  
+C  
+C **  CHECK FOR DRYING AND RESOLVE EQUATIONS IF NECESSARY  
+C  
+      IF(ISDRY.EQ.99)THEN  
+        HDRY2=2.*HDRY  
+        ICORDRY=0  
+        ICORDRY_GLOB = 0
+        DO L=2,LA  
+          LS=LSC(L)  
+          LN=LNC(L)  
+          IF(HP(L).LE.HDRY)THEN  
+            SUBW=SUB(L)  
+            SUBE=SUB(LEAST(L))  
+            SVBS=SVB(L)  
+            SVBN=SVB(LN)  
+            DHPDT=DELTI*(HP(L)-H1P(L))  
+            ! *** ALLOW RE-WETTING
+            IF(DHPDT.GT.0.0)THEN  
+              SUB(L)=0.0  
+              SUB(LEAST(L))=0.0  
+              SVB(L)=0.0  
+              SVB(LN)=0.0  
+              SBX(L)=0.0  
+              SBX(LEAST(L))=0.0  
+              SBY(L)=0.0  
+              SBY(LN)=0.0  
+              IF(SUBO(L).GT.0.5)THEN  
+                IF(UHDYE(L).GT.0.0.AND.HP(LWEST(L)).GT.HDRY2)THEN 
+                  SUB(L)=1.  
+                  SBX(L)=1.  
+                ENDIF  
+              ENDIF  
+              IF(SUBO(LEAST(L)).GT.0.5)THEN  
+                IF(UHDYE(LEAST(L)).LT.0.0.AND.HP(LEAST(L)).GT.HDRY2)THEN
+                  SUB(LEAST(L))=1.  
+                  SBX(LEAST(L))=1.  
+                ENDIF  
+              ENDIF  
+              IF(SVBO(L).GT.0.5)THEN  
+                IF(VHDXE(L).GT.0.0.AND.HP(LS).GT.HDRY2)THEN
+                  SVB(L)=1.  
+                  SBY(L)=1.  
+                ENDIF  
+              ENDIF  
+              IF(SVBO(LN).GT.0.5)THEN  
+                IF(VHDXE(LN).LT.0.0.AND.HP(LN).GT.HDRY2)THEN
+                  SVB(LN)=1.  
+                  SBY(LN)=1.  
+                ENDIF  
+              ENDIF  
+              RDRY=SUB(L)+SUB(LEAST(L))+SVB(L)+SVB(LN)  
+              IF(RDRY.LT.0.5)THEN  
+                ISCDRY(L)=1  
+              ELSE  
+                ISCDRY(L)=0  
+              ENDIF  
+              TMPVAL=ABS(SUB(L)-SUBW)  
+              IF(TMPVAL.GT.0.5)THEN
+                ICORDRY=1  
+              ELSE
+                TMPVAL=ABS(SUB(LEAST(L))-SUBE)  
+                IF(TMPVAL.GT.0.5)THEN
+                  ICORDRY=1  
+                ELSE
+                  TMPVAL=ABS(SVB(L)-SVBS)  
+                  IF(TMPVAL.GT.0.5)THEN
+                    ICORDRY=1  
+                  ELSE
+                    TMPVAL=ABS(SVB(LN)-SVBN)  
+                    IF(TMPVAL.GT.0.5)THEN ICORDRY=1  
+                  ENDIF
+                ENDIF
+              ENDIF
+            ELSE  
+              SUB(L)=0.0  
+              SUB(LEAST(L))=0.0  
+              SVB(L)=0.0  
+              SVB(LN)=0.0  
+              SBX(L)=0.0  
+              SBX(LEAST(L))=0.0  
+              SBY(L)=0.0  
+              SBY(LN)=0.0  
+              IF(ISCDRY(L).EQ.0)THEN  
+                ISCDRY(L)=1  
+                ICORDRY=1  
+              ENDIF  
+            ENDIF  
+          ENDIF  
+        ENDDO  
+#ifdef key_mpi
+        CALL MPI_ALLREDUCE(ICORDRY,ICORDRY_GLOB,1,MPI_INTEGER,MPI_SUM,EFDC_COMM,IERR)
+#else
+        ICORDRY_GLOB = ICORDRY
+#endif
+         if (partid==17) then
+         
+        open(123,file='temp.dat',status='unknown',position='append')
+        write(123,*) 'ICORDry=',N,ICORDRY,ICORDRY_GLOB
+        close(123)
+         end if
+        IF(ICORDRY_GLOB.NE.0)THEN  
+          NCORDRY=NCORDRY+1  
+          GOTO 1000  
+        ENDIF  
+      ENDIF  
+
+C      WRITE(8,6960)NCORDRY  
+C**********************************************************************C
+C
+C **  COUNT THE NUMBER TO TIME STEPS A CELL IS DRY, AND IF IT HAS BEEN
+C **  DRY FOR MORE THAN ABS(NDRYSTP), AND ITS BOTTOM ELEVATION IS HIGHER
+C **  THAN THE SURROUNDING DRY CELLS, THEN REDUCE ITS DEPTH BELOW THE 
+C **  DRYING DEPTH IF NECESSARY.  SAVE VOLUME REDUCTION RATE AS QDWASTE
+C **  DEFINED AS POSITIVE OUT. THEN ADJUST CONCENTRATIONS
+C
+      IF(ISDRY.GT.0) THEN
+        IF(NDRYSTP.LT.0) THEN
+	    NTMP=ABS(NDRYSTP)
+!$OMP PARALLEL DO SHARED(DEFAULT) PRIVATE(LS,LN,LE,LW,RDRY,BELVAVG,RVAL,TMPVAL,HOLDTMP)
+	    DO L=2,LA
+	      LN=LNC(L)
+	      LS=LSC(L)
+              LE=LEAST(L)
+              LW=LWEST(L)
+              QDWASTE(L)=0.
+              IQDRYDWN(L)=0
+	      RDRY=SUB(L)+SUB(LE)+SVB(L)+SVB(LN)
+ 	      IF(RDRY.GT.0.5)NATDRY(L)=0
+              IF(RDRY.LT.0.5)NATDRY(L)=NATDRY(L)+1
+	      IF(NATDRY(L).GT.NTMP)THEN	
+	        IF(HP(L).GE.HDRY)THEN
+	          BELVAVG=0.0
+	          RVAL=0.0
+	          IF(HP(LE).LT.HDRY.AND.SUBO(LE).GT.0.5)THEN
+	            BELVAVG=BELVAVG+BELV(LE)
+                    RVAL=RVAL+1.
+	          ENDIF
+	          IF(HP(LWEST(L)).LT.HDRY.AND.SUBO(L).GT.0.5)THEN
+	            BELVAVG=BELVAVG+BELV(LW)
+                    RVAL=RVAL+1.
+	          ENDIF
+	          IF(HP(LN).LT.HDRY.AND.SVBO(LN).GT.0.5)THEN
+	            BELVAVG=BELVAVG+BELV(LN)
+                    RVAL=RVAL+1.
+	          ENDIF
+	          IF(HP(LS).LT.HDRY.AND.SVBO(L).GT.0.5)THEN
+	            BELVAVG=BELVAVG+BELV(LS)
+                    RVAL=RVAL+1.
+	          ENDIF
+	          IF(BELV(L).GE.BELVAVG)THEN
+	            HOLDTMP=HP(L)
+                    IQDRYDWN(L)=1
+	            HP(L)=0.90*HDRY
+	            NATDRY(L)=0
+	            QDWASTE(L)=DELTI*DXYP(L)*(HOLDTMP-HP(L))
+	            VDWASTE(L)=VDWASTE(L)+DXYP(L)*(HOLDTMP-HP(L))
+	            TMPVAL=HOLDTMP/HP(L)
+	          ENDIF
+              END IF
+	      ENDIF
+	      IF(QDWASTE(L).GT.0.0)THEN
+	        TMPVAL=QDWASTE(L)/DXYP(L)
+	      ENDIF
+          ENDDO
+	  END IF
+	END IF	      
+C
+C 8888 FORMAT(' QDW ',2I6,6E14.6)
+C
+C**********************************************************************C
+C  
+C **  PERFORM FINAL UPDATES OF P,HU, AND HV  
+C  
+!$OMP PARALLEL DO SCHEDULE(STATIC,CHUNKSIZE) SHARED(DEFAULT) PRIVATE(LS)
+      DO L=2,LA  
+        LS=LSC(L)
+        LW=LWEST(L)
+        P(L)=G*(HP(L)+BELV(L))  
+        HU(L)=0.5*(DXYP(L)*HP(L)+DXYP(LW)*HP(LW))*DXYIU(L)  
+        HV(L)=0.5*(DXYP(L)*HP(L)+DXYP(LS )*HP(LS ))*DXYIV(L)  
+        H1P(L)=H2P(L)  ! *** DSLLC, UPDATE THE LAST DEPTH TO ACTUAL PREVIOUS  
+        HPI(L)=1./HP(L)  
+        HUI(L)=1./HU(L)  
+        HVI(L)=1./HV(L)  
+      ENDDO  
+C  
+C **  SET TRANSPORT MASK FOR DRY CELLS  
+C  
+      IF(ISDRY.GT.0)THEN  
+        DO L=2,LA  
+          IMASKDRY(L)=0  
+          LMASKDRY(L)=.TRUE.  
+        END DO  
+        IF(IDRYTBP.EQ.1)THEN  
+          DO L=2,LA  
+            LN=LNC(L)  
+            LE=LEAST(L)
+            IUW=0  
+            IUE=0  
+            IVS=0  
+            IVN=0  
+            IF(SUB1(L).LT.0.5.AND.SUB(L).LT.0.5)IUE=1  
+            IF(SUB1(LE).LT.0.5.AND.SUB(LE).LT.0.5)IUW=1  
+            IF(SVB1(L).LT.0.5.AND.SVB(L).LT.0.5)IVS=1  
+            IF(SVB1(LN).LT.0.5.AND.SVB(LN).LT.0.5)IVN=1  
+            IFACE=IUW+IUE+IVS+IVN  
+            IF(IFACE.EQ.4)THEN  
+              IMASKDRY(L)=1  
+              LMASKDRY(L)=.FALSE.  
+              IF(H1P(L).EQ.HP(L))IMASKDRY(L)=2  
+            END IF  
+            IF(IQDRYDWN(L).EQ.1)THEN  
+              IMASKDRY(L)=0  
+              LMASKDRY(L)=.TRUE.  
+            ENDIF  
+          END DO  
+        END IF  
+      END IF  
+C  
+C **  OUTPUT DIAGNOSTICS FOR 2 GRID INTERATCTION  
+C  
+      IF(MDCHH.GT.0.AND.DEBUG)THEN  
+        IF(MDCHHD.GT.0)THEN  
+          IVAL=MOD(N,MDCHHD2)  
+          IF(IVAL.EQ.0)THEN  
+            IF(IACTALL.GT.0)THEN  
+              IF(DEBUG)OPEN(1,FILE='MODCHAN.OUT',POSITION='APPEND')  
+              DO NMD=1,MDCHH  
+                WRITE(1,8000)  
+                LHOST=LMDCHH(NMD)  
+                IHOST=IL(LHOST)  
+                JHOST=JL(LHOST)  
+                LCHNU=LMDCHU(NMD)  
+                LCHNV=LMDCHV(NMD)  
+C  
+C         X-DIRECTION CHANNEL  
+C  
+                IF(MDCHTYP(NMD).EQ.1)THEN  
+                  ICHNU=IL(LCHNU)  
+                  JCHNU=JL(LCHNU)  
+                  SRFCHAN=HP(LCHNU)+BELV(LCHNU)  
+                  SRFHOST=HP(LHOST)+BELV(LHOST)  
+                  SRFCHAN1=H1P(LCHNU)+BELV(LCHNU)  
+                  SRFHOST1=H1P(LHOST)+BELV(LHOST)  
+                  WRITE(1,8001)N,NMD,MDCHTYP(NMD),ICHNU,JCHNU,
+     &               ISCDRY(LCHNU),SRFCHAN,HP(LCHNU),SRFCHAN1,H1P(LCHNU)  
+                  WRITE(1,8002)IHOST,JHOST,ISCDRY(LHOST),  
+     &                 SRFHOST,HP(LHOST),SRFHOST1,H1P(LHOST)  
+                  WRITE(1,8003)QCHANU(NMD),QCHANUT(NMD),CCCCHU(NMD)
+     &                ,CCCCHV(NMD)  
+                ENDIF  
+C  
+C         Y-DIRECTION CHANNEL  
+C  
+                IF(MDCHTYP(NMD).EQ.2)THEN  
+                  ICHNV=IL(LCHNV)  
+                  JCHNV=JL(LCHNV)  
+                  SRFCHAN=HP(LCHNV)+BELV(LCHNV)  
+                  SRFHOST=HP(LHOST)+BELV(LHOST)  
+                  SRFCHAN1=H1P(LCHNV)+BELV(LCHNV)  
+                  SRFHOST1=H1P(LHOST)+BELV(LHOST)  
+                  WRITE(1,8001)N,NMD,MDCHTYP(NMD),ICHNV,JCHNV,
+     &               ISCDRY(LCHNV),SRFCHAN,HP(LCHNV),SRFCHAN1,H1P(LCHNV)  
+                  WRITE(1,8002)IHOST,JHOST,ISCDRY(LHOST),  
+     &                SRFHOST,HP(LHOST),SRFHOST1,H1P(LHOST)  
+                  WRITE(1,8003)QCHANV(NMD),QCHANVT(NMD),CCCCHU(NMD)
+     &                ,CCCCHV(NMD)  
+                ENDIF  
+                WRITE(1,8004)  
+              ENDDO  
+              CLOSE(1)  
+            ENDIF  
+          ENDIF  
+        ENDIF  
+      ENDIF  
+C  
+C **  PERFORM UPDATE ON GROUNDWATER ELEVATION  
+C  
+      IF(ISGWIE.GE.1)THEN  
+        DO L=2,LA  
+          QSUM(L,KC)=QSUM(L,KC)-EVAPSW(L)  
+          QSUM(L,1 )=QSUM(L,1 )-RIFTR(L)  
+        ENDDO  
+C  
+C       INFILTRATION STEP  
+C  
+        RNPORI=1./RNPOR  
+        IF(ISTL.EQ.3)THEN  
+          DO L=2,LA  
+            AGWELV(L)=AGWELV2(L)+RNPORI*DELT*DXYIP(L)*RIFTR(L)  
+          ENDDO  
+        ELSE  
+          DO L=2,LA  
+            AGWELV(L)=AGWELV1(L)+RNPORI*DELT*DXYIP(L)*RIFTR(L)  
+          ENDDO  
+        ENDIF  
+        DO L=2,LA  
+          AGWELV(L)=MIN(AGWELV(L),BELV(L))  
+        ENDDO  
+C  
+C       ET STEP  
+C  
+        DO L=2,LA  
+          IF(EVAPCVT.LT.0.)THEN  
+            SVPW=(10.**((0.7859+0.03477*TEM(L,KC))/  
+     &          (1.+0.00412*TEM(L,KC))))  
+           EVAPT(L)=CLEVAP(L)*0.7464E-3*WINDST(L)*(SVPW-VPA(L))/PATMT(L)  
+          ENDIF  
+          ETGWTMP=EVAPT(L)-EVAPSW(L)*DXYIP(L)  
+          ETGWTMP=MAX(ETGWTMP,0.0)  
+          ETGWAVL=RNPOR*DELTI*(AGWELV(L)-BELAGW(L))  
+          ETGWAVL=MAX(ETGWAVL,0.0)  
+          ETGWTMP=MIN(ETGWTMP,ETGWAVL)  
+          EVAPGW(L)=ETGWTMP*DXYP(L)  
+        ENDDO  
+        DO L=2,LA  
+          AGWELV(L)=AGWELV(L)-RNPORI*DELT*DXYIP(L)*EVAPGW(L)  
+        ENDDO  
+        DO L=2,LA  
+          AGWELV(L)=MAX(AGWELV(L),BELAGW(L))  
+        ENDDO  
+      ENDIF  
+      IF(N.EQ.NTS.AND.DEBUG)THEN  
+        IF(MDCHH.GT.0)THEN  
+          DO NMD=1,MDCHH  
+            WRITE(8,8000)  
+            LHOST=LMDCHH(NMD)  
+            IHOST=IL(LHOST)  
+            JHOST=JL(LHOST)  
+            LCHNU=LMDCHU(NMD)  
+            LCHNV=LMDCHV(NMD)  
+C  
+C         X-DIRECTION CHANNEL  
+C  
+            IF(MDCHTYP(NMD).EQ.1)THEN  
+              ICHNU=IL(LCHNU)  
+              JCHNU=JL(LCHNU)  
+              SRFCHAN=HP(LCHNU)+BELV(LCHNU)  
+              SRFHOST=HP(LHOST)+BELV(LHOST)  
+              SRFCHAN1=H1P(LCHNU)+BELV(LCHNU)  
+              SRFHOST1=H1P(LHOST)+BELV(LHOST)  
+              WRITE(8,8001)N,NMD,MDCHTYP(NMD),ICHNU,JCHNU,ISCDRY(LCHNU),  
+     &            SRFCHAN,HP(LCHNU),P1(LCHNU),H1P(LCHNU)  
+              WRITE(8,8002)IHOST,JHOST,ISCDRY(LHOST),  
+     &            SRFHOST,HP(LHOST),P1(LHOST),H1P(LHOST)  
+              WRITE(8,8003)QCHANU(NMD),QCHANUT(NMD),CCCCHU(NMD),
+     &            CCCCHV(NMD)  
+            ENDIF  
+C  
+C         Y-DIRECTION CHANNEL  
+C  
+            IF(MDCHTYP(NMD).EQ.2)THEN  
+              ICHNV=IL(LCHNV)  
+              JCHNV=JL(LCHNV)  
+              SRFCHAN=HP(LCHNV)+BELV(LCHNV)  
+              SRFHOST=HP(LHOST)+BELV(LHOST)  
+              SRFCHAN1=H1P(LCHNV)+BELV(LCHNV)  
+              SRFHOST1=H1P(LHOST)+BELV(LHOST)  
+              WRITE(8,8001)N,NMD,MDCHTYP(NMD),ICHNV,JCHNV,ISCDRY(LCHNV),  
+     &            SRFCHAN,HP(LCHNV),SRFCHAN1,H1P(LCHNV)  
+              WRITE(8,8002)IHOST,JHOST,ISCDRY(LHOST),  
+     &            SRFHOST,HP(LHOST),SRFHOST1,H1P(LHOST)  
+              WRITE(8,8003)QCHANV(NMD),QCHANVT(NMD),CCCCHU(NMD),
+     &            CCCCHV(NMD)  
+            ENDIF  
+            WRITE(8,8004)  
+          ENDDO  
+        ENDIF  
+      ENDIF  
+C  
+C **  CHECK FOR NEGATIVE DEPTHS  
+C  
+      IF(ISNEGH.GE.1)CALL NEGDEP(QCHANUT,QCHANVT,2)  
+ 6910 FORMAT('  DRYING AT N,I,J =',I10,2I6,'  HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 6911 FORMAT('  DRY W FACE N,I,J =',I10,2I6,' HU,H,H1 =',3(2X,E12.4))  
+ 6912 FORMAT('  DRY E FACE N,I,J =',I10,2I6,' HU,H,H1 =',3(2X,E12.4))  
+ 6913 FORMAT('  DRY S FACE N,I,J =',I10,2I6,' HV,H,H1 =',3(2X,E12.4))  
+ 6914 FORMAT('  DRY N FACE N,I,J =',I10,2I6,' HV,H,H1 =',3(2X,E12.4))  
+ 6920 FORMAT('  WETTING AT N,I,J =',I10,2I6,' HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 6921 FORMAT('  WET S FACE N,I,J =',I10,2I6,' HV,H,H1 =',3(2X,E12.4))  
+ 6922 FORMAT('  WET W FACE N,I,J =',I10,2I6,' HU,H,H1 =',3(2X,E12.4))  
+ 6923 FORMAT('  WET E FACE N,I,J =',I10,2I6,' HU,H,H1 =',3(2X,E12.4))  
+ 6924 FORMAT('  WET N FACE N,I,J =',I10,2I6,' HV,H,H1 =',3(2X,E12.4))  
+ 6930 FORMAT('  WET BY VOL  N,I,J =',I10,2I6,' HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 6940 FORMAT('  RESOLVE,  N,I,J =',I10,2I6,' HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 6941 FORMAT('  RESOLVE,  N,I,J =',I10,2I6,' HUE,HP,H1P ='  
+     &    ,3(2X,E12.4))  
+ 6942 FORMAT('  RESOLVE,  N,I,J =',I10,2I6,' HUW,HP,H1P ='  
+     &    ,3(2X,E12.4))  
+ 6943 FORMAT('  RESOLVE,  N,I,J =',I10,2I6,' HVS,HP,H1P ='  
+     &    ,3(2X,E12.4))  
+ 6944 FORMAT('  RESOLVE,  N,I,J =',I10,2I6,' HVN,HP,H1P ='  
+     &    ,3(2X,E12.4))  
+ 6945 FORMAT('  RESOLVE NEG,  N,I,J =',I10,2I6,' HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 6950 FORMAT('  RESOLVE, NEG DEP N,I,J =',I10,2I6,' HP,H1P,H2P ='  
+     &    ,3(2X,E12.4))  
+ 8001 FORMAT(I7,5I5,4E13.4)  
+ 8002 FORMAT(17X,3I5,4E13.4)  
+ 8003 FORMAT(32X,4E13.4)  
+ 8000 FORMAT('    N    NMD  MTYP   I    J  IDRY      P           H',  
+     &    '           P1           H1')  
+ 8004 FORMAT('                                     QCHANU',  
+     &    '       QCHANUT      CCCCHU       CCCCHV ')  
+C  
+C **  CALCULATE THE EXTERNAL DIVERGENCE  
+C  
+      IF(ISDIVEX.EQ.1)THEN  
+        DIVEXMX=0.  
+        DIVEXMN=1000000.  
+        DO L=2,LA  
+          IF(SPB(L).NE.0)THEN  
+            LN=LNC(L)  
+            DIVEX=SPB(L)*(DXYP(L)*(HP(L)-H1P(L))*DELTI  
+     &          +0.5*(UHDYE(LEAST(L))+UHDY1E(LEAST(L))-UHDYE(L)-UHDY1E(L)  
+     &          +VHDXE(LN)+VHDX1E(LN)-VHDXE(L)-VHDX1E(L))-QSUME(L)  
+     &          +RIFTR(L)+EVAPSW(L))  
+            IF(DIVEX.GT.DIVEXMX)THEN  
+              DIVEXMX=DIVEX  
+              LMAX=L  
+            ENDIF  
+            IF(DIVEX.LT.DIVEXMN)THEN  
+              DIVEXMN=DIVEX  
+              LMIN=L  
+            ENDIF  
+          ENDIF  
+        ENDDO  
+        IMAX=IL(LMAX)  
+        JMAX=JL(LMAX)  
+        IMIN=IL(LMIN)  
+        JMIN=JL(LMIN)  
+        WRITE(6,6628)DIVEXMX,IMAX,JMAX  
+        WRITE(6,6629)DIVEXMN,IMIN,JMIN  
+      ENDIF  
+  566 FORMAT('  I=',I5,3X,'J=',I5,3X,'HP=',F12.4)  
+ 6628 FORMAT('  DIVEXMX=',E13.5,5X,2I10)  
+ 6629 FORMAT('  DIVEXMN=',E13.5,5X,2I10)  
+C  
+C **  UPDATE ZERO DIMENSION VOLUME BALANCE  
+C  
+      ISTL=2  
+      IF(ISDRY.GE.1.AND.ISTL.EQ.3)THEN  
+        VOLADD=0.  
+        DO L=2,LA  
+          IF(SPB(L).NE.0)THEN  
+            VOLADD=VOLADD+QSUME(L)-RIFTR(L)-EVAPSW(L)  
+          ENDIF  
+        ENDDO  
+        VOLADD=VOLADD*DT  
+        VOLZERD=VOLZERD+VOLADD  
+        VETZERD=VETZERD+VOLADD+DT*EVAPSW(L)  
+      ENDIF  
+ 5303 FORMAT(2X,F10.4,2X,F10.5,3(2X,E13.5))  
+      RETURN  
+      END  
+

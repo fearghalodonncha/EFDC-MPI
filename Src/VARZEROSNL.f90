@@ -1,0 +1,142 @@
+SUBROUTINE VARZEROSNL
+!C ***
+!C *** THIS SUBROUTINE ZERO'S MANY ARRAYS AFTER ALLOCATION
+!C ***
+    USE GLOBAL
+! Begin SEDZLJ variables
+	ALPHA_PX=0.0    !(LCM)
+	ALPHA_PY=0.0    !(LCM)
+	ALPHA_RX=0.0    !(LCM,NSCM)
+	ALPHA_RY=0.0    !(LCM,NSCM)
+	BED_SED_FLX=0.0 !(LCM,NSCM)
+	BED_TOX_FLX=0.0 !(LCM,NTXM)
+	BLFLAG=0.0      !(LCM,NSCM)
+	BLVEL=0.0       !(LCM,NSCM)
+	BULKDENS=0.0    !(KB,LCM)
+	CBL=0.0         !(2,LCM,NSCM) 
+	CSEDSS=0.0      !(NSCM)
+	CSEDVR=0.0      !(NSCM,LCM)
+	CTB=0.0         !(NSCM,LCM)
+	D=0.0           !(LCM)
+	D50=0.0         !(NSCM)
+	D50AVG=0.0      !(LCM)
+	DBL=0.0         !(NSCM,LCM)
+	DEP=0.0         !(LCM)
+	DEPO=0.0        !(LCM)
+	DIFFCOFF=0.0    !(NTXM)
+	DISTAR=0.0      !(NSCM)
+	DZBL=0.0        !(LCM,NSCM)
+	DZBL_LAST=0.0   !(LCM,NSCM)
+	DWS=0.0         !(NSCM)
+	E=0.0           !(NSCM,LCM)
+	EBD=0.0         !(KB,LCM)
+	EBL=0.0         !(LCM)
+	ELAY=0.0        !(NSCM)
+	ERATEND=0.0     !(NSICM,ITBM)
+	ERATE=0.0       !(KB,LCM,ITBM)
+	ERATEMOD=0.0    !(LCM)
+	ESUS=0.0        !(LCM)
+	ETOTO=0.0       !(LCM)
+	HT=0.0			!(LCM)
+	LAYER=0.0		!(KB,LCM)
+	KPART=0.0       !(NTXM)
+	MAXDEPLIMIT=0.0 !PT the maximum limit of mass from 1st layer deposited on active bed layer.
+	PCBDISS=0.0     !(LCM,KCM)
+	PCONT=0.0       !(NSCM,KB,LCM)
+	PER=0.0         !(NSCM,KB,LCM)
+	PFY=0.0         !(NSCM)
+	PROB=0.0        !(NSCM)
+	PROBG=0.0       !(NSCM,LCM)
+	PROBL=0.0       !(NSCM,LCM)
+	PROBVR=0.0      !(NSCM,LCM)
+	PSUS=0.0        !(LCM,NSCM)
+	PX=0.0          !(NSCM)
+	PY=0.0          !(NSCM)
+	QBSED=0.0       !(LCM,NSCM)
+	RHO=1000.0      !PT Density of water in kg/m^3.
+	SCD=0.0         !(2)
+	SCND=0.0        !(NSICM)
+	SEDDENS=0.0
+	SH_SCALE=0.0    !(LCM)
+	STACT=0.0       !(LCM)
+    TACTM=0.0
+	TAU=0.0         !(LCM)
+	TAUCOR=0.0      !(KB,LCM)
+	TAUCRIT=0.0     !(LCM)
+	TAUCRITE=0.0    !(NSICM)
+	TAUCRITSF=0.0   !(LCM)
+	TAUDD=0.0       !(2)
+	TAULOC=0.0      !(ITBM)
+	TCRE=0.0        !(NSCM)
+	TCRSUS=0.0      !(NSCM)
+	THCK=0.0        !(LCM)
+	TRANS=0.0       !(LCM,NSCM)
+	TSED=0.0        !(KB,LCM)
+	TSED0=0.0       !(KB,LCM)
+	TSED0S=0.0      !(KB)
+	TSEDT=0.0       !(LCM)
+	TTEMP=0.0       !(NSCM,LCM)
+	UBL=0.0         !(LCM,NSCM)
+	UBLE=0.0        !(NSCM,LCM)
+	UBLN=0.0        !(NSCM,LCM)
+	USW=0.0         !(LCM,NSCM)
+	UVEL=0.0        !(LCM,KC)
+	VBL=0.0         !(LCM,NSCM)
+	VELMAG=0.0      !(LCM)
+	VVEL=0.0        !(LCM,KC)
+	VZDIF=0.0       !(LCM)
+	WATERDENS=0.0
+	WVORBIT=0.0     !(LCM)
+	XBLFLUX=0.0     !(LCM,NSCM)
+	YBLFLUX=0.0     !(LCM,NSCM)
+! End SEDZLJ variables
+
+! Begin dissolved carbon dioxide variables
+	  CDOSATIDX=0.0
+	  WQCDOS=0.0
+	  WQITOP=0.0
+	  WQKRCDOS=0.0
+	  WQP22=0.0
+      XCDOALL=0.0
+      XCDODEF=0.0
+      XCDODOC=0.0
+      XCDODZ=0.0
+      XCDOKAR=0.0
+      XCDOPPB=0.0
+      XCDOPPM=0.0
+      XCDOPSL=0.0
+      XCDORRB=0.0
+      XCDORRM=0.0
+      XCDOSAT=0.0
+      XCDOTRN=0.0
+! End dissolved carbon dioxide variables
+! Begin MHK variables SCJ
+    CTMHK=0.0
+    CDSUP=0.0
+    DENMHK=0.0 !DENSITY OF MHK DEVICES (#/CELL)
+    EMHK=0.0 !zero the allocatable arrays for MHK energy generation
+    ESUP=0.0 !zero the allocatable arrays for support energy dissipatio
+    FXMHK=0.0 !X"FORCE" FOR HORIZONTAL ADVECTION CALCULATIONS FROM MHK DEVICE
+    FXMHKE=0.0 !COLUMN X"FORCE" FOR MOMENTUM CALCULATIONS FROM MHK DEVICE
+    FYMHK=0.0 !Y"FORCE" FOR HORIZONTAL ADVECTION CALCULATIONS FROM MHK DEVICE
+    FYMHKE=0.0 !COLUMN Y"FORCE" FOR MOMENTUM CALCULATIONS FROM MHK DEVICE
+    FXSUP=0.0 !X"FORCE" FOR HORIZONTAL ADVECTION CALCULATIONS FROM MHK SUPPORT
+    FXSUPE=0.0 !COLUMN X"FORCE" FOR MOMENTUM CALCULATIONS FROM MHK SUPPORT
+    FYSUP=0.0 !Y"FORCE" FOR HORIZONTAL ADVECTION CALCULATIONS FROM MHK SUPPORT
+    FYSUPE=0.0 !COLUMN Y"FORCE" FOR MOMENTUM CALCULATIONS FROM MHK DEVICE
+    HEIGHTMHK=0.0 !vertical extent of the MHK device
+    HEIGHTSUP=0.0 !vertical extent of the MHK support
+    IJLTURB=0 !
+    PMHK=0.0 !array that accumulates layer-wise MHK power in x direction
+    PSUP=0.0 !array that accumulates layer-wise MHK support power in x direction
+    REFELEV=0.0 !reference elevation for Free Flow Power
+    VMAXCUT=0.0
+    VMINCUT=0.0
+    WIDTHMHK=0.0
+    WIDTHSUP=0.0
+    ZMAXMHK=0.0
+    ZMAXSUP=0.0
+    ZMINMHK=0.0
+    ZMINSUP=0.0
+! End MHK variables SCJ
+END SUBROUTINE VARZEROSNL

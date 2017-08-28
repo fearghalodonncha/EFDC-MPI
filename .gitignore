@@ -1,0 +1,42 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Exclude some specific output files and directories that are not relevant
+*.OUT
+*tar
+*.LOG
+*.nc
+*.DAT
+*.dat
+*.txt
+# restart files which are big
+*.rst
+# it doesn't make sense to have INPUT files on git
+*.INP
