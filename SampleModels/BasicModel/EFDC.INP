@@ -172,7 +172,7 @@ C7 TIME-RELATED INTEGER PARAMETERS
 *  NDRYSTP: MIN NO. OF TIME STEPS A CELL REMAINS DRY AFTER INTIAL DRYING
 *           -NDRYSTP FOR ISDRY=-99 TO ACTIVATE WASTING WATER IN DRY CELLS 
 C7   NTC  NTSPTC    NLTC    NTTC   NTCPP  NTSTBC   NTCNB  NTCVB  NTSMMT  NFLTMT NDRYSTP
-      1   10286       0       0      10       4       0       0     960       1      16
+      12   10286       0       0      10       4       0       0     960       1      16
 -------------------------------------------------------------------------------
 C8 TIME-RELATED REAL PARAMETERS
 *
@@ -1437,7 +1437,7 @@ C71 ISSPH NPSPH ISRSPH ISPHXY
        0       1       0       3    !SAL
        0       1       0       3    !TEM
        0       1       0       3    !DYE
-       0      20       0       3 !EE WC/Sediment Top Layer Flag
+       0       2       0       3 !EE WC/Sediment Top Layer Flag
        0       1       0       3    !TOX
        0       1       0       3    !SED
        0       1       0       3    !SND
@@ -1488,7 +1488,7 @@ C72 CONTROLS FOR HORIZONTAL SURFACE ELEVATION OR PRESSURE CONTOURING
 *          3 WRITES EFDC EXPLORER BINARY FORMAT FILES
 *
 C72 ISPPH NPPPH ISRPPH IPPHXY
-       1      20       0       1
+       1      2       0       1
 -------------------------------------------------------------------------------
 C73 CONTROLS FOR HORIZONTAL PLANE VELOCITY VECTOR PLOTTING
 *
@@ -1503,7 +1503,7 @@ C73 CONTROLS FOR HORIZONTAL PLANE VELOCITY VECTOR PLOTTING
 *          3 WRITES EFDC EXPLORER BINARY FORMAT FILES
 *
 C73 ISVPH NPVPH ISRVPH IVPHXY
-       1      20       0       1
+       1      2       0       1
 -------------------------------------------------------------------------------
 C74 CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING
 *
