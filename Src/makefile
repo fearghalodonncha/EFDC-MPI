@@ -21,7 +21,7 @@ CPPFLAGS =-cpp
 
 # Path to relevant libraries
 # 1) MPI library
-MPICHDIR=/usr/local
+MPICHDIR=/usr
 # 2) NetCDF path
 NCDIR=/usr/local/netcdf
 # 3) Blas library
