@@ -6,6 +6,7 @@ C **  ELEVATION
 C  
       USE GLOBAL
       CHARACTER*80 TITLE  
+      INTEGER*8 TIME
 C  
 C *** EE BEGIN BLOCK  
 C  

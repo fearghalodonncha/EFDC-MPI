@@ -26,7 +26,7 @@ MPICHDIR=/usr
 NCDIR=/usr/local/netcdf
 # 3) Blas library
 #BLAS_PATH = /usr/local/ -lopenblas
-BLAS_PATH=#Don't need it if we don't invoke data assimilation
+BLAS_PATH= # Don't need it if we don't invoke data assimilation
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
@@ -39,7 +39,7 @@ endif
 ifdef NCFLAGS
   CPPFLAGS +=-D$(NCFLAGS)
   F_INC += -I$(NCDIR)/include
-  F_LIB += -L$(NCDIR)/lib -lnetcdf -lnetcdff 
+  F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
 
 OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
@@ -154,7 +154,7 @@ OBJS3 = ACON.o AINIT.o \
 
 #Link all objects
 $(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)
-	$(FC) $(LFLAGS) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  -o $(PROG)
+	$(FC) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  $(LFLAGS) -o $(PROG)
 
 #Compile subroutines and modules
 $(MODULESF90): %.o: %.f90

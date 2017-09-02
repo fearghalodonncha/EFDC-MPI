@@ -185,7 +185,8 @@ CONTAINS
              wx_coordid,wy_coordid,airtemp_varid, &
              wvel_varid, & 
              fileloop, dimids_wind(3), wx_dimid,wy_dimid, & 
-             unitname,unitname2,unitname3,unitname4,unitname5  ! file id idents
+             unitname,unitname2,unitname3,unitname4,unitname5, &  ! file id idents
+             fileid_begin, fileid_end
   REAL:: dimlocs(4),windx_coord(2),windy_coord(2)
 
   ! acFILEEXT for allocatable arrays based on
@@ -364,7 +365,7 @@ TIMEFILE= 0
   MAP_6(:,:) =-9999.
  DO TIMESTEP = 1,NTIME
   unitname = 300
- 
+  fileid_begin = unitname
     iib =0
     write(*,*) Timestep,'noreencheckoct no ramp up'
     DO FILELOOP = 1, NPRX*NPRY
@@ -411,64 +412,10 @@ TIMEFILE= 0
         END DO
       END IF
 
-      IF (FLIU ) THEN
-       unitname = unitname  + 1
-        FILE_IN(fileloop)= 'RUNOFF_WIND'//FILEEXT(iib)//'.OUT'
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA
-        Read(unitname,*)
-        READ(unitname,*) windx,windy,temp_air
-        temp_air = temp_air + 273.15 ! convert to kelvin
-        DO i=1,LA
-          READ(unitname,*)ik, jk, runoff   ! read dye  
-          map_6(ik,jk)= runoff
-        END DO
-      END IF
-
-      IF (DTFLAG) THEN ! READ AND OUTPUT VERTICAL VELOCITY
-        UNITNAME = UNITNAME + 1
-        FILE_IN(fileloop)= 'VELVERT'//FILEEXT(iib)//'.OUT' 
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA
-        DO i=2,LA
-          READ(unitname,*)IL,JL ,ik, jk, (temp_conc(ii),ii=1,nvars)  ! read vertvel
-          map_vv(ik,jk,:)= temp_conc(1:nvars)          ! w velocity   | map to
-        END DO
-      END IF  
-
 333 continue
     END DO  ! END loop on files (i.e. across all partitions 
     IIB = 0
-! Loop through all output files and delete
-    DO FILELOOP = 1, NPRX*NPRY
-      IIB = IIB +1
-      unitname = unitname  + 1
-      FILE_IN(fileloop)= 'TEMCONH'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
-
-      FILE_IN(fileloop)= 'VELVECH'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
-      FILE_IN(fileloop)= 'VELVERT'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
- 
-      FILE_IN(fileloop)= 'DYECONH'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
- 
-      FILE_IN(fileloop)= 'SURFCON'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
-
-      FILE_IN(fileloop)= 'RUNOFF_WIND'//FILEEXT(iib)//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='unknown')
-      CLOSE(unitname,STATUS='DELETE')
-    END DO
-
-
-
+    fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
 
 !  sanity check
     
@@ -540,8 +487,6 @@ TIMEFILE= 0
   call check_nf90( nf90_def_dim(ncid, LON_NAME, NLONS, lon_dimid) )
   call check_nf90( nf90_def_dim(ncid, LAT_NAME, NLATS, lat_dimid) )
   call check_nf90( nf90_def_dim(ncid, REC_NAME, NF90_UNLIMITED, time_dimid) )
-  call check_nf90( nf90_def_dim(ncid, WX_NAME, NWINDX, wx_dimid) )
-  call check_nf90( nf90_def_dim(ncid, WY_NAME, NWINDY, wy_dimid) )
  
   ! Assign units attributes to coordinate variables.
   call check_nf90( nf90_def_var(ncid, LVL_NAME, NF90_INT, lvl_dimid, lvl_varid) )
@@ -553,19 +498,12 @@ TIMEFILE= 0
   call check_nf90( nf90_put_att(ncid, lon_varid, UNITS, LON_UNITS) )
   call check_nf90( nf90_put_att(ncid, lat_varid, UNITS, LAT_UNITS) )
 
-! Need to define Mesh for winds as well
-! Initially just assign corners of finer mesh
-   call check_nf90( nf90_def_var(ncid, WX_NAME, NF90_REAL8, wx_dimid, wx_coordid) ) 
-   call check_nf90( nf90_def_var(ncid, WY_NAME, NF90_REAL8, wy_dimid, wy_coordid) ) 
-   call check_nf90( nf90_put_att(ncid, wx_coordid, UNITS, "m") )    ! mesh units is same as for EFDC model grid
-   call check_nf90( nf90_put_att(ncid, wy_coordid, UNITS, "m") )
   ! The dimids array is used to pass the dimids of the dimensions of
   ! the netCDF variables. Both of the netCDF variables we are creating
   ! share the same four dimensions. In Fortran, the unlimited
   ! dimension must come last on the list of dimids.
   dimids =  (/ lon_dimid, lat_dimid, lvl_dimid, time_dimid/)
   dimids_2d =  (/ lon_dimid, lat_dimid, time_dimid/)
-  dimids_wind = (/wx_dimid,wy_dimid,time_dimid/)
   ! Define the netCDF variables for the pressure and temperature data.
 ! call check( nf90_put_att(ncid, nf90_global, "HISTORY"))  
 ! add details to file on variables
@@ -615,52 +553,6 @@ TIMEFILE= 0
     call check_nf90( nf90_put_att(ncid, elev_varid, UNITS, elev_units) )
   END IF
 
-  IF (FLIU ) THEN
-    call check_nf90( nf90_def_var(ncid, "stream_runoff", nf90_real, dimids_2d, runoff_varid) )
-    call check_nf90( nf90_put_att(ncid, runoff_varid, "_FillValue",FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, runoff_varid, "coordinates", "X Y time") )
-    call check_nf90( nf90_put_att(ncid, runoff_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, runoff_varid,"long_name","Stream_flow_inflows") )
-    call check_nf90( nf90_put_att(ncid, runoff_varid, "standard_name", "stream_inflow") )
-    call check_nf90( nf90_put_att(ncid, runoff_varid, UNITS, "m^3/sec") )
-  END IF
-
-  IF (DTFLAG) THEN
-    call check_nf90( nf90_def_var(ncid, "w", NF90_REAL, dimids, wvel_varid) )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, "long_name", "w_velocity") )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, "standard_name", "vertical_water_velocity") )
-    call check_nf90( nf90_put_att(ncid, wvel_varid, UNITS, uvel_units) )
-  END IF
-
-  call check_nf90( nf90_def_var(ncid, "wind_x", nf90_real,dimids_wind,  wx_varid) )
-  call check_nf90( nf90_put_att(ncid, wx_varid, "_FillValue",FillValue_real) )
-  call check_nf90( nf90_put_att(ncid, wx_varid, "coordinates", "WX WY time") )
-  call check_nf90( nf90_put_att(ncid, wx_varid, "grid_mapping", "transverse_mercator") )
-  call check_nf90( nf90_put_att(ncid, wx_varid,"long_name","x-component_wind_used_to_drive_model") )
-  call check_nf90( nf90_put_att(ncid, wx_varid, "standard_name", "x-direction_wind_speed") )
-  call check_nf90( nf90_put_att(ncid, wx_varid, UNITS, "m/sec") )
-
-
-  call check_nf90( nf90_def_var(ncid, "air_temp", nf90_real,time_dimid,  airtemp_varid) )
-  call check_nf90( nf90_put_att(ncid, airtemp_varid, "_FillValue",FillValue_real) )
-  call check_nf90( nf90_put_att(ncid, airtemp_varid, "coordinates", "time") )
-  call check_nf90( nf90_put_att(ncid, airtemp_varid,"long_name","2m_height_air_temperature") )
-  call check_nf90( nf90_put_att(ncid, airtemp_varid, "standard_name", "air_temperature") )
-  call check_nf90( nf90_put_att(ncid, airtemp_varid, UNITS, temp_units) )
-
-
-  call check_nf90( nf90_def_var(ncid, "wind_y", nf90_real,dimids_wind,  wy_varid) )
-  call check_nf90( nf90_put_att(ncid, wy_varid, "_FillValue",FillValue_real) )
-  call check_nf90( nf90_put_att(ncid, wy_varid, "coordinates", "WX WY time") )
-  call check_nf90( nf90_put_att(ncid, wy_varid, "grid_mapping", "transverse_mercator") )
-  call check_nf90( nf90_put_att(ncid, wy_varid,"long_name","y-component_wind_used_to_drive_model") )
-  call check_nf90( nf90_put_att(ncid, wy_varid, "standard_name", "y-direction_wind_speed") )
-  call check_nf90( nf90_put_att(ncid, wy_varid, UNITS, "m/sec") )
-
-
   call check_nf90( nf90_put_att(ncid, lon_varid, "axis", "X") )
   call check_nf90( nf90_put_att(ncid, lon_varid, "grid_spacing", trim(grid_x)))
   call check_nf90( nf90_put_att(ncid, lon_varid, "long_name", "x_projection_of_coordinate") )
@@ -685,18 +577,6 @@ TIMEFILE= 0
   call check_nf90( nf90_put_att(ncid, time_varid, "calendar", "standard" ))
   call check_nf90( nf90_put_att(ncid, time_varid, "long_name", "time") )
   call check_nf90( nf90_put_att(ncid, time_varid, UNITS, trim(timeorigin)) )
-
-
-  call check_nf90( nf90_put_att(ncid, wx_coordid, "axis", "X") )
-  call check_nf90( nf90_put_att(ncid, wx_coordid, "grid_spacing", trim(wind_grid_x)))
-  call check_nf90( nf90_put_att(ncid, wx_coordid, "long_name", "x_projection_of_coordinate") )
-  call check_nf90( nf90_put_att(ncid, wx_coordid, "standard_name", "projection_x_coordinate") )
-
-
-  call check_nf90( nf90_put_att(ncid, wy_coordid, "axis", "Y") )
-  call check_nf90( nf90_put_att(ncid, wy_coordid, "grid_spacing", trim(wind_grid_y)))
-  call check_nf90( nf90_put_att(ncid, wy_coordid, "long_name", "y_projection_of_coordinate") )
-  call check_nf90( nf90_put_att(ncid, wy_coordid, "standard_name", "projection_y_coordinate") )
 
 
 
@@ -735,28 +615,17 @@ TIMEFILE= 0
 ! End define mode.
   call check_nf90( nf90_enddef(ncid) )
 
-windx_arr(:,:) = windx; windy_arr(:,:) = windy   ! Place wind in simple 2x2 array in prep for future when winds on a mesh
-windx_coord(1)  = EASTING(1); windx_coord(2) = EASTING(NLONS) 
-windy_coord(1)  = NORTHING(1); windy_coord(2) = NORTHING(NLATS)
-
 
 ! Beging put variables mode
   call check_nf90( nf90_put_var(ncid, lvl_varid, lvls) )       ! Sigma levels 
   call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! EASTING
   call check_nf90( nf90_put_var(ncid, lat_varid, Northing) )   ! Northing
-  call check_nf90( nf90_put_var(ncid, wx_coordid, windx_coord) )   ! Northing
-  call check_nf90( nf90_put_var(ncid, wy_coordid, windy_coord ) )  ! Northing
   call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
   call check_nf90( nf90_put_var(ncid, uvel_varid, MAP_1))    ! u velocity
   call check_nf90( nf90_put_var(ncid, vvel_varid, MAP_2))    ! v velocity
-  IF (DTFLAG)  call check_nf90( nf90_put_var(ncid, wvel_varid, MAP_VV))    ! w velocity
   IF (ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, MAP_3))    ! temperature data
   IF (ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, MAP_4))     ! dye data
   IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, MAP_5))     ! elevation data
-  IF (FLIU)  call check_nf90( nf90_put_var(ncid, runoff_varid, MAP_6))     ! runoff data
-  call check_nf90( nf90_put_var(ncid, wx_varid, windx_arr))     ! wind data x
-  call check_nf90( nf90_put_var(ncid, wy_varid, windy_arr))     ! wind data y
-  call check_nf90( nf90_put_var(ncid, airtemp_varid, temp_air))     ! Air temperature
 
 
 
@@ -781,6 +650,16 @@ windy_coord(1)  = NORTHING(1); windy_coord(2) = NORTHING(NLATS)
 
  end do
   print *, "*** SUCCESS writing example file netcdf__n! "
+
+  
+! Loop through all output files and delete
+! This gets rid of all original EFDC files VELVECH##.OUT, TEMCONH##.OUT, etc
+    DO FILELOOP = fileid_begin, fileid_end
+       CLOSE(FILELOOP,STATUS='DELETE')
+    END DO    
+
+
+
 END SUBROUTINE ASCII2NCF
 
   subroutine check_nf90(status)

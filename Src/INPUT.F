@@ -192,7 +192,7 @@ C8**  READ TIME-RELATED REAL PARAMETERS
         END IF
       ELSE
         TBEGIN = TINPUT
-        YEAR_REF = 2000 ! default
+        YEAR_REF = 2017 ! default
       END IF
 1111   FORMAT('SIMULATION BEGINS FOR DATE: ',I0.4,'-',I0.2,'-',I0.2)
    
