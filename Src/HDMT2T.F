@@ -1536,7 +1536,7 @@ C**********************************************************************C
 
       IF (IDA_FLAG == 1) THEN ! DATA ASSIMILATION ACTIVE
         IF (NDATA_ASSIM == N) THEN ! IF TIME = DATA ASSIMILATION STEP BASED ON FREQ
-          CALL DA_INI
+!          CALL DA_INI
           NDATA_ASSIM = NDATA_ASSIM + (DAFREQ * 3600/DT)
          END IF
       END IF

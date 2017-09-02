@@ -25,8 +25,8 @@ MPICHDIR=/usr/local
 # 2) NetCDF path
 NCDIR=/usr/local/netcdf
 # 3) Blas library
-BLAS_PATH = /usr/local/ -lopenblas
-
+#BLAS_PATH = /usr/local/ -lopenblas
+BLAS_PATH=#Don't need it if we don't invoke data assimilation
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
@@ -89,10 +89,7 @@ OBJS1 = diagnostics.o \
 	structident.o \
         date_time.o \
         time2year.o \
-        codarname.o \
-        data_assim_init.o \
-        data_assim.o \
-        data_assim_library.o
+        codarname.o 
 #Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \
