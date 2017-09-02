@@ -1,0 +1,8 @@
+*  SHOW.INP FILE, IN FREE FORMAT ACROSS LINE
+*
+*  NSTYPE    NSHOWR    ISHOWC   JSHOWC
+*
+*  ZSSMIN    ZSSMAX    SSALMAX
+*
+       3   20000       8      28    1000
+    -500    1000    1000

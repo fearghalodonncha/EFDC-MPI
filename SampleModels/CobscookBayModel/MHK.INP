@@ -1,0 +1,66 @@
+C  MHK.INP file, in free format across line,  
+C  
+C  NMHKTYPE is the number of MHK types  
+C  NFLAGPWR is a flag to indicate power curve calculation type (1=calculate from ~cube of velocity, 2=user-defined power curve)  
+C  UPSTREAM is a flag to indicate if you use the velocity in the cell of the MHK (0) or upstream of it (1)  
+C  OUTPUTFLAG (see below)  
+C  
+C  If NFLAGPWR=1 then input NMHKTYPE lines of the following variables:  
+C  WIDTHMHK is the width of MHK device type  
+C  WIDTHSUP is the width of MHK support structure type  
+C  BOFFMHK is the bottom offset of the MHK device type (how far from the bottom)  
+C  BOFFSUP is the bottom offset of the MHK support structure type  
+C  TOFFMHK is the top offset of the MHK device type  
+C  TOFFSUP is the top offset of the MHK support structure type  
+C  CTMHK is the thrust coefficient of MHK device type  
+C  CDSUP is the coefficient of power dissipation of MHK support structure type  
+C  VMINCUT is the minimum velocity cut-in for MHK device type power curve  
+C  VMAXCUT is the maximum velocity cut-out for MHK device type power curve  
+C  DENMHK is the number of MHK devices in a cell  
+C  
+C  If NFLAGPWR=2 then input NMHKTYPE entries of the following variables:  
+C  NPWRCRV is the number of points on user-defined power curve, by device type  
+C  VPWRCRV is the velocity value on user-defined power curve  
+C  PPWRCRV is the corresponding power dissipation value on user-defined power curve  
+C  
+C NMHKTYPE NFLAGPWR UPSTREAM OUTPUTFLAG  
+C   (-)       (-)     (-)        (-)  
+C WIDTHMHK WIDTHSUP BOFFMHK BOFFSUP TOFFMHK TOFFSUP CTMHK CDSUP VMINCUT VMAXCUT DENMHK  
+C   (m)      (m)      (m)     (m)     (m)     (m)    (-)   (-)   (m/s)   (m/s)    (-)  
+     5         1       1          0  
+    30.28     3.0    9.0      0.0    13.3     11.2    0.8   1.2     0.0    2.7    1.0  
+    30.28     3.0    9.0      0.0    13.3     11.2    0.8   1.2     0.0    2.7    1.0  
+    30.28     3.0    9.0      0.0    13.3     11.2    0.8   1.2     0.0    2.7    1.0  
+    30.28     3.0    9.0      0.0    13.3     11.2    0.8   1.2     0.0    2.7    1.0  
+    30.28     3.0    9.0      0.0    13.3     11.2    0.8   1.2     0.0    2.7    1.0      
+C BETAMHK_P BETAMHK_D CE4MHK PBCOEF these are turbulence coefficients that can be calibrated Rethore et al 2009 and Katul et al 2004  
+  0.05      2.5       10     30  
+C NPWRCRV  
+C   (-)  
+C    5  
+C    6  
+C VPWRCRV PPWRCRV  
+C  (m/s)  (Watts)  
+C   0.0     0.0  
+C   0.5     0.0  
+C   1.0    1.0e4  
+C   2.0    1.0e5  
+C   3.0    1.0e6  
+C  
+C   0.0     0.0  
+C   0.5     0.0  
+C   1.0    1.0e4  
+C   2.0    1.0e5  
+C   2.5    1.0e6  
+C   3.0    5.0e6  
+OUPTPUT FLAG  
+0 - no specific output  
+1 - energy fluxes across a transvers section upstream and downstream of a device for a W-2-E flow in a straight channel  
+2 - average velocity and the z-profile for the tidal reference model at the throat  
+3 - average velocity and surface velocity for the river reference model  
+4 - outputs for straight0channel calibration model of wake structure  
+   
+   
+   
+   
+   

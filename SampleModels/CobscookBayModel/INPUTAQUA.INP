@@ -1,0 +1,23 @@
+ameters related to implementation of aquaculture structure  
+C01 MUSSEL DROPPER MODIFICATION PARAMETER  
+  
+*  AQUAINCL: TO IMPLEMENT MUSSEL DROPPER RESISTANCE 1=YES; 0=N  
+*  AQUADIAM: MUSSEL DROPPER DIAMETER  
+*  AQUADEN:  NUMBER OF DROPPERS PER SQUARE METRE =(AREA/SPACX*SPACY) A1=200;A2=133.3;A3=200;A4=5  
+*  HAQUA: Height of Aquaculture installations (distance from surface  
+C01 AQUAINCL QUADIAM  AQUADEN    HAQUA  
+    1        0.16    0.425       6  
+------------------------------------------------------------------------------  
+C02 MUSSEL DROPPER TURBULENCE MODIFICATION PARAMETER  
+*  AQUATURB: TO IMPEMENT MUSSEL DROPPER TURBULENCE EFFECT 1=YES; 0=N  
+*  BETADRP_P:  EFFICIENCY OF THE PRODUCTION OF THE ENERGY OF TURBULENCE  (1.2) \   values fro  
+*  BETADRP_D:  EFFICIENCY OF DISSIPATION OF TURBULET LENGTH SCALE        (5.1)  == Katul et al. 200  
+*  CE4DRP_D:   TURBULENCE WEIGHTING COEFFICIENT                          (0.9)   
+C92  AQUATURB   BETADRP_P  BETADRP_D CE4DRP   
+       1        1.        1.      1.064
+---------------------------------------------------------------------------  
+AQUADRAG: MUSSEL CYLINDER DRAG COEFFICIENT (=0.8-2.0) FOR EACH LAYER FROM K=1,K  
+1.0  1.0   1.0  1.0  1.0   1.0  1.0  1.0   1.0  1.  
+1.0  1.0   1.0  1.0  1.0   1.0  1.0  1.0   1.0  1.  
+1.0  1.0   1.0  1.0  1.0   1.0  1.0  1.0   1.0  1.  
+1.0  1.0   1.0  1.0  1.0   1.0  1.0  1.0   1.0  1.  

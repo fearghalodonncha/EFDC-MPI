@@ -37,6 +37,4 @@
 *.dat
 *.txt
 # restart files which are big
-*.rst
 # it doesn't make sense to have INPUT files on git
-*.INP
