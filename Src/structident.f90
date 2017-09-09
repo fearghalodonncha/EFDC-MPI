@@ -76,17 +76,7 @@ ISTRUCT =0; JSTRUCT=0;
          END DO
       END DO
  end if
-    L = LIJ(XLOC(142),YLOC(130))
-!     L = LIJ(XLOC(42),YLOC(6))
-    temp = 0
-         hdef = HMP(L) * DZC(KC) * (-0.5)  
-    do k = KC,1,-1
-	    hdef = hdef + HMP(L) *DZC(K)   ! depth of canopy from surface 
-            canrat = hdef/(HAQUA)          ! HAQUA = height of canopy
-     if (sum(drprdrg(L,:)) > 0) write(*,*) 'DRP DRAG = ',L,K,DRPRDRG(L,K),canrat,hdef,hmp(l)
 
-     temp=temp  + HMP(L) * DZC(K)
-    end do
 END SUBROUTINE structident
 
 

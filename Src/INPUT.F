@@ -3171,10 +3171,12 @@ C
               READ(1,*,IOSTAT=ISO)LDUM,IDUM,JDUM,(CONINIT(K),K=1,KC) 
               I = XLOC(IDUM)
               J = YLOC(JDUM)
-              LMAP = LIJ(I,J)
-              if(lmap >= 2 .and. Lmap<=LA)THEN
-               DYEINIT(LMAP,1:KC) = CONINIT(1:KC) 
-             end if
+              IF (I > 0 .and. I <= IC .and. J > 0 .and. J <=JC) THEN
+                LMAP = LIJ(I,J)
+                if(lmap >= 2 .and. Lmap<=LA)THEN
+                  DYEINIT(LMAP,1:KC) = CONINIT(1:KC) 
+                end if
+              END IF
               IF(ISO.GT.0) GOTO 844  
             ENDDO  
           ENDIF  
