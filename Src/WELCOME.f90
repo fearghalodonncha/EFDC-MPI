@@ -7,6 +7,11 @@ SUBROUTINE WELCOME
   ! 06/25/2006        Paul M. Craig
   !                   Updated Code to Fortran 90
 
+  ! DATE MODIFIED     BY           
+  ! 09/01/2017        Fearghal O'Donncha
+  !                   MPI parallelization and domain decmoposition
+  !                   Modules for assimilation of HF radar data
+
   WRITE(6,1)  
 
 1 FORMAT('***********************************************************************'  &
@@ -31,9 +36,10 @@ SUBROUTINE WELCOME
       ,/,'*                                                                     *'  &  
       ,/,'*     EFDC_DS:  UPDATED AND ENHANCED BY DYNAMIC SOLUTIONS, LLC        *'  &  
       ,/,'*                                                                     *'  &  
-      ,/,'*               EFDC_EXPLORER CUSTOMIZED VERSION                      *'  &  
+      ,/,'*     MPI PARALLELIZATION INTRODUCED BY IBM Research                  *'  &  
       ,/,'*                                                                     *'  &  
-      ,/,'*                  VERSION DATE: 28 OCT 2010                          *'  &  
+      ,/,'*                                                                     *'  &  
+      ,/,'*                  VERSION DATE: 01 SEPT 2017                         *'  &  
       ,/,'*                                                                     *'  &  
       ,/,'***********************************************************************') 
 RETURN  
