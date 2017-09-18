@@ -5,17 +5,20 @@ Created on Wed Sep 6 13:49:11 2017
 
 Synopsis
 
-    TODO contour [-h,--help] [-v,--verbose] [--version]
+    Plotting functions for EFDC output
 
 Description
 
-    TODO This describes how to use this script. This docstring
+    TODO 
+ 
+This describes how to use this script. This docstring
     will be printed by the script if there is an error or
     if the user requests help (-h or --help).
 
 Examples
 
     TODO: Show some examples of how to use this script.
+    sampledata/ 2016-07-10-000000 40 Temperature fig/
 
 Exit Status
 
@@ -43,6 +46,8 @@ import time
 import sys
 from netCDF4 import Dataset
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import warnings
 
@@ -109,7 +114,7 @@ def main():
     y = getcoordinates(dataset)[1]
 
     # create contour plot
-    figfilename = args.outputfiguredir + args.variable + '_contour_' + args.zlayer + '_' + args.datetime + '.pdf'
+    figfilename = args.outputfiguredir + args.variable + '_contour_' + args.zlayer + '_' + args.datetime + '.png'
     makecontourplot(var, x, y, figfilename, True)
 
 
