@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# This script is the run-able quickstart guide for building this project. It
+# assumes you are running on a recent version of Ubuntu or Debian. See the
+# README file if you are using a different distribution.
+
+# install openmpi from ubuntu package manager
+    sudo apt-get install -y libopenmpi-dev openmpi-bin libhdf5-openmpi-dev openmpi-common
+
+# Add NetCDF 
+# 1) We need HDF
+#Required for NetCDF integration; source is supported at http://www.hdfgroup.org/ftp/HDF5/current/src
+
+HDF_VERSION="1.10.1"  
+# Download build and install HDF5
+    mkdir ~/temp
+    cd ~/temp
+    wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-${HDF_VERSION}.tar.bz2; \
+    tar -xjvf hdf5-${HDF_VERSION}.tar.bz2; \ 
+    cd hdf5-${HDF_VERSION}; \
+    ./configure --enable-shared --prefix=/usr/local/hdf5; \
+    make;  \
+    sudo make install; \
+    cd ..;  \
+    rm -rf /hdf5-${HDF_VERSION} /hdf5-${HDF_VERSION}.tar.bz2; 
+
+
+# 2)
+#Build netcdf 
+# First we need to build NetCDF C version 
+# (http://www.unidata.ucar.edu/software/netcdf/docs/getting_and_building_netcdf.html)
+# Download and install netcdf C
+
+   NCD_VERSION="4.3.3.1"
+   wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-${NCD_VERSION}.tar.gz;  
+   tar -xzvf netcdf-${NCD_VERSION}.tar.gz; 
+   cd netcdf-${NCD_VERSION}; 
+   ./configure --prefix=/usr/local/netcdf CC=gcc LDFLAGS=-L/usr/local/hdf5/lib CFLAGS=-I/usr/local/hdf5/include; 
+   make ; 
+   sudo make install; 
+   cd .. ;
+   rm -rf netcdf-${NCD_VERSION} netcdf-${NCD_VERSION}.tar.gz
+
+# 3) Build NetCDF fortran version
+# (http://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html)
+# Download and install NetCDF fortran
+     NCF_VERSION="4.4.2"
+     wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-fortran-${NCF_VERSION}.tar.gz; 
+     tar -xzvf netcdf-fortran-${NCF_VERSION}.tar.gz;  
+     cd netcdf-fortran-${NCF_VERSION}; 
+    ./configure --prefix=/usr/local/netcdf  --disable-fortran-type-check CC=gcc FC=gfortran  LDFLAGS=-L/usr/local/netcdf/lib CFLAGS=-I/usr/local/netcdf/include; 
+     make ;  
+     sudo make install; 
+     cd ..  
+     rm -rf netcdf-fortran-${NCF_VERSION}  netcdf-fortran-${NCF_VERSION}.tar.gz
+
+
