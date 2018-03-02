@@ -1,5 +1,5 @@
 # EFDC-MPI
-This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. 
+This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC) (https://www.epa.gov/exposure-assessment-models/efdc), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. 
 
 Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows
 

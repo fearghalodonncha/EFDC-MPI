@@ -21,17 +21,17 @@ CPPFLAGS =-cpp
 
 # Path to relevant libraries
 # 1) MPI library
-MPICHDIR=/usr
+MPICHDIR=/home/fearghal/local/mpich
 # 2) NetCDF path
-NCDIR=/usr/local/netcdf
+NCDIR=/home/fearghal/local/netcdf
 # 3) Blas library
 #BLAS_PATH = /usr/local/ -lopenblas
-BLAS_PATH= # Don't need it if we don't invoke data assimilation
+BLAS_PATH= /usr/local/OpenBLAS# Don't need it if we don't invoke data assimilation
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
 ifdef MPIFLAGS
-  FC=$(MPICHDIR)/bin/mpif90
+  FC=$(MPICHDIR)/bin/mpif90 -g -fbacktrace
   F_LIB = -L$(MPICHDIR)/lib
   F_INC = -I$(MPICHDIR)/include 
   CPPFLAGS +=-D$(MPIFLAGS)
@@ -42,11 +42,12 @@ ifdef NCFLAGS
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
 
-OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
+OPTMZ = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
 OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
 
 # This is for Data Assimilation operations
-F_LIB += $(BLAS_PATH)
+F_LIB += -L$(BLAS_PATH)/lib -lopenblas -L/usr/lib64 -llapack
+F_INC += -I$(BLAS_PATH)/include
 
 ###########################
 #####  LINKING FLAGS
@@ -78,18 +79,21 @@ OBJS1 = diagnostics.o \
 	s_sedic.o \
 	s_sedzlj.o \
 	s_shear.o \
-        s_slope.o \
+    s_slope.o \
 	tecplot.o \
 	VARZEROReal.o \
 	VARZEROInt.o \
-        VARZEROSNL.o \
+    VARZEROSNL.o \
 	WELCOME.o \
-        read_lorp.o \
+    read_lorp.o \
 	RESIDENCEPLOT.o \
 	structident.o \
-        date_time.o \
-        time2year.o \
-        codarname.o 
+    date_time.o \
+    time2year.o \
+    codarname.o \
+    data_assim_init.o \
+    blue_comp.o \
+    data_assim_submodules.o
 #Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \

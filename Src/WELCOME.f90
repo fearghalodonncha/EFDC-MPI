@@ -26,18 +26,17 @@ SUBROUTINE WELCOME
       ,/,'*      EEEEEEEEE    FFF          DDDDDDDDDD      CCCCCCCCC            *'  &  
       ,/,'*                                                                     *'  &  
       ,/,'*                                                                     *'  &  
-      ,/,'*                                                                     *'  &  
       ,/,'*                  ENVIRONMENTAL FLUID DYNAMICS CODE                  *'  &  
       ,/,'*                  DEVELOPED BY JOHN M. HAMRICK                       *'  &  
       ,/,'*                                                                     *'  &  
       ,/,'*     EFDC AND "ENVIRONMENTAL FLUID DYNAMICS CODE" ARE TRADEMARKS     *'  &  
-      ,/,'*     OF JOHN M. HAMRICK                                              *'  &  
+      ,/,'*     OF JOHN M. HAMRICK                                              *'  &
+      ,/,'*                                                                     *'  &
+       ,/,'*    EFDC_DS:  UPDATED AND ENHANCED BY DYNAMIC SOLUTIONS, LLC        *'  &
       ,/,'*                                                                     *'  &  
-      ,/,'*                                                                     *'  &  
-      ,/,'*     EFDC_DS:  UPDATED AND ENHANCED BY DYNAMIC SOLUTIONS, LLC        *'  &  
-      ,/,'*                                                                     *'  &  
-      ,/,'*     MPI PARALLELIZATION INTRODUCED BY IBM Research                  *'  &  
-      ,/,'*                                                                     *'  &  
+      ,/,'*     EFDC_MPI - DEVELOPED BY IBM RESEARCH IRELAND                    *'  &
+      ,/,'*                                                                     *'  &
+      ,/,'*         CONTACT: FEARGHAL O DONNCHA (feardonn@ie.ibm.com)           *'  &
       ,/,'*                                                                     *'  &  
       ,/,'*                  VERSION DATE: 01 SEPT 2017                         *'  &  
       ,/,'*                                                                     *'  &  

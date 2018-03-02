@@ -28,6 +28,11 @@
 *.out
 *.app
 
+# OS and IDE
+*.vagrant/
+*.cproject
+*.project
+
 # Exclude some specific output files and directories that are not relevant
 *.OUT
 *tar

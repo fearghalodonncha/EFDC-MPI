@@ -367,7 +367,7 @@ TIMEFILE= 0
   unitname = 300
   fileid_begin = unitname
     iib =0
-    write(*,*) Timestep,'noreencheckoct no ramp up'
+    write(*,*) 'write file number ', Timestep,'of ', NTIME
     DO FILELOOP = 1, NPRX*NPRY
       IIB = IIB +1
       IF (DOMAINID(FILELOOP) == -1) GOTO 333  ! skip partitions that didn't write

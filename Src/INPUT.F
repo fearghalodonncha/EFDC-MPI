@@ -4750,26 +4750,29 @@ C
           READ(100,*) ! SKIP HEADER FILES
         END DO
         READ(100,*) STRING_DESCR, IDA_FLAG
+        write(*,*) 'IDAFLAG =', IDA_FLAG
         IF (IDA_FLAG ==1) THEN
-          READ(100,*) STRING_DESCR, NDA_POINTS ! number of data assimilation locations
-          DO NPTS = 1,NDA_POINTS
-            READ(100,*) STRING_DESCR, IPT1, JPT1 ! Global I,J coordinates of data assimilation
-            I1 = XLOC(IPT1); J1 = YLOC(JPT1)  ! Convert the I,J of VP2 to MPI local
-            IF (I1 > 0 .AND. I1 <= IC) THEN  ! Check that the point is within
-              IF (J1 >0 .AND. J1 <= JC) THEN ! subdomain boundaries
-                VP_I(NPTS) = I1; VP_J(NPTS) = J1
-              END IF
-            END IF
-          END DO
-          READ(100,*) STRING_DESCR, DAINFLUENCE  ! Number of cells either side to which data assimilation applied (+-I,J)
+          write(*,*) 'Data assimilation invoked, read configurations from file DA.INP'
+          READ(100, *)  ! Skip 2 lines
+          READ(100, *)
+          READ(100,*) STRING_DESCR, IBEG_DA    !   \
+!          write(*,*)  STRING_DESCR, IBEG_DA
+          READ(100,*) STRING_DESCR, IEND_DA    !    \ SPATIAL EXTENTS OF
+          READ(100,*) STRING_DESCR, JBEG_DA    !    / THE DA ROUTINE
+          READ(100,*) STRING_DESCR, JEND_DA    !   /  (RECTANGULAR GRID)
+          READ(100,*) STRING_DESCR, NDAPOINTS  !  NUMBER OF EFDC GRID POINTS TO ASSIMILATE
           READ(100,*) STRING_DESCR, DAFREQ
+
+          write(*,*) 'DAFREQ = ', DAFREQ
 C **  BASED ON DAFREQ COMPUTE TIMESTEP FREQUENCY TO CALL DATA ASSIMILATION
           NDATA_ASSIM = DAFREQ * 3600/DT  ! DA FREQUENCY PER HOUR
           READ(100,*)
           READ(100,*) STRING_DESCR, PMATRIX_R1
           READ(100,*) STRING_DESCR, PMATRIX_R2
-          READ(100,*) STRING_DESCR, PMATRIX_R3
           READ(100,*) STRING_DESCR, PMATRIX_A
+          ALLOCATE(IBLUE(NDAPOINTS))
+          ALLOCATE(JBLUE(NDAPOINTS))
+          ALLOCATE(LBLUE(NDAPOINTS))
         END IF
       END IF
 !
