@@ -443,48 +443,45 @@ C ** to child partition
       USE mpi
       USE GLOBAL
 
-      INTEGER IPOINT(LCM),JPOINT(LCM)  ! FOR CONVENINECE SIMPLY OVERSUBSCRIBE
-      II = 0
+      INTEGER IPOINT(GNX*GNY),JPOINT(GNX*GNY)  ! FOR CONVENINECE SIMPLY OVERSUBSCRIBE
+      NPTS_TOT = 0
       ! BASED ON THE CONFIGURATION OF THE CHESAPEAKE BAY HFR SETUP
       ! THEN ASSIMILATION IS WITHIN A RECTANGULAR GRID BETWEEN
       ! COORDINATES [157, 50] and [260, 149]
-      DO  I = 157,260
-        DO J = 50,149
-          ii = ii + 1
-          IPOINT(II) = I   ! GLOBAL COORDINATES FOR DA
-          JPOINT(II) = J
+      DO  I = (IBEG_DA), (IEND_DA)
+        DO J = (JBEG_DA), (JEND_DA)
+          NPTS_TOT = NPTS_TOT + 1
+          IPOINT(NPTS_TOT) = I   ! GLOBAL COORDINATES FOR DA
+          JPOINT(NPTS_TOT) = J
         END DO
       ENDDO
 
       II = 0
       ASSIMPOINTS = 0
-      DO L = 1, NDAPOINTS
+      DO L = 1, NPTS_TOT
         III = XLOC(IPOINT(L))  ! LOCAL SUBDOMAIN COORDINATES OF THE DA GRID POINTS
         JJJ = YLOC(JPOINT(L))  ! EXTRACTED ABOVE
         IF ( III.GT.2. AND. III .LT. (IC-1)) THEN
           IF ( JJJ.GT.2. AND. JJJ .LT. (JC-1)) THEN
             IF ( IJCT(III,JJJ) . EQ. 5) THEN
               ASSIMPOINTS = ASSIMPOINTS + 1   ! ASSIMPOINTS COLLECTS NUMBER OF POINTS TO FOR EACH SUBDOMAIN
-              II = ii +1
-              IBLUE(II) = III
-              JBLUE(II) = JJJ
-              LBLUE(II) = LIJ(III,JJJ)
+              IBLUE(ASSIMPOINTS) = III
+              JBLUE(ASSIMPOINTS) = JJJ
+              LBLUE(ASSIMPOINTS) = LIJ(III,JJJ)
             END IF
           END IF
         END IF
       END DO
-
       CALL MPI_ALLREDUCE(ASSIMPOINTS,ASSIMTOTAL,1,MPI_INTEGER,MPI_SUM,EFDC_COMM,IERR)
-      OPEN(16,File='assimmapping'//ans(partid2)//'.csv',status='unknown')
 
-      write(*,*) 'ASSIMTOTAL = ', ASSIMTOTAL, ASSIMPOINTS
 
+      OPEN(333,File='assimmapping'//ans(partid2)//'.csv',status='unknown')
       DO L =1  , Assimpoints
         I = IBLUE(L)
         J = JBLUE(L)
-      write(16,*) I,J,LBLUE(L),XPAR(I),YPAR(J),ASSIMPOINTS,ASSIMTOTAL
+      WRITE(333,*) I,J,LBLUE(L),XPAR(I),YPAR(J),ASSIMPOINTS,ASSIMTOTAL
       END DO
-      close(16)
+      CLOSE(333)
 
       END SUBROUTINE MAPASSIMPOINTS
 

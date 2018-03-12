@@ -4752,7 +4752,7 @@ C
         READ(100,*) STRING_DESCR, IDA_FLAG
         write(*,*) 'IDAFLAG =', IDA_FLAG
         IF (IDA_FLAG ==1) THEN
-          write(*,*) 'Data assimilation invoked, read configurations from file DA.INP'
+          write(*,*) 'DATA ASSIMILATION INVOKED -- READ CONFIGURATIONS FROM FILE DA.INP'
           READ(100, *)  ! Skip 2 lines
           READ(100, *)
           READ(100,*) STRING_DESCR, IBEG_DA    !   \
@@ -4770,6 +4770,7 @@ C **  BASED ON DAFREQ COMPUTE TIMESTEP FREQUENCY TO CALL DATA ASSIMILATION
           READ(100,*) STRING_DESCR, PMATRIX_R1
           READ(100,*) STRING_DESCR, PMATRIX_R2
           READ(100,*) STRING_DESCR, PMATRIX_A
+          READ(100,*) STRING_DESCR, EKPROJ
           ALLOCATE(IBLUE(NDAPOINTS))
           ALLOCATE(JBLUE(NDAPOINTS))
           ALLOCATE(LBLUE(NDAPOINTS))

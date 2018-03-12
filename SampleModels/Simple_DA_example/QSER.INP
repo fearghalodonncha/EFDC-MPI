@@ -1,0 +1,19 @@
+C ** DAKOTA calibration, qser.inp Time Series FILE,  DDD  3/23/2011 5:47:09 PM
+C **
+C **  InType MQSER(NS) TCQSER(NS) TAQSER(NS) RMULADJ(NS) ADDADJ(NS) ICHGQS
+C **
+C **  IF InType.EQ.1 THEN READ DEPTH WEIGHTS AND SINGLE VALUE OF QSER
+C **                      ELSE READ A VALUE OF QSER FOR EACH LAYER
+C **  
+C **  InType=1 Structure
+C **  WKQ(K),K=1,KC
+C **  TQSER(M,NS)    QSER(M,1,NS)          !(MQSER(NS) PAIRS FOR NS=1,NQSER SERIES)
+C **
+C **  InType=0 Structure
+C **  TQSER(M,NS)    (QSER(M,K,NS),K=1,KC) !(MQSER(NS) PAIRS)
+C **
+       0       4   86400       0       1       0       0 ' *** RampedInflow
+     0.000    0.000    0.000    0.000   
+     0.250    9.000    9.000    9.000   
+     0.500    4.500    4.500    4.500   
+     1.000    9.000    9.000    9.000   

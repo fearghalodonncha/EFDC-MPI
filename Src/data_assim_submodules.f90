@@ -8,11 +8,11 @@ SUBROUTINE HMATRIX(NL,NR,CODAR_I,CODAR_J,MODEL_I,MODEL_J,H)
     INTEGER(ip),DIMENSION(NL),INTENT(in) :: MODEL_I,MODEL_J
     INTEGER(ip),DIMENSION(NR),INTENT(in) :: CODAR_I,CODAR_J
     INTEGER(ip),ALLOCATABLE,DIMENSION(:,:) :: C
-    INTEGER(ip),DIMENSION(2*NR,2*NL) :: H
+    INTEGER(ip),INTENT(OUT),DIMENSION(2*NR,2*NL) :: H
 
     INTEGER(ip)I,J
     ALLOCATE(C(NR,NL))
-    H = 0
+    H(:,:) = 0
     DO I = 1,NR
       DO J = 1,NL
         IF (CODAR_I(I) == model_I(J) .AND. CODAR_J(I) == MODEL_J(J)) THEN
@@ -30,14 +30,6 @@ SUBROUTINE HMATRIX(NL,NR,CODAR_I,CODAR_J,MODEL_I,MODEL_J,H)
         END DO
       END DO
 
-
-    !OPEN(343,FILE='TESTh.DAT',STATUS='UNKNOWN')
-
-    do i = 1,2*Nr
-    WRITE(*,1) (H(i,j),j=1,2*NL)
-    end do
-    !close(343)
-    1 FORMAT(16000i1)
 END SUBROUTINE HMATRIX
 
 
@@ -51,33 +43,25 @@ SUBROUTINE PMATRIX(NL,model_i,model_j,P, R1, R2, A)
     REAL(wp),DIMENSION(2*NL,2*NL) :: P
     REAL(wp),ALLOCATABLE,DIMENSION(:,:) :: P1
 
-    n=0
+    N=0
 
-    allocate(P1(NL,NL))
-    do i = 1,NL
-        n=n+1
-        do j =1,NL
-            P1(i,j)=a*exp(-1.* (((model_i(i)-model_i(i+j-n))/R1)**2 + &
-                       ((model_j(i)-model_j(i+j-n))/R2)**2))
-        end do
-    end do
+    ALLOCATE(P1(NL,NL))
+    DO I = 1,NL
+        N=N+1
+        DO J =1,NL
+            P1(I,J)=A*EXP(-1.* ABS(((MODEL_I(I)-MODEL_I(I+J-N))/R1)**2 + &
+                       ((MODEL_J(I)-MODEL_J(I+J-N))/R2)**2))
+        END DO
+    END DO
 
     DO I = 1,NL
       DO J = 1,NL
         P(I,J) = P1(I,J)
-        p(NL+I,NL+J) = P1(I,J)
-        p(NL+I,J) = P1(I,J)
-        p(I,NL+J) = P1(I,J)
+        P(NL+I,NL+J) = P1(I,J)
+        P(NL+I,J) = P1(I,J)
+        P(I,NL+J) = P1(I,J)
       END DO
     END DO
-
-    OPEN(3,FILE='TESTp.DAT',STATUS='UNKNOWN')
-
-    do i = 1,2*NL
-    WRITE(3,*) (P(i,j),j=1,2*NL)
-    end do
-    close(3)
-
 
 END SUBROUTINE PMATRIX
 
@@ -95,12 +79,6 @@ SUBROUTINE RMATRIX(NR,SIGMAU,SIGMAV,R)
         R(I,I) = sigmau(I)
         R(NR+I,NR+I) = sigmav(i)
       END DO
-
-    OPEN(3,FILE='TESTr.DAT',STATUS='UNKNOWN')
-
-    do i = 1,2*NR
-    WRITE(3,*) (R(i,j),j=1,2*NR)
-    end do
 
 END SUBROUTINE RMATRIX
 
@@ -128,13 +106,6 @@ SUBROUTINE HMATRIX_3D(NL,NR,VP_I,VP_J,VP_K,MODEL_I,MODEL_J,MODEL_K,H)
             END IF
         END DO
     END DO
-
-    !OPEN(3,file='testh.dat',status='unknown')
-    !DO I=1,NR
-    !  WRITE(3,1) (H(I,J),J=1,NL)
-    !END DO
-    !CLOSE(3)
-1   FORMAT(16000I1)
 
 END SUBROUTINE HMATRIX_3D
 
@@ -165,11 +136,6 @@ SUBROUTINE PMATRIX_3D(NL,MODEL_I,MODEL_J,MODEL_K,P, &
                 ((MODEL_K(I) - MODEL_K(I+J-N))/R3)**2))
         END DO
     END DO
-!OPEN(3,FILE='testp.dat',STATUS='UNKNOWN')
-!DO I=1,NL
-!  WRITE(3,*) (P(I,J),J=1,NL)
-!END DO
-!CLOSE(3)
 
 END SUBROUTINE PMATRIX_3D
 
@@ -185,12 +151,5 @@ SUBROUTINE RMATRIX_3D(NR,SIGMAT,R)
     DO I=1,NR
         R(I,I) = SIGMAT(I)
     END DO
-
-!OPEN(3,FILE='testr.dat',STATUS='UNKNOWN')
-
-!DO I=1,NR
-!  WRITE(3,*) (R(I,J),J=1,NR)
-!END DO
-!CLOSE(3)
 
 END SUBROUTINE RMATRIX_3D

@@ -1,0 +1,21 @@
+C ** , wser.inp Time Series FILE,  DDD 11/12/2008 00:31:51  
+C **  
+C **  WIND FORCING FILE, USE WITH 7 APRIL 97 AND LATER VERSIONS OF EFDC  
+C **  
+C **  MASER(NW)     =NUMBER OF TIME DATA POINTS  
+C **  TCASER(NW)    =DATA TIME UNIT CONVERSION TO SECONDS  
+C **  TAASER(NW)    =ADDITIVE ADJUSTMENT OF TIME VALUES SAME UNITS AS INPUT TIMES  
+C **  WINDSCT(NW)   =WIND SPEED CONVERSION TO M/SEC  
+C **  ISWDINT(NW)   =DIRECTION CONVENTION  
+C **               0 DIRECTION TO  
+C **               1 DIRECTION FROM  
+C **               2 WINDS IS EAST VELOCITY, WINDD IS NORTH VELOCITY  
+#  EFDC_DS_WIND_HEIGHT: 10.0                                                                         
+#  WINTER_START: 318.                 November 14th                                                                     
+#  WINTER_END: 438.                   March 14th                                                                   
+C **  MASER  TCASER   TAASER  WINDSCT  ISWDINT  
+C **  TASER(M) WINDS(M) WINDD(M)  
+    2   86400     0.       1       2    
+       0.00000   0.0000   5.0000   
+    1000.00000   0.0000   5.0000   
+  

@@ -72,7 +72,6 @@ C       Initialize arrays
 
       IC_POS = 0
       JC_POS = 0
-
       DO ii = 2, XID
          IC_POS = IC_POS + IC_LORP(ii-1) - (2*NGHOST)
       END DO   
@@ -81,7 +80,6 @@ C       Initialize arrays
       END DO   
       DO I=1,IC_GLOBAL
         XLOC(I) = (I + NGHOST ) - IC_POS
-          
       END DO
       DO J = 1,JC_GLOBAL
         YLOC(J) = (J + NGHOST) - JC_POS

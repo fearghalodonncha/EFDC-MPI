@@ -222,11 +222,9 @@ C
 C----------------------------------------------------------------------C  
 C  
       N=-1  
-      IF (NASER.GE.1) THEN 
       ! This call to CALTSXY used primarily to initialize wind
       ! sheltering coefficents. Not needed for DT coupling
-        CALL CALTSXY  
-      END IF
+      CALL CALTSXY
 C  
 C**********************************************************************C  
 C  

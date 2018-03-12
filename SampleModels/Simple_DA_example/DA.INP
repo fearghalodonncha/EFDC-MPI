@@ -1,0 +1,25 @@
+## Data assimilation input file
+## Created by Fearghal O'Donncha (3rd August 2017)
+## feardonn@ie.ibm.com
+
+## File contains configuration information for
+## assimilation of HFR data into EFDC
+## Configured for case study application to Chesapeake Bay
+## File describes an optional flag to switch on/off DA (IDA_FLAG)
+## The spatial extents or domain to which DA applied
+## The frequency of data assimilation (in hours)
+## Data assimilation parameters (PMatrix_R1, PMatrix_R2, PMatrix_R3)
+IDA_FLAG: 1   ! Set to 1 to activate DA, otherwise 0
+# Create the extents of the data assimilation grid for DA
+# (i.e. for HFR the corners of the rectangular grid
+IBEG_DA, 3    # 157     #  Data assimilation applied within    
+IEND_DA, 13    # 260     #  this rectangular domain   
+JBEG_DA, 4    #  50     #  and all HFR observations   
+JEND_DA, 53    # 149     #  within this domain integrated   
+NDAPOINTS: 550  #  NUMBER OF POINTS TO ASSIMILATE 
+DA_FREQ(HOURS): 1  # How frequent to check for observation data
+## DATA Assimilation Tunable parameters
+PMatrix_R1: 3.0     # Extent influence east-west of covariance matrix
+PMatrix_R2: 3.0     # Extent influence north-south of covariance matrix
+PMatrix_A:  3.0     # Magnitude of impact of covariance matrix computation
+EKPROJ: 1           # 0/1 flag which dictates if velocities projected into depth empirically

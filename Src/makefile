@@ -14,24 +14,22 @@ OMP_FLAGS=#  #prescribe key_omp to activate open MP compilation
 HYD_FLAG=key_hyd#    #prescribe key_hyd to activate hybrid MPI/OpenMP compilations
 COMPILER=REL#      #define XLF or GNU compiler
 NCFLAGS=key_ncdf#   #define key_ncdf to activate netcdf read/write
-
+DAFLAG=#
 
 F90 = gfortran
 CPPFLAGS =-cpp
 
 # Path to relevant libraries
 # 1) MPI library
-MPICHDIR=/home/fearghal/local/mpich
+MPICHDIR=/usr
 # 2) NetCDF path
-NCDIR=/home/fearghal/local/netcdf
+NCDIR=/usr/local/netcdf
 # 3) Blas library
-#BLAS_PATH = /usr/local/ -lopenblas
-BLAS_PATH= /usr/local/OpenBLAS# Don't need it if we don't invoke data assimilation
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
 ifdef MPIFLAGS
-  FC=$(MPICHDIR)/bin/mpif90 -g -fbacktrace
+  FC=$(MPICHDIR)/bin/mpif90
   F_LIB = -L$(MPICHDIR)/lib
   F_INC = -I$(MPICHDIR)/include 
   CPPFLAGS +=-D$(MPIFLAGS)
@@ -42,13 +40,15 @@ ifdef NCFLAGS
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
 
-OPTMZ = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
+OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
 OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
 
 # This is for Data Assimilation operations
-F_LIB += -L$(BLAS_PATH)/lib -lopenblas -L/usr/lib64 -llapack
-F_INC += -I$(BLAS_PATH)/include
-
+ifdef DAFLAG
+  BLAS_PATH=/usr/local/OpenBLAS# #Don't need it if we don't invoke data assimilation
+  F_LIB += -L$(BLAS_PATH)/lib -lopenblas -L/usr/lib64 -llapack
+  F_INC += -I$(BLAS_PATH)/include
+end if
 ###########################
 #####  LINKING FLAGS
 ###########################
@@ -79,21 +79,21 @@ OBJS1 = diagnostics.o \
 	s_sedic.o \
 	s_sedzlj.o \
 	s_shear.o \
-    s_slope.o \
+        s_slope.o \
 	tecplot.o \
 	VARZEROReal.o \
 	VARZEROInt.o \
-    VARZEROSNL.o \
+        VARZEROSNL.o \
 	WELCOME.o \
-    read_lorp.o \
+        read_lorp.o \
 	RESIDENCEPLOT.o \
 	structident.o \
-    date_time.o \
-    time2year.o \
-    codarname.o \
-    data_assim_init.o \
-    blue_comp.o \
-    data_assim_submodules.o
+        date_time.o \
+        time2year.o \
+        codarname.o \
+        data_assim_init.o \
+        data_assim.o \
+        data_assim_submodules.o
 #Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \
