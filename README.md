@@ -4,7 +4,7 @@ This repo includes an extended version of the widely used Environmental Fluid Dy
 Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows.
 
 Details on the parallel development of the code are provided here
-[Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X) [pdf](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
+[Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X) [[pdf]](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
 and applications here:
 1) [Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346) [pdf](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
 2) [Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036) [pdf](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
