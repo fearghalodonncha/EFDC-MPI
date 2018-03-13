@@ -47,7 +47,7 @@ To run in parallel (using MPI), execute of form (across 4 compute cores):
 
 $ mpirun -np 4 ./EFDC
 
-Configurations for parallel simulations are defined in LORP.INP which describes the size of each sub-domain for distributed computing. 
+Configurations for parallel simulations are defined in `LORP.INP` which describes the size of each sub-domain for distributed computing. This file is not specified by the user but rather a load balancing algorithm. The number of sub-domains specified in `LORP.INP` must equal the number passed to `mpirun`
 
 A key consideration in parallel simulation of coastal ocean applications is distributing load across processors in a well balanced manner. This consists of ensuring that each sub-domain contains a relatively equal distribution of land/ocean cells (since land cells do not invoke any computational cost).
 
