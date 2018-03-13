@@ -6,9 +6,10 @@ Extensions include capabilities to run in parallel using MPI, netCDF file I/O an
 Details on the parallel development of the code are provided here
 [Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X) [pdf](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
 and applications here:
-[Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346) [pdf](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
-[Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036) [pdf](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
-and [investigating marine renewable energy in cobscook Bay](https://www.sciencedirect.com/science/article/pii/S0960148116308898) [pdf](https://www.researchgate.net/publication/309306783_Modelling_study_of_the_effects_of_suspended_aquaculture_installations_on_tidal_stream_generation_in_Cobscook_Bay)
+1) [Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346) [pdf](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
+2) [Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036) [pdf](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
+and 
+3) [investigating marine renewable energy in cobscook Bay](https://www.sciencedirect.com/science/article/pii/S0960148116308898) [pdf](https://www.researchgate.net/publication/309306783_Modelling_study_of_the_effects_of_suspended_aquaculture_installations_on_tidal_stream_generation_in_Cobscook_Bay)
 
 # Quickstart Guide
 To build the EFDC model, clone this repository and take a peek at `QUICKSTART` (installs netCDF and MPI dependencies). You can directly execute it, given you are running a recent Ubuntu/Debian (and have sudo installed).
@@ -29,7 +30,7 @@ The repo contains two sample model applications in the `SampleModels/` directory
 3) a real-world model of Chesapeake Bay and
 4) a simple harbour channel model with data assimilation
 
-To run either of these examples, copy the `EFDC` executable from the `Src/` directory to the directory containing the `*.INP` files and run the code using ./EFDC
+To run either of these examples, copy the `EFDC` executable from the `Src/` directory to the directory containing the `*.INP` files and run the code using ./EFDC (for serial examples)
 
 # Dependencies
 The dependencies for the EFDC model are NetCDF fortran (details on the installation are provided here https://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html along with the associated dependencies) and mpi (e.g. openmpi (https://www.open-mpi.org/) or mpich (https://www.mpich.org/)). The `Quickstart` file included in the repo installs these on Ubuntu systems.
@@ -46,6 +47,8 @@ To run in parallel (using MPI), execute of form (across 4 compute cores):
 
 $ mpirun -np 4 ./EFDC
 
+Configurations for parallel simulations are defined in LORP.INP which describes the size of each sub-domain for distributed computing. 
+
 A key consideration in parallel simulation of coastal ocean applications is distributing load across processors in a well balanced manner. This consists of ensuring that each sub-domain contains a relatively equal distribution of land/ocean cells (since land cells do not invoke any computational cost).
 
 The repo contains a C++ load balancing algorithm that computes a rectilinear decomposition of a global domain into a number of subdomains in a locally optimal manner
@@ -57,7 +60,9 @@ To build the load balancing module, cd into the `Gorp` directory and compile usi
 Copy the Gorp executable into the same directory containing the input files and execute of form
   $ ./Gorp CELL.INP sc #
 
-where # denotes  the number of subdomains to decompose the problem into (i.e. how many compute cores to distribute the problem over) while 'sc' is appended to the generated LORP file as an identifier. The generated files are of form `LORP_sc_#_v.INP`, `LORP_sc_#_h.INP` and `LORP_sc_#_r.INP` where h, v, and r denote decomposing the domain into balanced horizontal or vertical strips or into cartesian rectilinear domains respectively
+(Note: the CELL.INP header line must accurately specify the I and J extents of the domain as it is read by the load-balancing module).
+
+Where # denotes  the number of subdomains to decompose the problem into (i.e. how many compute cores to distribute the problem over) while 'sc' is appended to the generated LORP file as an identifier. The generated files are of form `LORP_sc_#_v.INP`, `LORP_sc_#_h.INP` and `LORP_sc_#_r.INP` where h, v, and r denote decomposing the domain into balanced horizontal or vertical strips or into cartesian rectilinear domains respectively
 
 Details on the parallel implementation and load balancing module are provided in:
 
