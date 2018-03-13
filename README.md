@@ -4,10 +4,10 @@ This repo includes an extended version of the widely used Environmental Fluid Dy
 Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows.
 
 Details on the parallel development of the code are provided here
-[Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X)[pdf](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
+[Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X) [pdf](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
 and applications here:
-[Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346)[pdf](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
-[Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036)[pdf](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
+[Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346) [pdf](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
+[Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036) [pdf](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
 and [investigating marine renewable energy in cobscook Bay](https://www.sciencedirect.com/science/article/pii/S0960148116308898) [pdf](https://www.researchgate.net/publication/309306783_Modelling_study_of_the_effects_of_suspended_aquaculture_installations_on_tidal_stream_generation_in_Cobscook_Bay)
 
 # Quickstart Guide
@@ -18,19 +18,23 @@ To build the EFDC model, clone this repository and take a peek at `QUICKSTART` (
     $ sudo ./Quickstart
     $ make
 
+If netCDF or MPI libraries are installed in non-standard location, edit makefile to point to the installation path (NCDIR & MPICHDIR respectively).
+
 If you are using a different distribution use your package manager to install all dependencies available. A list of dependencies can be viewed in the Dependencies section of this README.
 
 The repo contains two sample model applications in the `SampleModels/` directory:
 
 1) a simple harbour channel model
 2) a real-world model of Cobscook Bay, ME, USA
+3) a real-world model of Chesapeake Bay and
+4) a simple harbour channel model with data assimilation
 
-To run either of these examples, copy the `EFDC` executable to the directory containing the `*.INP` files and run the code using ./EFDC
+To run either of these examples, copy the `EFDC` executable from the `Src/` directory to the directory containing the `*.INP` files and run the code using ./EFDC
 
 # Dependencies
 The dependencies for the EFDC model are NetCDF fortran (details on the installation are provided here https://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html along with the associated dependencies) and mpi (e.g. openmpi (https://www.open-mpi.org/) or mpich (https://www.mpich.org/)). The `Quickstart` file included in the repo installs these on Ubuntu systems.
 
-If one wishes to use the data assimilation libraries included in this repo then blas linear algebra libraries must be installed (e.g. http://www.openblas.net/).
+If one wishes to use the data assimilation libraries included in this repo then blas linear algebra libraries must be installed (e.g. http://www.openblas.net/) and edit makefile to point to installation path.
 
 Once installed, the makefile included in the Src directory must be edited to point to the path of the MPI and netCDF libraries (`MPICHDIR` and `NCDIR` and `BLAS_PATH` respectively).
 
