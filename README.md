@@ -76,9 +76,11 @@ Extensions to this version of the code include MPI parallelism described in:
 O'Donncha, F, Ragnoli, E. and Suits, F. "Parallelisation study of a three-dimensional environmental flow model." Computers & Geosciences 64 (2014): 96-103.
 
 Inclusion of modules to represent aquaculture structures described in:
+
 O'Donncha, F., Hartnett, M., & Plew, D. R. (2015). Parameterizing suspended canopy effects in a three-dimensional hydrodynamic model. Journal of Hydraulic Research, 53(6), 714-727.
 
 And inclusion of modules to represent marine hydrokinetic structures described in:
+
 O'Donncha, F., James, S. C., & Ragnoli, E. (2017). Modelling study of the effects of suspended aquaculture installations on tidal stream generation in Cobscook Bay. Renewable Energy, 102, 65-76.
 
 # Vagrant example
@@ -91,7 +93,9 @@ Installing Vagrant:
 Download from: https://www.vagrantup.com/downloads.html
 
 After successfully installing vagrant
+
 Run: vagrant plugin install vagrant-vbguest
+
 For Windows - Run: vagrant plugin install vagrant-share --plugin-version 1.1.8
 
 To bring up a Vagrant virtual machine, type:
