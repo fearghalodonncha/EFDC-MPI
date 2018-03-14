@@ -1,4 +1,4 @@
-#Deep Current Makefile
+#EFDC_MPI  Makefile
 #Fearghal O'Donncha <feardonn@ie.ibm.com>
 #August 2nd 2017
 
@@ -6,15 +6,13 @@
 #Compile but don't link (-c)
 CFLAGS = -c
 #Command to create directory for object and executable 
-MKDIR_P = mkdir -p
 
 CPPFLAGS =-cpp
 MPIFLAGS =key_mpi#          # prescribe key_mpi to activate mpi compilation
 OMP_FLAGS=#  #prescribe key_omp to activate open MP compilation
 HYD_FLAG=key_hyd#    #prescribe key_hyd to activate hybrid MPI/OpenMP compilations
-COMPILER=REL#      #define XLF or GNU compiler
 NCFLAGS=key_ncdf#   #define key_ncdf to activate netcdf read/write
-DAFLAG=#
+DAFLAG=TRUE#
 
 F90 = gfortran
 CPPFLAGS =-cpp
@@ -39,16 +37,17 @@ ifdef NCFLAGS
   F_INC += -I$(NCDIR)/include
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
+# This is for Data Assimilation operations
+ifdef DAFLAG
+  BLAS_PATH=/usr/# #Don't need it if we don't invoke data assimilation
+  F_LIB += -L$(BLAS_PATH)/lib -lblas -L/usr/lib64 -llapack
+  F_INC += -I$(BLAS_PATH)/include
+endif
 
+# optimisation flags
 OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
 OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
 
-# This is for Data Assimilation operations
-ifdef DAFLAG
-  BLAS_PATH=/usr/local/OpenBLAS# #Don't need it if we don't invoke data assimilation
-  F_LIB += -L$(BLAS_PATH)/lib -lopenblas -L/usr/lib64 -llapack
-  F_INC += -I$(BLAS_PATH)/include
-end if
 ###########################
 #####  LINKING FLAGS
 ###########################
@@ -94,6 +93,7 @@ OBJS1 = diagnostics.o \
         data_assim_init.o \
         data_assim.o \
         data_assim_submodules.o
+
 #Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \

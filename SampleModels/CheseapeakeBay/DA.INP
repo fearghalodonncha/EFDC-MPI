@@ -12,10 +12,10 @@
 IDA_FLAG: 1
 # Create the extents of the data assimilation grid for DA
 # (i.e. for HFR the corners of the rectangular grid
-IBEG_DA, 157     #  Data assimilation applied within    
-IEND_DA, 260    #  this rectangular domain   
-JBEG_DA, 50      #  and all HFR observations   
-JEND_DA, 149     #  within this domain integrated   
+IBEG_DA, 220    # 157     #  Data assimilation applied within    
+IEND_DA, 230    # 260     #  this rectangular domain   
+JBEG_DA, 120    #  50     #  and all HFR observations   
+JEND_DA, 130    # 149     #  within this domain integrated   
 NDAPOINTS: 5445  #  NUMBER OF POINTS TO ASSIMILATE 
 DA_FREQ(HOURS): 1  # How frequent to check for observation data
 ## DATA Assimilation Tunable parameters

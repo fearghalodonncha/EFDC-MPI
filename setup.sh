@@ -15,6 +15,7 @@ echo "Installing required packages"
     sudo apt-get update -y > /dev/null
     sudo apt-get install automake apt-utils gcc gfortran openssh-server wget python-dev python-numpy python-pip python-matplotlib python-tk git make m4 zlib1g-dev -y > /dev/null
     sudo apt-get install libopenmpi-dev openmpi-bin libhdf5-openmpi-dev openmpi-common -y >  /dev/null
+    sudo apt-get install libblas-dev liblapack-dev -y > /dev/null
     export PATH=$PATH:/usr/bin/
     
 
@@ -75,9 +76,9 @@ sudo pip install -U numpy
 # ------------------------------------------------------------
 # Clone EFDC source code and sample setups
 # ------------------------------------------------------------
-echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/netcdf/lib" >> ~/.profile
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/netcdf/lib
 #mkdir ${HOME}/Tutorial
 #git clone https://github.com/fearghalodonncha/DeepCurrent.git ${HOME}/Tutorial/
 #cd ${HOME}/Tutorial/Src; \
 #make; 
-
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/netcdf/lib" >> /home/vagrant/.bashrc
