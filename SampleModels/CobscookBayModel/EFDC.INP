@@ -217,7 +217,7 @@ C9 SPACE-RELATED AND SMOOTHING  PARAMETERS
 *   
 C  
 C9   KC   IC   JC   LC  LVC ISCO  NDM  LDM  ISMASK  ISPGNS  NSHMAX  NSBMAX    WSMH    WSMB  
-      20  169  199 7443 7441    1    0 7441       0       0       0       0 0.00000 0.00000  
+      20  169  179 7443 7441    1    0 7441       0       0       0       0 0.00000 0.00000  
 -------------------------------------------------------------------------------  
 C10 LAYER THICKNESS IN VERTICAL  
 *  
@@ -1481,8 +1481,8 @@ C71 CONTROLS FOR HORIZONTAL PLANE SCALAR FIELD CONTOURING
 C71 ISSPH NPSPH ISRSPH ISPHXY  
        0       1       0       3    !SAL  
        0       1       0       3    !TEM  
-       1      24       0       1    !DYE  
-       0      24       0       3 !EE WC/Sediment Top Layer Flag  
+       1       1       0       1    !DYE  
+       0       1       0       3 !EE WC/Sediment Top Layer Flag  
        0       1       0       3    !TOX  
        0       1       0       3    !SED  
        0       1       0       3    !SND  
@@ -1533,7 +1533,7 @@ C72 CONTROLS FOR HORIZONTAL SURFACE ELEVATION OR PRESSURE CONTOURING
 *          3 WRITES EFDC EXPLORER BINARY FORMAT FILES  
 *  
 C72 ISPPH NPPPH ISRPPH IPPHXY  
-       1      24       0       1  
+       1      1       0       1  
 -------------------------------------------------------------------------------  
 C73 CONTROLS FOR HORIZONTAL PLANE VELOCITY VECTOR PLOTTING  
 *  
@@ -1548,7 +1548,7 @@ C73 CONTROLS FOR HORIZONTAL PLANE VELOCITY VECTOR PLOTTING
 *          3 WRITES EFDC EXPLORER BINARY FORMAT FILES  
 *  
 C73 ISVPH NPVPH ISRVPH IVPHXY  
-       1      24       0       1  
+       1      1       0       1  
 ------------------------------------------------------------------------------  
 C74 CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING  
 *  
