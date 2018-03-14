@@ -1,7 +1,15 @@
 # EFDC-MPI
-This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC) (https://www.epa.gov/exposure-assessment-models/efdc), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. 
+This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC) (https://www.epa.gov/exposure-assessment-models/efdc), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. It serves as the hydrodynamic core of IBM Research asset DeepCurrent (http://www.research.ibm.com/labs/ireland/research_areas/deep_current.html), focusing on the prediction of environmental conditions in coastal oceans, rivers and lakes.
 
-Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows
+Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows.
+
+Details on the parallel development of the code are provided here
+[Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S009830041300304X) [[pdf]](https://www.researchgate.net/publication/259509004_Parallelization_study_of_a_three-dimensional_environmental_flow_model)
+and applications here:
+1) [Galway Bay](https://www.sciencedirect.com/science/article/pii/S0924796314002346) [[pdf]](https://www.researchgate.net/publication/268207331_Characterizing_observed_circulation_patterns_within_a_bay_using_HF_radar_and_numerical_model_simulations)
+2) [Impeded aquaculture flows](https://www.tandfonline.com/doi/abs/10.1080/00221686.2015.1093036) [[pdf]](https://www.researchgate.net/profile/Fearghal_Odonncha/publication/283438617_Parameterizing_suspended_canopy_effects_in_a_three-dimensional_hydrodynamic_model/links/5a2133b1aca27229a06eb4b0/Parameterizing-suspended-canopy-effects-in-a-three-dimensional-hydrodynamic-model.pdf)
+and 
+3) [investigating marine renewable energy in cobscook Bay](https://www.sciencedirect.com/science/article/pii/S0960148116308898) [[pdf]](https://www.researchgate.net/publication/309306783_Modelling_study_of_the_effects_of_suspended_aquaculture_installations_on_tidal_stream_generation_in_Cobscook_Bay)
 
 # Quickstart Guide
 To build the EFDC model, clone this repository and take a peek at `QUICKSTART` (installs netCDF and MPI dependencies). You can directly execute it, given you are running a recent Ubuntu/Debian (and have sudo installed).
@@ -11,19 +19,23 @@ To build the EFDC model, clone this repository and take a peek at `QUICKSTART` (
     $ sudo ./Quickstart
     $ make
 
+If netCDF or MPI libraries are installed in non-standard location, edit makefile to point to the installation path (NCDIR & MPICHDIR respectively).
+
 If you are using a different distribution use your package manager to install all dependencies available. A list of dependencies can be viewed in the Dependencies section of this README.
 
 The repo contains two sample model applications in the `SampleModels/` directory:
 
 1) a simple harbour channel model
 2) a real-world model of Cobscook Bay, ME, USA
+3) a real-world model of Chesapeake Bay and
+4) a simple harbour channel model with data assimilation
 
-To run either of these examples, copy the `EFDC` executable to the directory containing the `*.INP` files and run the code using ./EFDC
+To run either of these examples, copy the `EFDC` executable from the `Src/` directory to the directory containing the `*.INP` files and run the code using ./EFDC (for serial examples)
 
 # Dependencies
 The dependencies for the EFDC model are NetCDF fortran (details on the installation are provided here https://www.unidata.ucar.edu/software/netcdf/docs/building_netcdf_fortran.html along with the associated dependencies) and mpi (e.g. openmpi (https://www.open-mpi.org/) or mpich (https://www.mpich.org/)). The `Quickstart` file included in the repo installs these on Ubuntu systems.
 
-If one wishes to use the data assimilation libraries included in this repo then blas linear algebra libraries must be installed (e.g. http://www.openblas.net/).
+If one wishes to use the data assimilation libraries included in this repo then blas linear algebra libraries must be installed (e.g. http://www.openblas.net/) and edit makefile to point to installation path.
 
 Once installed, the makefile included in the Src directory must be edited to point to the path of the MPI and netCDF libraries (`MPICHDIR` and `NCDIR` and `BLAS_PATH` respectively).
 
@@ -34,6 +46,8 @@ To run these examples in serial, copy the `EFDC` executable to the directory con
 To run in parallel (using MPI), execute of form (across 4 compute cores):
 
 $ mpirun -np 4 ./EFDC
+
+Configurations for parallel simulations are defined in `LORP.INP` which describes the size of each sub-domain for distributed computing. This file is not specified by the user but rather a load balancing algorithm. The number of sub-domains specified in `LORP.INP` must equal the number passed to `mpirun`
 
 A key consideration in parallel simulation of coastal ocean applications is distributing load across processors in a well balanced manner. This consists of ensuring that each sub-domain contains a relatively equal distribution of land/ocean cells (since land cells do not invoke any computational cost).
 
@@ -46,7 +60,9 @@ To build the load balancing module, cd into the `Gorp` directory and compile usi
 Copy the Gorp executable into the same directory containing the input files and execute of form
   $ ./Gorp CELL.INP sc #
 
-where # denotes  the number of subdomains to decompose the problem into (i.e. how many compute cores to distribute the problem over) while 'sc' is appended to the generated LORP file as an identifier. The generated files are of form `LORP_sc_#_v.INP`, `LORP_sc_#_h.INP` and `LORP_sc_#_r.INP` where h, v, and r denote decomposing the domain into balanced horizontal or vertical strips or into cartesian rectilinear domains respectively
+(Note: the CELL.INP header line must accurately specify the I and J extents of the domain as it is read by the load-balancing module).
+
+Where # denotes  the number of subdomains to decompose the problem into (i.e. how many compute cores to distribute the problem over) while 'sc' is appended to the generated LORP file as an identifier. The generated files are of form `LORP_sc_#_v.INP`, `LORP_sc_#_h.INP` and `LORP_sc_#_r.INP` where h, v, and r denote decomposing the domain into balanced horizontal or vertical strips or into cartesian rectilinear domains respectively
 
 Details on the parallel implementation and load balancing module are provided in:
 
@@ -60,9 +76,11 @@ Extensions to this version of the code include MPI parallelism described in:
 O'Donncha, F, Ragnoli, E. and Suits, F. "Parallelisation study of a three-dimensional environmental flow model." Computers & Geosciences 64 (2014): 96-103.
 
 Inclusion of modules to represent aquaculture structures described in:
+
 O'Donncha, F., Hartnett, M., & Plew, D. R. (2015). Parameterizing suspended canopy effects in a three-dimensional hydrodynamic model. Journal of Hydraulic Research, 53(6), 714-727.
 
 And inclusion of modules to represent marine hydrokinetic structures described in:
+
 O'Donncha, F., James, S. C., & Ragnoli, E. (2017). Modelling study of the effects of suspended aquaculture installations on tidal stream generation in Cobscook Bay. Renewable Energy, 102, 65-76.
 
 # Vagrant example
@@ -75,7 +93,9 @@ Installing Vagrant:
 Download from: https://www.vagrantup.com/downloads.html
 
 After successfully installing vagrant
+
 Run: vagrant plugin install vagrant-vbguest
+
 For Windows - Run: vagrant plugin install vagrant-share --plugin-version 1.1.8
 
 To bring up a Vagrant virtual machine, type:
