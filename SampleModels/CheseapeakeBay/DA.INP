@@ -9,7 +9,7 @@
 ## The spatial extents or domain to which DA applied
 ## The frequency of data assimilation (in hours)
 ## Data assimilation parameters (PMatrix_R1, PMatrix_R2, PMatrix_R3)
-IDA_FLAG: 1
+IDA_FLAG:0 
 # Create the extents of the data assimilation grid for DA
 # (i.e. for HFR the corners of the rectangular grid
 IBEG_DA, 220    # 157     #  Data assimilation applied within    
