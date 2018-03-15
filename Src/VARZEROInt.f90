@@ -424,6 +424,10 @@ SUBROUTINE VARZEROInt
     YID=0
     YPAR=0
     YLOC=0
+    IJCT_GLOBAL=0
+
+    LWEST = 0
+    LEAST = 0
 
     ILTMSR_GL=0
     JLTMSR_GL=0

@@ -107,16 +107,16 @@
       
       CLOSE(2) 
       IB(1) = 1
-      IE(1) = I_PART(1) 
+      IE(1) = I_PART(1) + 4
       JB(1) = 1
-      JE(1) = J_PART(1)
+      JE(1) = J_PART(1) + 4
       DO NI =2,NPARTX 
              IB(NI) = IB(NI -1) + I_PART(NI-1) - 4
-             IE(NI) = IE(NI -1)  + I_PART(NI)
+             IE(NI) = IE(NI -1)  + I_PART(NI) + 4
       END DO
       DO NJ = 2,NPARTY 
              JB(NJ) = JB(NJ -1) + J_PART(NJ-1) - 4
-             JE(NJ) = JE(NJ-1) + J_PART(NJ) 
+             JE(NJ) = JE(NJ-1) + J_PART(NJ) + 4
       END DO
 
       LCM = 0
@@ -124,13 +124,15 @@
       DO NI = 1,NPARTX
         DO NJ = 1,NPARTY
            IBEG = IB(NI)
+           IEND = IE(NI)
            IEND = MIN(IE(NI),IC)
            JBEG = JB(NJ)
+           JEND = JE(NJ)
            JEND = MIN(JE(NJ),JC)
            L = 0
            DO J = JBEG,JEND
              DO I = IBEG,IEND
-               IF (ijct(i,j) == 5) L = L + 1
+               IF (IJCT(i,j) == 5) L = L + 1
              END DO
            END DO
            LCM = MAX(LCM,L)

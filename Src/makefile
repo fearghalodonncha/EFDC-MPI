@@ -38,8 +38,9 @@ ifdef NCFLAGS
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
 # This is for Data Assimilation operations
+# Only need it if we invoke data assimilation
 ifdef DAFLAG
-  BLAS_PATH=/usr/# #Don't need it if we don't invoke data assimilation
+  BLAS_PATH=/usr
   F_LIB += -L$(BLAS_PATH)/lib -lblas -L/usr/lib64 -llapack
   F_INC += -I$(BLAS_PATH)/include
 endif

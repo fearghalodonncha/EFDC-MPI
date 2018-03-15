@@ -89,6 +89,10 @@ def makecontourplot(data, x1, y1, figfilename, trimflag=False):
     plt.imshow(data, origin='lower', extent=[x1.min(), x1.max(), y1.min(), y1.max()])
     plt.contourf(x1, y1, data)
     plt.colorbar()
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     plt.savefig(figfilename)
 
 
