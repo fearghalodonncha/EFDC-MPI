@@ -1,0 +1,315 @@
+* Computed Variables
+QQ    - (m2/s2) Turbulent Intensity              
+QQL   - (m2/s2) Turbulent Intensity * Dimensionless Turbulent Length Scale    
+DML   - Ratio of QQL/QQ, Non-dimensional Length Scale
+
+QQWV1 - (m2/s2) Bed Turbulent Intensity Due To Waves Only 
+QQWV2 - (m2/s2) Water Column Turbulent Intensity Due To Waves  
+QQWC  - (m2/s2) NOT USED 
+FWQQ  - (m5/s3)
+UUU   - (m3/s2) Temporary variable in calqq
+VVV   - (m4/s2) Temporary variable in calqq
+FUHU  - (m5/s3) Temporary variable in calqq
+FVHU  - (m5/s3) Temporary variable in calqq
+FUHV  - (m6/s3) Temporary variable in calqq
+FVHV  - (m6/s3) Temporary variable in calqq
+
+AV    - Vertical Turbulent Viscosity, depth normalized   (m/s)  (m2/s [std SI units] / m = m/s)
+AB    - Vertical Molecular Diffusiviy, depth normalized  (m/s)
+AH    - Horizontal Turbulent Viscosity, depth normalized (m/s)
+
+UHDY  - U*HU*DYU  (m3/S)
+UHDY1 - UHDY ONE TIME LEVEL BACK   (m3/S)
+UHDY2 - UHDY TWO TIME LEVELS BACK  (m3/S)
+
+DXU   - 0.5*(DXP+DXP(L-1)) (m)
+DYU   - 0.5*(DYP+DYP(L-1)) (m)
+DXV   - 0.5*(DXP+DXP(LS))  (m)
+DYV   - 0.5*(DYP+DYP(LS))  (m)
+
+DXYU  - DXU*DYU        (m2)
+DXYV  - DXV*DYV        (m2)
+DXYP  - STCAP*DXP*DYP  (m2)
+DXIU  - 1./DXU         (1/m)
+DYIU  - 1./DYU         (1/m)
+DXIV  - 1./DXV         (1/m)
+DYIV  - 1./DYV         (1/m)
+DYDI  - DYU(L+1)-DYU   (m)
+DXDJ  - DXV(LN)-DXV    (m)  
+DXYIP - 1./(STCAP*DXP*DYP)   (1/m2)
+DXYIU - 1./(DXU*DYU)   (1/m2)
+DXYIV - 1./(DXV*DYV)   (1/m2)
+HRU   - SUB*HMU*DYU*DXIU (m)
+HRV   - SVB*HMV*DXV*DYIV (m)
+HRUO  - SUBO*DYU*DXIU   (dimensionless)
+HRVO  - SVBO*DXV*DYIV   (dimensionless)
+SBX   - 0.5*SBX*DYU      (m)
+SBY   - 0.5*SBY*DXV      (m)
+SBXO  - SBX
+SBYO  - SBY
+SNLPX - GID2*SNLPX*DYU
+SNLPY - GID2*SNLPY*DXV
+FPROX - Dimensionless
+
+SCAX  - BC switch for E/W open boundaries (dimensionless), Radiation option dependent
+SCAY  - BC switch for N/S open boundaries (dimensionless), Radiation option dependent
+SAAX  - BC switch for E/W open boundaries (dimensionless)
+SAAY  - BC switch for N/S open boundaries (dimensionless)
+
+HMU & HMV are the area averaged depths at the West (HU) & South (HV) cell faces (Wave routine)
+HMU=0.5*(DXP*DYP*HMP + DXP(L-1)*DYP(L-1)*HMP(L-1))/(DXU*DYU)  (m)
+HMV=0.5*(DXP*DYP*HMP + DXP(LS )*DYP(LS )*HMP(LS ))/(DXV*DYV)  (m)
+
+
+HU & HV are the area averaged depths at the West (HU) & South (HV) cell faces
+HU =0.5*(DXP*DYP*HP + DXP(L-1)*DYP(L-1)*HP(L-1)) / (DXU*DYU)  (m)
+HV =0.5*(DXP*DYP*HP + DXP(LS )*DYP(LS )*HP(LS )) / (DXV*DYV)  (m)
+
+
+****************************************************************************************
+
+--- CALQQ2T, ISWAVE=1 -------------------------------------------------------------------
+
+
+1st must get dimensions of FUHV
+
+                  m5/s3
+           ---------------------
+               m3/s     m2/s2
+FUHU(L,K)=MAX(UHUW,0.)*QQ(L-1,K) + MIN(UHUW,0.)*QQ(L,K)
+(m5/s3)
+                        m6/s3
+            ------------------------------
+               m3/s      m2/s2     m         
+FUHV(L,K)=MAX(UHUW,0.)*QQL(L-1,K)*H1P(L-1) + MIN(UHUW,0.)*QQL(L,K)*H1P(L)  
+(m6/s3)
+
+
+              m3/s2                        m3/s2
+         --------------   ------------------------------------------------
+          m2/s2   m         s  (               m5/s3                     )                                     1/m2
+UUU(L,K)=QQ(L,K)*H1P(L) + DELT*(FUHU(L,K)-FUHU(L+1,K)+FVHU(L,K)-FVHU(LN,K) + (FWQQ(L,K)-FWQQ(L,K+1))*DZIG(K))*DXYIP(L)
+(m3/s2)
+
+C      VVV(L,K)=QQL1(L,K)*H1P(L)   ! John commented out this line
+
+
+                  m4/s2                              m4/s2
+         ---------------------    -----------------------------------------------
+          m2/s2    m      m         s  (                m6/s3                    )                                       1/m2
+VVV(L,K)=QQL(L,K)*H1P(L)*H1P(L) + DELT*(FUHV(L,K)-FUHV(L+1,K)+FVHV(L,K)-FVHV(LN,K) + (FWQQL(L,K)-FWQQL(L,K+1))*DZIG(K))*DXYIP(L)
+(m4/s2)
+
+
+          m3/s3
+     ----------------
+       m/s  m/s2  m
+PQQB=AB(L,K)*GP*HP(L)*DZIG(K)*(B(L,K+1)-B(L,K))
+(m3/s3)
+
+
+                         m3/s3
+     --------------------------------------------------------
+       m/s              (         m2/s2                     )
+PQQU=AV(L,K)*DZIGSD4(K)*(U(L+1,K+1)-U(L+1,K)+U(L,K+1)-U(L,K))**2 + AV(L,K)*DZIGSD4(K)*(V(LN ,K+1)-V(LN ,K)+V(L,K+1)-V(L,K))**2 
+(m3/s3)
+
+
+         m3/s2
+    ----------------
+      s  ( m3/s3   )
+PQQ=DELT*(PQQB+PQQU)
+m3/s2
+
+          m3/s2    m3/s2
+UUU(L,K)=UUU(L,K)+2.*PQQ
+m3/s2
+
+             m4/s2
+     -----------------------
+       s    m    ( ND  m3/s3    ND m3/s3)
+PQQL=DELT*H1P(L)*(CTE3*PQQB  + CTE1*PQQU)
+
+        
+           m4/s2    ND   m4/s2
+VVV(L,K)=VVV(L,K)+DML(L,K)*PQQL         !!!!!!!!!!!! Units WORK!
+
+
+--- CALQQ2T, ISWAVE=2 ---------------------------------------------------------------------
+
+         m3/s3
+     ---------------
+       m/s  m/s2 m
+PQQB=AB(L,K)*GP*HP(L)*DZIG(K)*(B(L,K+1)-B(L,K))
+(m3/s3)
+
+                         m3/s3
+     -------------------------------------------------------
+       m/s              (            m2/s2                  _
+PQQU=AV(L,K)*DZIGSD4(K)*(U(L+1,K+1)-U(L+1,K)+U(L,K+1)-U(L,K))**2 
+(m3/s3)
+
+                         m3/s3
+     -------------------------------------------------------
+       m/s              (            m2/s2                  _
+PQQV=AV(L,K)*DZIGSD4(K)*(V(LN,K+1)-V(LN,K)+V(L,K+1)-V(L,K))**2 
+(m3/s3)
+
+
+PQQW= WVFACT*TVAR1W(L,K)
+
+      s  (     m3/s3         )
+PQQ=DELT*(PQQU+PQQV+PQQB+PQQW)
+m3/s2
+
+         (                  m5/s3                  )
+FFTMP=MAX(FUHU(L,K)-FUHU(L+1,K)+FVHU(L,K)-FVHU(LN,K) + (FWQQ(L,K)-FWQQ(L,K+1))*DZIG(K),0.)
+(m5/s3)
+
+             m3/s2            m3/s2
+         -------------  ------------------   
+          m2/s2   m      s    m5/s3  1/m2     m3/s2
+UUU(L,K)=QQ(L,K)*H1P(L)+DELT*FFTMP*DXYIP(L) + 2.*PQQ  
+(m3/s2)
+
+            m4/s2
+     ------------------------
+       s   m     ( ND  m3/s3  ND (m3/s3         )
+PQQL=DELT*H1P(L)*(CTE3*PQQB+CTE1*(PQQU+PQQV+PQQW))
+(m4/s2)
+
+
+FFTMP=MAX(FUHV(L,K)-FUHV(L+1,K)+FVHV(L,K)-FVHV(LN,K) + (FWQQL(L,K)-FWQQL(L,K+1))*DZIG(K),0.)
+(m6/s3)
+
+
+               m4/s2                    m4/s2
+         ---------------------   ------------------
+           m2/s2   m      m       s   m6/s3  1/m2       ND     m4/s2
+VVV(L,K)=QQL(L,K)*H1P(L)*H1P(L) +DELT*FFTMP*DXYIP(L) + DML(L,K)*PQQL  
+(m4/s2)
+
+
+
+--- CALQQ2T, ISWAVE=2   OLD AND BAD   ---------------------------------------------------------------------
+
+           m3/s3
+       ------------
+       m/s  m/s2 m
+PQQB=AB(L,K)*GP*HP(L)*DZIG(K)*(B(L,K+1)-B(L,K))
+(m3/s3)
+
+PQQU=(U(L+1,K+1)-U(L+1,K)+U(L,K+1)-U(L,K))**2 
+(m2/s2)
+
+PQQV=(V(LN,K+1)-V(LN,K)+V(L,K+1)-V(L,K))**2 
+(m2/s2)
+
+PQQW= WVFACT*TVAR1W(L,K)
+????
+
+                  m3/s2
+     -----------------------------------
+                    m3/s3
+         -------------------------------
+     s   (  m/s                m2/s2   )
+PQQ=DELT*(AV(L,K)*DZIGSD4(K)*(PQQU+PQQV)+PQQB+PQQW) 
+(m3/s2)
+
+FFTMP=FUHU(L,K)-FUHU(L+1,K)+FVHU(L,K)-FVHU(LN,K) + (FWQQ(L,K)-FWQQ(L,K+1))*DZIG(K)
+(m5/s3)
+
+                m3/s2             m3/s2            m3/s2
+           -------------    -------------------   ------
+            m2/s2   m        s   m5/s3  1/m2
+UUU(L,K) = QQ(L,K)*H1P(L) + DELT*FFTMP*DXYIP(L) + 2.*PQQ  
+m3/s2
+
+FFTMP=FUHV(L,K)-FUHV(L+1,K)+FVHV(L,K)-FVHV(LN,K) + (FWQQL(L,K)-FWQQL(L,K+1))*DZIG(K)
+(m6/s3)
+
+                   m4/s2                  m4/s2
+           ---------------------    -------------------
+            m2/s2    m       m       s   m6/s3  1/m2                   m3/s2
+VVV(L,K) = QQL(L,K)*H1P(L)*H1P(L) + DELT*FFTMP*DXYIP(L) + CTE1*DML(L,K)*PQQ  
+(m4/s2)
+
+
+
+
+
+
+------------
+
+
+
+
+--- CALQQ2  ORGINAL CODE - NO ISWAVE IMPLEMENTATION --------------------------------------------------------------
+
+
+PQQ Units = m3/s2
+PQQ=DELT*(AB(L,K)*GP*HP(L)*DZIG(K)*(B(L,K+1)-B(L,K)) + AV(L,K)*DZIGSD4(K)*(U(L+1,K+1)-U(L+1,K)+U(L,K+1)-U(L,K))**2 + AV(L,K)*DZIGSD4(K)*(V(LN,K+1)-V(LN,K)+V(L,K+1)-V(L,K))**2)
+      s    m/s  m/s2  m                                  m/s     ND       (         m2/s2                         )
+          -----------------------------------------    -----------------------------------------------------------
+                       m3/s3                                                 m3/s3
+    -----------------------------------------------
+                     m3/s2
+
+
+UUU Units = m3/s2
+UUU(L,K)=QQ(L,K)*HP(L)+2.*PQQ
+          m2/s2    m     m3/s2
+         ------------
+            m3/s2
+
+VVV Units = m3/s2
+VVV(L,K)=QQL1(L,K)*HP(L)+CTE1*DML(L,K)*PQQ
+           m2/s2    m     ND   ND      m3/s2
+
+
+--- CALQQ2 ISWAVE=2  --------------------------------------------------------------
+
+
+         m3/s3
+     ---------------
+       m/s  m/s2 m
+PQQB=AB(L,K)*GP*HP(L)*DZIG(K)*(B(L,K+1)-B(L,K))
+(m3/s3)
+
+                         m3/s3
+     -------------------------------------------------------
+       m/s              (            m2/s2                  _
+PQQU=AV(L,K)*DZIGSD4(K)*(U(L+1,K+1)-U(L+1,K)+U(L,K+1)-U(L,K))**2 
+(m3/s3)
+
+                         m3/s3
+     -------------------------------------------------------
+       m/s              (            m2/s2                  _
+PQQV=AV(L,K)*DZIGSD4(K)*(V(LN,K+1)-V(LN,K)+V(L,K+1)-V(L,K))**2 
+(m3/s3)
+
+
+PQQW= WVFACT*TVAR1W(L,K)
+
+      s  (     m3/s3         )
+PQQ=DELT*(PQQU+PQQV+PQQB+PQQW)
+m3/s2
+
+             m3/s2    
+         -------------   
+          m2/s2   m        m3/s2
+UUU(L,K)=QQ(L,K)*H1P(L) + 2.*PQQ  
+(m3/s2)
+
+
+           m3/s2              m3/s2
+     ---------------    --------------------
+       s    ND m3/s3     ND  (     m3/s3    )
+PQQL=DELT*(CTE3*PQQB  + CTE1*(PQQU+PQQV+PQQW))
+(m3/s2)
+
+              m3/s2            m3/s2
+         --------------    -------------
+          m2/s2     m       ND     m3/s2
+VVV(L,K)=QQL(L,K)*H1P(L) + DML(L,K)*PQQL
+(m3/s2)
