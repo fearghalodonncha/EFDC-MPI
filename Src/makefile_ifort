@@ -11,7 +11,7 @@ MPIFLAGS =key_mpi#   # define key_mpi to activate mpi compilation
 OMP_FLAGS=#          # define key_omp to activate open MP compilation
 HYD_FLAG=key_hyd#    # define key_hyd to activate hybrid MPI/OpenMP compilations
 NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
-DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
+DAFLAG=#       # define key_da to activate data assimilation and Blas/Lapack dependencies
 
 
 F90=ifort
