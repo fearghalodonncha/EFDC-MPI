@@ -28,7 +28,7 @@ BLAS_PATH = /usr
 ####  COMPILING FLAGS  ####
 ###########################
 ifdef MPIFLAGS
-  FC=$(MPICHDIR)/bin/mpiifort -g -traceback
+  FC=$(MPICHDIR)/bin/mpiifort
   F_LIB=-L$(MPICHDIR)/lib
   F_INC=-I$(MPICHDIR)/include 
   CPPFLAGS +=-D$(MPIFLAGS)
