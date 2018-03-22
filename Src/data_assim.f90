@@ -7,11 +7,12 @@
 !! Originally developed for Codar assimilation September 2014
 !! by Fearghal O'Donncha
 !! Modified Sept 13 2016 for application to temperature data
+
+!! To enable compilation without dependencies on Blas libraries
+!! wrap DA code in compiler flag sepecified
 #ifdef key_da
 Subroutine  BLUE_COMP(NDAPOINTS, PMATRIX_R1, PMATRIX_R2, PMATRIX_A)
     IMPLICIT NONE
-!! To enable compilation without dependencies on Blas libraries
-!! wrap DA code in compiler flag sepecified
     INTEGER,PARAMETER::ip=4,wp=8
 
     INTEGER(ip) IC,JC, IPIVSIZE
@@ -142,11 +143,12 @@ Subroutine  BLUE_COMP(NDAPOINTS, PMATRIX_R1, PMATRIX_R2, PMATRIX_A)
 
     open(4,File='BLUE.csv',status='unknown')
     do  I = 1,2*NR
-       write(4,*) I_VEC(I),J_VEC(I),XF(i),KH(i), EFDC(i), CODAR(i)
+       write(4,444) I_VEC(I),J_VEC(I),XF(i),KH(i), EFDC(i), CODAR(i)
     end do
     write(4,*)PMATRIX_R1, PMATRIX_R2, PMATRIX_A
 
     close(4)
+444 FORMAT(2I5, 4F14.6)
 END Subroutine  BLUE_COMP
 #endif
 

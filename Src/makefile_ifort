@@ -23,7 +23,7 @@ MPICHDIR = /opt/intel/compilers_and_libraries_2016.1.150/linux/mpi/intel64
 # 2) NetCDF path  # required for I/O routines
 NCDIR=/usr/local/netcdf
 # 3) Blas library  ! required if DAFLAG defined for data assimilation routines
-BLAS_PATH = /usr/lib64/ -lopenblas
+BLAS_PATH = /usr
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
@@ -41,7 +41,7 @@ endif
 # This is for Data Assimilation operations
 # Only need it if we invoke data assimilation
 ifdef DAFLAG
-  F_LIB += -L$(BLAS_PATH)/lib -lblas -L/usr/lib64 -llapack
+  F_LIB += -L$(BLAS_PATH)/lib64 -lopenblas
   F_INC += -I$(BLAS_PATH)/include
   CPPFLAGS +=-D$(DAFLAG)
 endif
