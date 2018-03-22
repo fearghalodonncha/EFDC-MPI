@@ -4743,6 +4743,7 @@ C
 C
 C ** CHECK IF DATA ASSIMILATION IS IMPLEMENTED AND READ INPUT DATA
 C
+#ifdef key_da   ! compiler flags specified in makefile overwrite input file flags (cannot invoke without LA)
       INQUIRE(FILE='DA.INP',exist = exist)
       IF (exist) THEN
         OPEN(100,FILE='DA.INP',STATUS='OLD')
@@ -4776,6 +4777,7 @@ C **  BASED ON DAFREQ COMPUTE TIMESTEP FREQUENCY TO CALL DATA ASSIMILATION
           ALLOCATE(LBLUE(NDAPOINTS))
         END IF
       END IF
+#endif
 !
  
       GOTO 7122  

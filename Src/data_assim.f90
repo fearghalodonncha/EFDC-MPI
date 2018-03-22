@@ -142,13 +142,14 @@ Subroutine  BLUE_COMP(NDAPOINTS, PMATRIX_R1, PMATRIX_R2, PMATRIX_A)
     Xf = EFDC + matmul(temp,KH)
 
     open(4,File='BLUE.csv',status='unknown')
+    ! Write header file to the Innovation file
+    Write(4,*) 'I, J, UpdateState, EFDC, CODAR'
     do  I = 1,2*NR
-       write(4,444) I_VEC(I),J_VEC(I),XF(i),KH(i), EFDC(i), CODAR(i)
+       write(4,444) I_VEC(I),J_VEC(I),XF(i), EFDC(i), CODAR(i)
     end do
-    write(4,*)PMATRIX_R1, PMATRIX_R2, PMATRIX_A
 
     close(4)
-444 FORMAT(2I5, 4F14.6)
+444 FORMAT(2I5, 3F14.6)
 END Subroutine  BLUE_COMP
 #endif
 

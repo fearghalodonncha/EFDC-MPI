@@ -139,9 +139,9 @@ SUBROUTINE DA_INI
     DUBLUE(:, :) = 0.
     DVBLUE(:, :) = 0.
     OPEN(15,file ='BLUE.csv', status='OLD')    ! the assimilation innovation module writes outputs to BLUE.csv
-                                               ! read back into each subdomain and
+    READ(15,*) !skip header                    ! read back into each subdomain and
                                                ! update solution accordingly
-    DO II =1,NDAPOINTS                        ! ndapoints = total number assimilation points across all processors
+    DO II =1,NDAPOINTS                         ! ndapoints = total number assimilation points across all processors
       READ(15,*)I,J,U_TEMP(I,J)                ! computed at model initialization for efficiency
       L = LIJ(XLOC(I), YLOC(J))
       U_MAPPED(L) = U_TEMP(I,J) /100.
