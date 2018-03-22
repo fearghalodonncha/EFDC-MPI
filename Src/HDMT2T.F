@@ -1531,13 +1531,14 @@ C
 C **  CALL FOR DATA ASSIMILATION OF VERTICAL PROFILER DATA
 C
 C**********************************************************************C
-
+#ifdef key_da
       IF (IDA_FLAG == 1) THEN ! DATA ASSIMILATION ACTIVE
         IF (N == NDATA_ASSIM) THEN ! IF TIME = DATA ASSIMILATION STEP BASED ON FREQ
           CALL DA_INI
           NDATA_ASSIM = NDATA_ASSIM + (DAFREQ * 3600/DT)
          END IF
       END IF
+#endif
 C**********************************************************************C
 C
 C     communicate variables with MPI calls before writing to files and looping computations

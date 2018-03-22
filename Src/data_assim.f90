@@ -7,9 +7,11 @@
 !! Originally developed for Codar assimilation September 2014
 !! by Fearghal O'Donncha
 !! Modified Sept 13 2016 for application to temperature data
-
+#ifdef key_da
 Subroutine  BLUE_COMP(NDAPOINTS, PMATRIX_R1, PMATRIX_R2, PMATRIX_A)
     IMPLICIT NONE
+!! To enable compilation without dependencies on Blas libraries
+!! wrap DA code in compiler flag sepecified
     INTEGER,PARAMETER::ip=4,wp=8
 
     INTEGER(ip) IC,JC, IPIVSIZE
@@ -145,6 +147,6 @@ Subroutine  BLUE_COMP(NDAPOINTS, PMATRIX_R1, PMATRIX_R2, PMATRIX_A)
     write(4,*)PMATRIX_R1, PMATRIX_R2, PMATRIX_A
 
     close(4)
-
 END Subroutine  BLUE_COMP
+#endif
 

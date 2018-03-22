@@ -1,11 +1,10 @@
-#EFDC_MPI  Makefile
+#Deep Current Makefile for Intel ifort compiler
 #Fearghal O'Donncha <feardonn@ie.ibm.com>
-#August 2nd 2017
+#March 22nd 2018
 
 
 #Compile but don't link (-c)
 CFLAGS = -c
-#Command to create directory for object and executable 
 
 CPPFLAGS =-cpp
 MPIFLAGS =key_mpi#   # define key_mpi to activate mpi compilation
@@ -14,23 +13,24 @@ HYD_FLAG=key_hyd#    # define key_hyd to activate hybrid MPI/OpenMP compilations
 NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
 DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
 
-F90 = gfortran
-CPPFLAGS =-cpp
+
+F90=ifort
+CPPFLAGS=-cpp
 
 # Path to relevant libraries
-# 1) MPI library
-MPICHDIR=/usr
-# 2) NetCDF path   
+# 1) MPI library   ! required if mpi parallelism active
+MPICHDIR = /opt/intel/compilers_and_libraries_2016.1.150/linux/mpi/intel64
+# 2) NetCDF path  # required for I/O routines
 NCDIR=/usr/local/netcdf
 # 3) Blas library  ! required if DAFLAG defined for data assimilation routines
-BLAS_PATH=/usr
+BLAS_PATH = /usr/lib64/ -lopenblas
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
 ifdef MPIFLAGS
-  FC=$(MPICHDIR)/bin/mpif90
-  F_LIB = -L$(MPICHDIR)/lib
-  F_INC = -I$(MPICHDIR)/include 
+  FC=$(MPICHDIR)/bin/mpiifort -g -traceback
+  F_LIB=-L$(MPICHDIR)/lib
+  F_INC=-I$(MPICHDIR)/include 
   CPPFLAGS +=-D$(MPIFLAGS)
 endif
 ifdef NCFLAGS
@@ -46,9 +46,9 @@ ifdef DAFLAG
   CPPFLAGS +=-D$(DAFLAG)
 endif
 
-# optimisation flags
-OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
-OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
+# optimiszation flags
+OPTMZ = -O3 -132 $(F_INC) $(CPPFLAGS)
+OPTMZ2 = -O0 -132 $(F_INC) $(CPPFLAGS)
 
 ###########################
 #####  LINKING FLAGS
@@ -95,7 +95,6 @@ OBJS1 = diagnostics.o \
         data_assim_init.o \
         data_assim.o \
         data_assim_submodules.o
-
 #Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \

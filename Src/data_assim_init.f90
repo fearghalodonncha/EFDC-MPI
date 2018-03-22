@@ -26,7 +26,9 @@ SUBROUTINE DA_INI
     ! 1) specification of observation file name and location
     ! 2) Mapping observations to the EFDC grid
     ! 3)
-
+!! To enable compilation without dependencies on Blas libraries
+!! wrap DA code in compiler flag sepecified
+#ifdef key_da
     USE GLOBAL
     IMPLICIT NONE
     INTEGER*8 JUL_DAY
@@ -196,6 +198,7 @@ SUBROUTINE DA_INI
  12 FORMAT(2I7, 2F14.6)
 111 FORMAT(3I5,F10.6)
     RETURN
+#endif
 end
 
 

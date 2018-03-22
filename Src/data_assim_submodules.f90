@@ -1,5 +1,7 @@
 
-
+!! To enable compilation without dependencies on Blas libraries
+!! wrap DA code in compiler flag sepecified
+#ifdef key_da
 SUBROUTINE HMATRIX(NL,NR,CODAR_I,CODAR_J,MODEL_I,MODEL_J,H)
     IMPLICIT NONE
     INTEGER,PARAMETER::ip=4,wp=8
@@ -153,3 +155,4 @@ SUBROUTINE RMATRIX_3D(NR,SIGMAT,R)
     END DO
 
 END SUBROUTINE RMATRIX_3D
+#endif
