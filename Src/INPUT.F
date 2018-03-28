@@ -43,7 +43,7 @@ C
       REAL,ALLOCATABLE,DIMENSION(:,:)::DYP_GLOB
       REAL,ALLOCATABLE,DIMENSION(:,:)::HMP_GLOB
       INTEGER::ITURB=0,IPMC 
-      INTEGER TINPUT,YBEG,MBEG,DBEG
+      INTEGER TINPUT,YBEG,MBEG,DBEG   ! TINPUT is used as YYYYMMDD format
       LOGICAL EXIST
       ALLOCATE(RMULADS(NSTM))  
       ALLOCATE(ADDADS(NSTM))  
@@ -161,10 +161,10 @@ C
 C8**  READ TIME-RELATED REAL PARAMETERS
       NCARD='8'  
       CALL SEEK('C8')  
-      READ(1,*,IOSTAT=ISO) TCON,TINPUT,TIDALP,CF,ISCORV,ISDCCA,  
+      READ(1,*,IOSTAT=ISO) TCON,TBEGIN,TIDALP,CF,ISCORV,ISDCCA,
      &    ISCFL,ISCFLM,DTSSFAC  
       WRITE(7,1002)NCARD  
-      WRITE(7,*) TCON,TBEGIN,TIDALP,CF,ISCORV,ISDCCA,  
+      WRITE(7,*) TCON,TBEGIN,TIDALP,CF,ISCORV,ISDCCA,
      &    ISCFL,ISCFLM,DTSSFAC  
       IF(ISO.GT.0) GOTO 100  
       IF(DTSSFAC.GT.0.0)THEN  
@@ -176,8 +176,8 @@ C8**  READ TIME-RELATED REAL PARAMETERS
 
       !C Fearghal O'Donncha; allow for TINPUT to be of form Julian day
       !or YYYYMMDD 
-      IF (TINPUT > 100000) THEN ! arbitrarily assume of form YYYYMMDD
-      
+      IF (TBEGIN > 100000) THEN ! arbitrarily assume of form YYYYMMDD
+        TINPUT = INT(TBEGIN)
         CALL Conversion(TINPUT, YBEG, MBEG, DBEG)
        ! Then take base day as day relative to beginning of year 
        ! for backwards compatability with previous versions of EFDC
@@ -191,7 +191,6 @@ C8**  READ TIME-RELATED REAL PARAMETERS
           WRITE(607,1111) YBEG,MBEG,DBEG
         END IF
       ELSE
-        TBEGIN = TINPUT
         YEAR_REF = 2017 ! default
       END IF
 1111   FORMAT('SIMULATION BEGINS FOR DATE: ',I0.4,'-',I0.2,'-',I0.2)
@@ -4743,7 +4742,8 @@ C
 C
 C ** CHECK IF DATA ASSIMILATION IS IMPLEMENTED AND READ INPUT DATA
 C
-#ifdef key_da   ! compiler flags specified in makefile overwrite input file flags (cannot invoke without LA)
+! compiler flags specified in makefile overwrite input file flags (cannot invoke without LA)
+#ifdef key_da
       INQUIRE(FILE='DA.INP',exist = exist)
       IF (exist) THEN
         OPEN(100,FILE='DA.INP',STATUS='OLD')
