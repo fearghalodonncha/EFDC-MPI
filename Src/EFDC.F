@@ -2204,10 +2204,7 @@ C
       
       IF (PARTID == MASTER_TASK) THEN
         NSNAPSHOTS = NPVPH * NTC
-        write(*,*) 'NSNAPSHOTS =',NSNAPSHOTS 
-        CALL ASCII2NCF(NSNAPSHOTS,KC,LC_GLOBAL,
-     &  ISSPH,ISPPH,IC_GLOBAL,JC_GLOBAL,KCM,FLIU,
-     &                 YEAR_REF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
+        CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
       END IF
 C
 

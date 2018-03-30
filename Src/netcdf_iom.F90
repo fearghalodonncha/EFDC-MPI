@@ -123,22 +123,19 @@ CONTAINS
     END SUBROUTINE readgrid_3D
 
 
-  SUBROUTINE ASCII2NCF(NTIME,NVARS,LC_GLOBAL,ISSPH,ISPPH, & 
-                       NLONS,NLATS,KCM,FLIU,YEAR_REF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
-  integer, parameter :: NDIMS = 4, NWINDX=2,NWINDY=2
-  INTEGER ISPPH,NLONS,NLATS,KCM
-  LOGICAL FLIU,DTFLAG,NCWMS
-  INTEGER PARTID,LC_GLOBAL,ISSPH(8)
-  INTEGER VAR1,LA,II,NPRY,NPRX,NACTIVE,NLVLS,TIMEFILE,NFILES, &
-          I,J,IL,JL,IK,JK,TIMESTEP,NTIME,NVARS
-  real ::  var2,TEMP_SURF,windx,windy,runoff,temp_air
-  REAL,DIMENSION(2,2) :: windx_arr,windy_arr
+  SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
+                         !NLONS,NLATS,KCM,FLIU,YEAR_REF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
+  USE GLOBAL
+  integer, parameter :: NDIMS = 4
+  INTEGER NLONS,NLATS
+  INTEGER VAR1, II,NPRY,NPRX,NACTIVE,NLVLS,TIMEFILE,NFILES, &
+          I,J,TIMESTEP,NVARS, ILOC,JLOC, IMAP, JMAP
+  real ::  var2,TEMP_SURF,temp_air
   REAL*8 time_write_jd,time_write,twrite_day
-  INTEGER*8 timesec,jul_day,ndays,twrite_sec,YEAR_REF,MREF,DREF
+  INTEGER*8 timesec_out,jul_day,ndays,twrite_sec
   CHARACTER(len=4) :: year,year_out
   character(len=2) :: month,day,hour,minute,month_out,day_out
   CHARACTER(len=128) :: dstamp,timeorigin,outpath
-  CHARACTER(len=1024) ::PATHNCWMS 
   INTEGER:: delx_east,dely_north, & 
   jd_out,&
   yyyy,mm,dd,hh,minu
@@ -180,17 +177,17 @@ CONTAINS
              lon_varid, lat_varid, lvl_varid,time_dimid, &
              time_varid,tranme_varid,char_lenId,IIB, &
              uvel_varid, temp_varid, vvel_varid, &   ! netcdf
-             dye_varid,elev_varid, runoff_varid, &
+             dye_varid,elev_varid, &
              wx_varid,wy_varid,dimids_2d(3), &                  ! variables
              wx_coordid,wy_coordid,airtemp_varid, &
              wvel_varid, & 
-             fileloop, dimids_wind(3), wx_dimid,wy_dimid, & 
+             fileloop,  &
              unitname,unitname2,unitname3,unitname4,unitname5, &  ! file id idents
              fileid_begin, fileid_end
-  REAL:: dimlocs(4),windx_coord(2),windy_coord(2)
+  REAL:: dimlocs(4)
 
   ! acFILEEXT for allocatable arrays based on
-  CHARACTER (LEN=50) GRID_X,GRID_Y,FORMAT_STRING,WIND_GRID_X,WIND_GRID_Y
+  CHARACTER (LEN=50) GRID_X,GRID_Y,FORMAT_STRING
   CHARACTER*3,ALLOCATABLE,DIMENSION(:)::FILEEXT
   CHARACTER*4,ALLOCATABLE,DIMENSION(:)::INTCHAR4
   CHARACTER(84),ALLOCATABLE,DIMENSION(:)::FILE_OUT
@@ -200,7 +197,10 @@ CONTAINS
   INTEGER,ALLOCATABLE,DIMENSION(:)::DIMIDS
   REAL,ALLOCATABLE,DIMENSION(:,:,:)::MAP_1,MAP_2,MAP_3,MAP_4,MAP_VV
   REAL,ALLOCATABLE,DIMENSION(:,:):: MAP_5,MAP_6
-  NFILES = NTIME + 1
+  NFILES = NSNAPSHOTS + 1
+  NVARS = KC
+  NLONS = IC_GLOBAL
+  NLATS = JC_GLOBAL
   
   ALLOCATE(FILEEXT(5000))
   ALLOCATE(LVLS(NVARS))
@@ -285,48 +285,6 @@ do ii =1, 5000
  write(*,*) 'grid size=',delx_east,dely_north,trim(grid_x),trim(grid_y)
  
 
-! Do the same for wind_x
- delx_east = easting(NLONS) - easting(1)
- if (delx_east < 100) THEN 
-   format_string = "(I2)"
-   elseif (delx_east < 1000) THEN
-      format_string  = "(I3)"
-   elseif (delx_east < 10000) THEN
-      format_string = "(I4)"
-   elseif (delx_east < 100000) THEN 
-      format_string = "(I5)"
-   elseif (delx_east < 1000000) THEN 
-      format_string = "(I6)"
-   elseif (delx_east < 10000000)  THEN 
-      format_string = "(I7)"
-   elseif (delx_east < 100000000) THEN
-      format_string = "(I8)"
-   else  
-   format_string  = "(I9)"
- end if
-
- write(wind_grid_x,format_string) delx_east
- dely_north = northing(NLATS) - northing(1)
- if (dely_north < 100) THEN
-      format_string = "(I2)"
-   elseif (dely_north < 1000) THEN 
-      format_string  = "(I3)"
-   elseif (dely_north < 10000) THEN
-      format_string  = "(I4)"
-   elseif (dely_north < 100000) THEN 
-      format_string  = "(I5)"
-   elseif (dely_north < 1000000) THEN 
-      format_string  = "(I6)"
-   elseif (dely_north < 10000000) THEN 
-      format_string  = "(I7)"
-   elseif (dely_north < 100000000) THEN 
-      format_string  = "(I8)"
- else
-   format_string  = "(I4)"
- end if
- write(wind_grid_y,format_string) dely_north
-
- write(*,*) 'grid size=',delx_east,dely_north,trim(grid_x),trim(grid_y)
  
 ! use LORP file to obtain domain decompostion information for reconstruction
   open(1,File='LORP.INP',status='old')
@@ -363,42 +321,41 @@ TIMEFILE= 0
   MAP_VV(:,:,:) =-9999.
   MAP_5(:,:) =-9999.
   MAP_6(:,:) =-9999.
- DO TIMESTEP = 1,NTIME
+ DO TIMESTEP = 1,NSNAPSHOTS
   unitname = 300
   fileid_begin = unitname
     iib =0
-    write(*,*) 'write file number ', Timestep,'of ', NTIME
+    write(*,*) 'write file number ', Timestep,'of ', NSNAPSHOTS
     DO FILELOOP = 1, NPRX*NPRY
       IIB = IIB +1
       IF (DOMAINID(FILELOOP) == -1) GOTO 333  ! skip partitions that didn't write
       unitname = unitname  + 1
       FILE_IN(fileloop)= 'VELVECH'//FILEEXT(iib)//'.OUT'
       OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-      READ(unitname,*) var1,timesec,partid,LA
-
+      READ(unitname,*) var1,timesec_out,partid,LA
       DO i=2,LA
-        READ(unitname,*)IL,JL ,ik, jk, (temp_vels(ii),ii=1,2*nvars)  ! read vels
-        map_1(ik,jk,:)= temp_vels(1:nvars)             ! u velocity   | map to
-        map_2(ik,jk,:)= temp_vels(nvars+1:2*nvars)     ! v velocity   | glob grd
+        READ(unitname,*) ILOC,JLOC ,IMAP, JMAP ,  (temp_vels(ii),ii=1,2*nvars)  ! read vels
+        map_1(IMAP, JMAP,:)= temp_vels(1:nvars)             ! u velocity   | map to
+        map_2(IMAP, JMAP,:)= temp_vels(nvars+1:2*nvars)     ! v velocity   | glob grd
       END DO
-      IF (ISSPH(2) ==1) THEN 
+      IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
        unitname = unitname  + 1
         FILE_IN(fileloop)= 'TEMCONH'//FILEEXT(iib)//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA 
         DO i=2,LA
-          READ(unitname,*)ik, jk, (temp_conc(ii),ii=1,nvars)   ! read temperature 
-          map_3(ik,jk,:)= temp_conc(:) + 273.15     ! map to global grid
+          READ(unitname,*)IMAP, JMAP, (temp_conc(ii),ii=1,nvars)   ! read temperature
+          map_3(IMAP, JMAP,:)= temp_conc(:) + 273.15     ! map to global grid
         END DO
       END IF
-      IF (ISSPH(3) == 1 ) THEN
+      IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
         unitname = unitname  + 1
         FILE_IN(fileloop)= 'DYECONH'//FILEEXT(iib)//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
-          READ(unitname,*)ik, jk, (temp_conc(II),II=1,nvars)   ! read dye  
-          map_4(ik,jk,:)= temp_conc(:) 
+          READ(unitname,*)IMAP, JMAP, (temp_conc(II),II=1,nvars)   ! read dye
+          map_4(IMAP, JMAP,:)= temp_conc(:)
         END DO
       END IF
       IF (ISPPH == 1 ) THEN
@@ -407,8 +364,8 @@ TIMEFILE= 0
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
-          READ(unitname,*)ik, jk, temp_surf   ! read dye  
-          map_5(ik,jk)= temp_surf
+          READ(unitname,*)IMAP, JMAP, temp_surf   ! read dye
+          map_5(IMAP, JMAP)= temp_surf
         END DO
       END IF
 
@@ -428,11 +385,11 @@ TIMEFILE= 0
 ! Use information from time_write to create filename using similar structure to
 ! Deep Thunder: i.e. wrfout_d03_YYYY-MM-hh:mm:sc.nc
 ! time_write at present is time in days since 01-01-2000
- time_write = timesec/86400.   ! convert from time in days to time in seconds
+ time_write = timesec_out/86400.   ! convert from time in days to time in seconds
  jul_day = jd_out(year_ref,1,1)    ! YEAR_REF defined at init with default=2000 
  time_write_jd = time_write + jul_day
  write(*,*) 'before time2year',time_write_jd,jul_day,time_Write
- CALL time2year(yyyy,mm,dd,hh,minu,timesec,year_ref)
+ CALL time2year(yyyy,mm,dd,hh,minu,timesec_out,year_ref)
  write(*,*) 'year out =', yyyy,mm,dd,hh,minu,time_write_jd,time_write,jul_day
  write(year,'(I4.4)') yyyy
  write(month, '(I2.2)') mm
@@ -448,18 +405,13 @@ TIMEFILE= 0
  write(month_out, '(I2.2)') MREF
  write(day_out, '(I2.2)') DREF
 
- IF (NCWMS) THEN ! Print to Mike Henderson directory
-   outpath=trim(PATHNCWMS)//'DeepCurrent_'//YEAR_OUT//MONTH_OUT//DAY_OUT//'/'
-   FILE_OUT(TIMEFILE) = trim(outpath)//'efdcout_'//trim(dstamp)//'00.nc'
- ELSE  ! Print to local directory
-   FILE_OUT(TIMEFILE) = 'efdcout_'//trim(dstamp)//'00.nc'
- END IF 
+ FILE_OUT(TIMEFILE) = 'efdcout_'//trim(dstamp)//'00.nc'
 ! This implementation causes round off issues
 ! Introduce simpler time conversion that maintains a base of 2000-01-01
 ! and convert this to base of relevant year (2015 in this case)
   ndays = jd_out(yyyy,1,1) - jd_out(year_ref,1,1)
- twrite_sec = timesec - (ndays * 86400)
-  write(*,*) 'twrite_Sec = ',twrite_sec,timesec,ndays
+ twrite_sec = timesec_out - (ndays * 86400)
+  write(*,*) 'twrite_Sec = ',twrite_sec,timesec_out,ndays
 
 
   DO ii=1, NLATS
@@ -524,7 +476,7 @@ TIMEFILE= 0
   call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
   call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
 
-  IF (ISSPH(2) ==1) THEN 
+  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
     call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
     call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
     call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
@@ -533,7 +485,7 @@ TIMEFILE= 0
     call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
     call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
   END IF
-  IF (ISSPH(3) == 1 ) THEN
+  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
     call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
     call check_nf90( nf90_put_att(ncid, dye_varid, "_FillValue", FillValue_real) )
     call check_nf90( nf90_put_att(ncid, dye_varid, "coordinates", "X Y Depth time") )
@@ -623,8 +575,8 @@ TIMEFILE= 0
   call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
   call check_nf90( nf90_put_var(ncid, uvel_varid, MAP_1))    ! u velocity
   call check_nf90( nf90_put_var(ncid, vvel_varid, MAP_2))    ! v velocity
-  IF (ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, MAP_3))    ! temperature data
-  IF (ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, MAP_4))     ! dye data
+  IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, MAP_3))    ! temperature data
+  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, MAP_4))     ! dye data
   IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, MAP_5))     ! elevation data
 
 
