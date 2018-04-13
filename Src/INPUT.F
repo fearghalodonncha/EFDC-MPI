@@ -43,16 +43,18 @@ C
       REAL,ALLOCATABLE,DIMENSION(:,:)::DYP_GLOB
       REAL,ALLOCATABLE,DIMENSION(:,:)::HMP_GLOB
       INTEGER::ITURB=0,IPMC 
+      INTEGER::RI_GLOBAL,RJ_GLOBAL
       INTEGER TINPUT,YBEG,MBEG,DBEG   ! TINPUT is used as YYYYMMDD format
+      REAL(8) TBEGIN_IN
       LOGICAL EXIST
       ALLOCATE(RMULADS(NSTM))  
       ALLOCATE(ADDADS(NSTM))  
       ALLOCATE(CONINIT(KCM))
       ALLOCATE(ATMWHT_TEMP(NASERM))
       ALLOCATE(WNDWHT_TEMP(NWSERM))
-      ALLOCATE(DXP_GLOB(GNX,GNY))
-      ALLOCATE(DYP_GLOB(GNX,GNY))
-      ALLOCATE(HMP_GLOB(GNX,GNY))
+      ALLOCATE(DXP_GLOB(0:GNX,0:GNY))
+      ALLOCATE(DYP_GLOB(0:GNX,0:GNY))
+      ALLOCATE(HMP_GLOB(0:GNX,0:GNY))
       RMULADS=0.
       ADDADS=0.
 C 
@@ -161,10 +163,10 @@ C
 C8**  READ TIME-RELATED REAL PARAMETERS
       NCARD='8'  
       CALL SEEK('C8')  
-      READ(1,*,IOSTAT=ISO) TCON,TBEGIN,TIDALP,CF,ISCORV,ISDCCA,
+      READ(1,*,IOSTAT=ISO) TCON,TBEGIN_IN,TIDALP,CF,ISCORV,ISDCCA,
      &    ISCFL,ISCFLM,DTSSFAC  
       WRITE(7,1002)NCARD  
-      WRITE(7,*) TCON,TBEGIN,TIDALP,CF,ISCORV,ISDCCA,
+      WRITE(7,*) TCON,TBEGIN_IN,TIDALP,CF,ISCORV,ISDCCA,
      &    ISCFL,ISCFLM,DTSSFAC  
       IF(ISO.GT.0) GOTO 100  
       IF(DTSSFAC.GT.0.0)THEN  
@@ -176,8 +178,9 @@ C8**  READ TIME-RELATED REAL PARAMETERS
 
       !C Fearghal O'Donncha; allow for TINPUT to be of form Julian day
       !or YYYYMMDD 
-      IF (TBEGIN > 100000) THEN ! arbitrarily assume of form YYYYMMDD
-        TINPUT = INT(TBEGIN)
+      IF (TBEGIN_IN > 100000) THEN ! arbitrarily assume of form YYYYMMDD
+        TINPUT = INT(TBEGIN_IN)
+        write(*,*) 'TINPUT =', TINPUT, TBEGIN_IN
         CALL Conversion(TINPUT, YBEG, MBEG, DBEG)
        ! Then take base day as day relative to beginning of year 
        ! for backwards compatability with previous versions of EFDC
@@ -192,6 +195,7 @@ C8**  READ TIME-RELATED REAL PARAMETERS
         END IF
       ELSE
         YEAR_REF = 2017 ! default
+        TBEGIN = TBEGIN_IN  ! TBEGIN is specified as number of days since start of year
       END IF
 1111   FORMAT('SIMULATION BEGINS FOR DATE: ',I0.4,'-',I0.2,'-',I0.2)
    
@@ -1576,9 +1580,18 @@ C68*  READ NEUTRALLY BUOYANT PARTICLE INITIAL POSITIONS
         NCARD='68'  
         CALL SEEK('C68')  
         DO NP=1,NPD  
-          READ(1,*,IOSTAT=ISO) RI(NP),RJ(NP),RK(NP)  
+          READ(1,*,IOSTAT=ISO) RI_GLOBAL,RJ_GLOBAL,RK(NP)
+          ! MAP FROM THE GLOBAL DOMAIN FOR COMPUTATION (RK DOES NOT CHANGE)
+          I = XLOC(RI_GLOBAL)
+          J = YLOC(RJ_GLOBAL)
+          IF (I > 0 .AND. I <=IC) THEN
+            RI(NP) = I
+          END IF
+          IF (J > 0 .AND. J <=JC) THEN
+            RJ(NP) = J
+          END IF
           WRITE(7,1002)NCARD  
-          WRITE(7,*) RI(NP),RJ(NP),RK(NP)  
+          WRITE(7,*)  RI(NP),RJ(NP),RK(NP)
         ENDDO  
       ENDIF  
 C  
@@ -2158,7 +2171,6 @@ C     DHC
         CALL AREA_CENTRD
       ENDIF
       
-      IF (ISPD.GE.2) CALL DRIFTERINP
 C  
 C **  READ IN CELL CENTER DEPTHS AND BOTTOM BED ELEVATION FOR CARTESIAN  
 C **  OR MIXED CATERSIAN CURVILINEAR GRID FORM FILE DEPTH.INP.  IF THE  

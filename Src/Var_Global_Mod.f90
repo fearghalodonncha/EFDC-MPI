@@ -3350,6 +3350,7 @@ MODULE GLOBAL
     REAL(RKD)             ::DEPOP                  !OPTION FOR READING DEPTH  COLMUN IN DRIFTER.INP
     ! ISWAVE = 3
     REAL(RKD)             ::KSW                    !NIKURADSE ROUGHNESS (APPROXIMATE 2.5*D50)
+    REAL                  ::TIMENEXT_WRITE_DR      ! OUTPUT TIME TO WRITE DRIFTER INFO TO FILE (NEEDS TO BE GLOBAL)
 
 
     ! PT- All real values are explicitly specified as DOUBLE PRECISION for accuracy. 7/16/08
