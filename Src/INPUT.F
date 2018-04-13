@@ -180,7 +180,6 @@ C8**  READ TIME-RELATED REAL PARAMETERS
       !or YYYYMMDD 
       IF (TBEGIN_IN > 100000) THEN ! arbitrarily assume of form YYYYMMDD
         TINPUT = INT(TBEGIN_IN)
-        write(*,*) 'TINPUT =', TINPUT, TBEGIN_IN
         CALL Conversion(TINPUT, YBEG, MBEG, DBEG)
        ! Then take base day as day relative to beginning of year 
        ! for backwards compatability with previous versions of EFDC
