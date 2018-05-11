@@ -155,6 +155,7 @@ CONTAINS
   character (len = *), parameter :: uvel_name = "u"
   character (len = *), parameter :: vvel_name = "v"
   character (len = *), parameter :: wvel_name = "w"
+  character (len = *), parameter :: salinity_name = "Salinity"
   character (len = *), parameter :: temp_name = "Temperature"
   character (len = *), parameter :: dye_name = "Tracer"
   character (len = *), parameter :: elev_name = "Elevation"
@@ -177,7 +178,7 @@ CONTAINS
              lon_varid, lat_varid, lvl_varid,time_dimid, &
              time_varid,tranme_varid,char_lenId,IIB, &
              uvel_varid, temp_varid, vvel_varid, &   ! netcdf
-             dye_varid,elev_varid, &
+             dye_varid,elev_varid, salinity_varid, &
              wx_varid,wy_varid,dimids_2d(3), &                  ! variables
              wx_coordid,wy_coordid,airtemp_varid, &
              wvel_varid, & 
@@ -195,8 +196,9 @@ CONTAINS
   INTEGER,ALLOCATABLE,DIMENSION(:)::LVLS
   REAL,ALLOCATABLE,DIMENSION(:)::TEMP_VELS,TEMP_CONC,EASTING,NORTHING,LATS,LONS 
   INTEGER,ALLOCATABLE,DIMENSION(:)::DIMIDS
-  REAL,ALLOCATABLE,DIMENSION(:,:,:)::MAP_1,MAP_2,MAP_3,MAP_4,MAP_VV
-  REAL,ALLOCATABLE,DIMENSION(:,:):: MAP_5,MAP_6
+  REAL,ALLOCATABLE,DIMENSION(:,:,:)::map_u_vel,map_v_vel,map_temperature,map_dye, &
+                                     MAP_VV, map_salinity
+  REAL,ALLOCATABLE,DIMENSION(:,:):: map_surfel
   NFILES = NSNAPSHOTS + 1
   NVARS = KC
   NLONS = IC_GLOBAL
@@ -209,13 +211,13 @@ CONTAINS
   ALLOCATE(FILE_OUT(NFILES))
   ALLOCATE(TEMP_VELS (2*NVARS) )
   ALLOCATE(TEMP_CONC (NVARS) )
-  ALLOCATE(MAP_1 (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_2 (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_3 (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_4 (NLONS,NLATS,NVARS) )
+  ALLOCATE(map_u_vel (NLONS,NLATS,NVARS) )
+  ALLOCATE(map_v_vel (NLONS,NLATS,NVARS) )
+  ALLOCATE(map_salinity (NLONS,NLATS,NVARS) )
+  ALLOCATE(map_temperature (NLONS,NLATS,NVARS) )
+  ALLOCATE(map_dye (NLONS,NLATS,NVARS) )
   ALLOCATE(MAP_VV (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_5 (NLONS,NLATS) )
-  ALLOCATE(MAP_6 (NLONS,NLATS) )
+  ALLOCATE(map_surfel (NLONS,NLATS) )
   ALLOCATE(EASTING (NLONS) )
   ALLOCATE(NORTHING (NLATS) )
   ALLOCATE(LONS (NLONS) )
@@ -314,13 +316,13 @@ DO ii=1,NPRX*NPRY
   READ(1,*) DOMAINID(ii) 
 END DO                
 TIMEFILE= 0  
-  map_1(:,:,:) =-9999. 
-  MAP_2(:,:,:) =-9999. 
-  map_3(:,:,:) =-9999.
-  MAP_4(:,:,:) =-9999.
+  map_u_vel(:,:,:) =-9999.
+  map_v_vel(:,:,:) =-9999.
+  map_salinity(:,:,:) =-9999.
+  map_temperature(:,:,:) =-9999.
+  map_dye(:,:,:) =-9999.
   MAP_VV(:,:,:) =-9999.
-  MAP_5(:,:) =-9999.
-  MAP_6(:,:) =-9999.
+  map_surfel(:,:) =-9999.
  DO TIMESTEP = 1,NSNAPSHOTS
   unitname = 300
   fileid_begin = unitname
@@ -335,9 +337,19 @@ TIMEFILE= 0
       READ(unitname,*) var1,timesec_out,partid,LA
       DO i=2,LA
         READ(unitname,*) ILOC,JLOC ,IMAP, JMAP ,  (temp_vels(ii),ii=1,2*nvars)  ! read vels
-        map_1(IMAP, JMAP,:)= temp_vels(1:nvars)             ! u velocity   | map to
-        map_2(IMAP, JMAP,:)= temp_vels(nvars+1:2*nvars)     ! v velocity   | glob grd
+        map_u_vel(IMAP, JMAP,:)= temp_vels(1:nvars)             ! u velocity   | map to
+        map_v_vel(IMAP, JMAP,:)= temp_vels(nvars+1:2*nvars)     ! v velocity   | glob grd
       END DO
+      IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 ) THEN
+        unitname = unitname  + 1
+        FILE_IN(fileloop)= 'SALCONH'//FILEEXT(iib)//'.OUT'
+        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
+        READ(unitname,*) var1,var2,partid,LA
+        DO i=2,LA
+          READ(unitname,*)IMAP, JMAP, (temp_conc(II),II=1,nvars)   ! read salinity output
+          map_salinity(IMAP, JMAP,:)= temp_conc(:)               ! map to global grid
+        END DO
+      END IF
       IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
        unitname = unitname  + 1
         FILE_IN(fileloop)= 'TEMCONH'//FILEEXT(iib)//'.OUT'
@@ -345,7 +357,7 @@ TIMEFILE= 0
         READ(unitname,*) var1,var2,partid,LA 
         DO i=2,LA
           READ(unitname,*)IMAP, JMAP, (temp_conc(ii),ii=1,nvars)   ! read temperature
-          map_3(IMAP, JMAP,:)= temp_conc(:) + 273.15     ! map to global grid
+          map_temperature(IMAP, JMAP,:)= temp_conc(:) + 273.15     ! map to global grid
         END DO
       END IF
       IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
@@ -355,7 +367,7 @@ TIMEFILE= 0
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
           READ(unitname,*)IMAP, JMAP, (temp_conc(II),II=1,nvars)   ! read dye
-          map_4(IMAP, JMAP,:)= temp_conc(:)
+          map_dye(IMAP, JMAP,:)= temp_conc(:)
         END DO
       END IF
       IF (ISPPH == 1 ) THEN
@@ -364,8 +376,8 @@ TIMEFILE= 0
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
-          READ(unitname,*)IMAP, JMAP, temp_surf   ! read dye
-          map_5(IMAP, JMAP)= temp_surf
+          READ(unitname,*)IMAP, JMAP, temp_surf   ! read surface elevation
+          map_surfel(IMAP, JMAP)= temp_surf
         END DO
       END IF
 
@@ -476,7 +488,7 @@ TIMEFILE= 0
   call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
   call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
 
-  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+  IF (ISTRAN(1) == 1 .AND. ISSPH(1) ==1) THEN
     call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
     call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
     call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
@@ -484,6 +496,15 @@ TIMEFILE= 0
     call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature") )
     call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
     call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
+  END IF
+  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+    call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, "long_name","salinity") )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, "standard_name", "salinity") )
+    call check_nf90( nf90_put_att(ncid, salinity_varid, UNITS, "PSU") )
   END IF
   IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
     call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
@@ -573,11 +594,12 @@ TIMEFILE= 0
   call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! EASTING
   call check_nf90( nf90_put_var(ncid, lat_varid, Northing) )   ! Northing
   call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
-  call check_nf90( nf90_put_var(ncid, uvel_varid, MAP_1))    ! u velocity
-  call check_nf90( nf90_put_var(ncid, vvel_varid, MAP_2))    ! v velocity
-  IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, MAP_3))    ! temperature data
-  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, MAP_4))     ! dye data
-  IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, MAP_5))     ! elevation data
+  call check_nf90( nf90_put_var(ncid, uvel_varid, map_u_vel))    ! u velocity
+  call check_nf90( nf90_put_var(ncid, vvel_varid, map_v_vel))    ! v velocity
+  IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
+  IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
+  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
+  IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
 
 
 

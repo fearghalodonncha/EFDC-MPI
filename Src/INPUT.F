@@ -4408,7 +4408,7 @@ C
           DO M=1,MASER(N)  
             READ(1,*,IOSTAT=ISO)TASER(M,N),PATM(M,N),TDRY(M,N),  
      &          TWET(M,N),RAIN(M,N),EVAP(M,N),SOLSWR(M,N),CLOUD(M,N)  
-            IF(ISO.GT.0) GOTO 940  
+                 IF(ISO.GT.0) GOTO 940
           ENDDO  
           DO M=1,MASER(N)  
             TASER(M,N)=TASER(M,N)+TAASER(N)  
