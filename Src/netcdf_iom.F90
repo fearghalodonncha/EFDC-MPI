@@ -162,7 +162,7 @@ CONTAINS
   character (len = *), parameter :: UNITS = "units"
   character (len = *), parameter :: uvel_UNITS = "m/sec"
   character (len = *), parameter :: vvel_units = "m/sec"
-  character (len = *), parameter :: TEMP_UNITS = "K @ 273.15"
+  character (len = *), parameter :: TEMP_UNITS = "Degree Celsius"
   character (len = *), parameter :: dye_units = "Concentration (%)"
   character (len = *), parameter :: elev_units = "m"
   character (len = *), parameter :: LAT_UNITS = "m"
@@ -357,7 +357,7 @@ TIMEFILE= 0
         READ(unitname,*) var1,var2,partid,LA 
         DO i=2,LA
           READ(unitname,*)IMAP, JMAP, (temp_conc(ii),ii=1,nvars)   ! read temperature
-          map_temperature(IMAP, JMAP,:)= temp_conc(:) + 273.15     ! map to global grid
+          map_temperature(IMAP, JMAP,:)= temp_conc(:) ! + 273.15     ! map to global grid
         END DO
       END IF
       IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
@@ -493,7 +493,7 @@ TIMEFILE= 0
     call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
     call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(ncid, temp_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature") )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature_degree_celsius") )
     call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
     call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
   END IF
