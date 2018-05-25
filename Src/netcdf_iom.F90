@@ -489,15 +489,6 @@ TIMEFILE= 0
   call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
 
   IF (ISTRAN(1) == 1 .AND. ISSPH(1) ==1) THEN
-    call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature_degree_celsius") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
-  END IF
-  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
     call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
     call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
     call check_nf90( nf90_put_att(ncid, salinity_varid, "coordinates", "X Y Depth time") )
@@ -505,6 +496,15 @@ TIMEFILE= 0
     call check_nf90( nf90_put_att(ncid, salinity_varid, "long_name","salinity") )
     call check_nf90( nf90_put_att(ncid, salinity_varid, "standard_name", "salinity") )
     call check_nf90( nf90_put_att(ncid, salinity_varid, UNITS, "PSU") )
+  END IF
+  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+    call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature_degree_celsius") )
+    call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
+    call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
   END IF
   IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
     call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
