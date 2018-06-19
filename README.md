@@ -106,4 +106,10 @@ To bring up a Vagrant virtual machine, type:
 Within the vagrant VM, users can easily build the model by simply invoking:
 
     $make
+
+# Documentation
+
+The repo contains a set of manuals describing the different components of the EFDC model. The fundamental hydrodynamic model input files and setup are described in the [EFDC User manual from the EPA](https://github.com/fearghalodonncha/EFDC-MPI/blob/master/Doc/Manuals/EFDC_User_Manual_EPA_Ver-101.pdf). Also included is a half day tutorial related to the EFDC MPI model and developing parallel model simulation presented at the [IEEE Oceans 2017 conference in Anchorage](http://www.oceans17mtsieeeanchorage.org/wp-content/uploads/2017/08/EFDC-MPI-IBM_tutorial_description_final.pdf). Further tutorial material related to the development of marine hydrokinetic applications is available from [Zenodo](https://doi.org/10.5281/zenodo.1292498).
+
+
   
