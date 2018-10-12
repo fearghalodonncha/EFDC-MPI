@@ -1,5 +1,5 @@
 # EFDC-MPI
-This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC) (https://www.epa.gov/exposure-assessment-models/efdc), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. It serves as the hydrodynamic core of IBM Research asset DeepCurrent (http://www.research.ibm.com/labs/ireland/research_areas/deep_current.html), focusing on the prediction of environmental conditions in coastal oceans, rivers and lakes.
+This repo includes an extended version of the widely used Environmental Fluid Dynamics Code (EFDC) (https://www.epa.gov/exposure-assessment-models/efdc), a state of the art hydro-environmental modelling suite to simulate aquatic systems in one, two, and three dimensions. It serves as the hydrodynamic core of IBM Research asset [DeepCurrent](https://www.ibm.com/blogs/research/2015/08/ibm-deepcurrent-predicts-environmental-changes-in-3-d/), focusing on the prediction of environmental conditions in coastal oceans, rivers and lakes.
 
 Extensions include capabilities to run in parallel using MPI, netCDF file I/O and incorporation of modules to simulate impeded flows.
 
