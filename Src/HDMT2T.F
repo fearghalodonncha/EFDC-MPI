@@ -513,6 +513,7 @@ C
 C  
 C PMC      IF(ILOGC.EQ.NTSMMT)THEN  
       IF(ILOGC.EQ.NTSPTC)THEN  
+        write(*,*) 'ILOGC = ', ILOGC
         CLOSE(8,STATUS='DELETE') 
         OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')   
         IF(DEBUG)THEN 

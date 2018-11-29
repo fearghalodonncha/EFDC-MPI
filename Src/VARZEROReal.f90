@@ -1562,7 +1562,6 @@ SUBROUTINE VARZEROReal
       ZZP=0.0
 
 !Initialize aquaculture related variables
-      AQUADRAG=0.0
       DRPRDRG=0.0
       DRPRTURB=0.0
       FXDRPR =  0.

@@ -2,6 +2,8 @@
 ! write sum of dye concentration to file at point in time
 ! Requires an MPI GATHER if parallel version
       USE GLOBAL
+!! This depends on MPI so remove if not used
+#ifdef key_mpi
       use parallel_mpi
       USE MPI
     INTEGER REDUCE_COUNT
@@ -42,6 +44,8 @@ write(111,111)TIME,avedye,DYE_LAYER_GLOB(1:KC)
 closE(111)
 end if
 111 format(100F12.5)
+
+#endif
 
 RETURN
 END

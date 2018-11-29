@@ -26,6 +26,7 @@ ISTRUCT =0; JSTRUCT=0;
                ISTRUCT(I) = ILOC
                JSTRUCT(I) = JLOC
                LSTRUCT = LSTRUCT + 1
+               write(*,*) PARTID, ISTRUCT(I), JSTRUCT(I)
              ENDIF
            ENDIF
            if (filend < 0 ) GOTO 101  ! read until end of file and exit
@@ -40,7 +41,7 @@ ISTRUCT =0; JSTRUCT=0;
 ! i.e. ad = aquaden*d*d
 
       can_ad = aquaden*aquadiam*aquadiam
-      drgtmp = AQUADRAG(1)
+      drgtmp = AQUADRAG
       drg_ad = drgtmp/1.16*(1.16 - (9.31 * can_ad) + (38.6 *can_ad**2) - (59.8 * can_ad **3))  
 ! define aquculture drag coefficient for areas containing cells (zero otherwise)    
       DO LL = 1,LSTRUCT
@@ -52,10 +53,6 @@ ISTRUCT =0; JSTRUCT=0;
 !            haqua = hmp(l) - 0.1
 	    hdef = hdef + HMP(L) *DZC(K)   ! depth of canopy from surface 
             canrat = hdef/(HAQUA)          ! HAQUA = height of canopy
-            IF (CANRAT .LE. 1.0) THEN
-              DRPRDRG(L,K)=aquadrag(K)
-              DRPRTURB(L,K) = 1.0
-            end if
 !temporarily use EAM drag coefficient until we inclide data from PLEW
            IF (CANRAT <= 0.76) THEN
                DRPRDRG(L,K)=drgtmp*(1.4*(canrat**2.5)+0.75)
@@ -72,6 +69,7 @@ ISTRUCT =0; JSTRUCT=0;
            END IF
            IF (CANRAT <= 1.0) THEN
               DRPRDRG(L,K) = drg_ad*(1.05 - .4*(canrat**4.49))
+              DRPRTURB(L,K) = 1.0
            END IF
          END DO
       END DO

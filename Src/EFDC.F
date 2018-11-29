@@ -175,6 +175,8 @@ C  call mpi specific routines if applicable
         END DO  
 #else
         ans(1) =''
+        partid = 0
+        partid2=1
 #endif
 
 C  
@@ -204,10 +206,10 @@ C
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE='ERROR.LOG',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')
-        OPEN(8,FILE='EFDCLOG.OUT',STATUS='UNKNOWN')  
-        CLOSE(8,STATUS='DELETE')  
-        OPEN(8,FILE='EFDCLOG.OUT',STATUS='UNKNOWN')  
       end if
+      OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
+      CLOSE(8,STATUS='DELETE')
+      OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
       OPEN(7,FILE='EFDC'//ans(partid2)//'.OUT')
       CLOSE(7,STATUS='DELETE')
       OPEN(7,FILE='EFDC'//ans(partid2)//'.OUT',STATUS='UNKNOWN')

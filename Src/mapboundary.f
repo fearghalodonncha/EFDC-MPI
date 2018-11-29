@@ -439,6 +439,7 @@ C ** to child partition
       END
 
       SUBROUTINE MAPASSIMPOINTS
+#ifdef key_mpi
 
       USE mpi
       USE GLOBAL
@@ -482,6 +483,6 @@ C ** to child partition
       WRITE(333,*) I,J,LBLUE(L),XPAR(I),YPAR(J),ASSIMPOINTS,ASSIMTOTAL
       END DO
       CLOSE(333)
-
+# endif
       END SUBROUTINE MAPASSIMPOINTS
 

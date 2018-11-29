@@ -4652,25 +4652,19 @@ C_____________________________________________________________________
 C BEGIN FEARGHAL O DONNCHA AQUACULTURE COMPONENT
 C READ DATA RELATED TO aquaculture installations
 C______________________________________________________________________
-
+! check if input aquaculture configuration file exist
       INQUIRE(FILE='INPUTAQUA.INP',exist = exist)
-      IF (exist) then
-! open input tidal turbine file
+      IF (exist) then ! open the aquaculture input file
          OPEN(100,FILE='INPUTAQUA.INP',STATUS='OLD')
-! call the tidal turbine specification file if turbines are included
-         do i = 1,8
+         do i = 1,9
             read(100,*)   ! skip header lines
          end do
-         read (100,*) Aquaincl,aquadiam,aquaden,haqua
+         read (100,*) Aquaincl,aquadiam,aquaden,aquadrag,haqua
          do i = 1,7
-            read(100,*)
+            read(100,*) ! skip header lines
          end do
-         read(100,*) Aquaturb,BETADRP_P,BETADRP_D,CE4DRP
-         do i = 1,2
-           READ(100,*)
-         end do
-         READ(100,*,IOSTAT=ISO) (aquadrag(K),K=1,KC)  
-         close(100)
+         read(100,*) Aquaturb,BETADRP_P,BETADRP_D,CE4DRP ! turbulence characteristics
+
 ! aquaincl = flag for the inclusion of aquacultur
 ! thetapar = area reduction coefficient (=1-DropperArea*DropperDensity)
 ! aquadrag = aquaculture instl. cylinder drag coefficent (0.8 - 2.0)

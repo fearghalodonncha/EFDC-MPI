@@ -2206,7 +2206,6 @@ C     ALLOCATE(WQPSQC(0:NWQPSM))
 ! declare variable related to aquaculture installation
           ALLOCATE(DRPRDRG(0:LAQUA,KAQUA))
           ALLOCATE(DRPRTURB(0:LAQUA,KAQUA))
-          ALLOCATE(AQUADRAG(0:KAQUA))
           ALLOCATE(FXDRPRE(0:LAQUA))
           ALLOCATE(FYDRPRE(0:LAQUA))
           ALLOCATE(FXDRPR(0:LAQUA,KAQUA))

@@ -27,6 +27,15 @@ C
       END DO
       IF (PARTID .EQ. 1) THEN
         OPEN(37,FILE='CELLMAP1.DAT',status='unknown')
+      L=2
+      DO J =1,JC_GLOBAL
+        DO I =1,IC_GLOBAL
+          IF(IJCT_GLOBAL(i,j).EQ.5)THEN
+            IF(PARTID==1) write(37,*)I,J,L,JC_GLOBAL,IC_GLOBAL,LC_GLOBAL
+            L = L + 1
+          END IF
+        ENDDO
+      ENDDO
       END IF
 C **  SET 1D CELL INDEX SEQUENCE AND MAPPINGS  
       L=2
@@ -39,7 +48,7 @@ C **  SET 1D CELL INDEX SEQUENCE AND MAPPINGS
             JL(L) = J
             LCT(L)=IJCT_GLOBAL(IL_GL(L),JL_GL(L))
             LIJ(I,J)=L
-            IF(PARTID==1) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
+!       IF(PARTID==1) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
             L = L + 1
           END IF
         ENDDO
