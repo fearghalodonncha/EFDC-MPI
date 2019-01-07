@@ -26,7 +26,6 @@ ISTRUCT =0; JSTRUCT=0;
                ISTRUCT(I) = ILOC
                JSTRUCT(I) = JLOC
                LSTRUCT = LSTRUCT + 1
-               write(*,*) PARTID, ISTRUCT(I), JSTRUCT(I)
              ENDIF
            ENDIF
            if (filend < 0 ) GOTO 101  ! read until end of file and exit
