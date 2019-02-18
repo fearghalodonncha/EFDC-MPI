@@ -101,7 +101,7 @@ C
 C *** EE BEGIN BLOCK  
       USE GLOBAL
       USE IOM
-      USE DRIFTER,ONLY:DRIFTERINP
+      USE DRIFTER,ONLY:DRIFTERINP,AREA_CENTRD
 
 
 !$      USE OMP_LIB
@@ -130,7 +130,7 @@ C
       REAL*8 T1,T2,DELSNAP
       INTEGER COUNT
       LOGICAL PAUSEIT
-	CHARACTER*20 BUFFER
+	  CHARACTER*20 BUFFER
 C
 
 C      INTERFACE TO INTEGER FUNCTION ATEXIT  
@@ -167,6 +167,7 @@ C
 C  call mpi specific routines if applicable
       CALL VARINIT
 #ifdef key_mpi
+      MPI_PAR_FLAG = 1
       CALL LORP
       CALL INITIALIZE_MPI
       CALL DISTRIBUTE_MPI
@@ -174,6 +175,7 @@ C  call mpi specific routines if applicable
           write(ans(ii),'(I3.3)')ii
         END DO  
 #else
+      MPI_PAR_FLAG = 0
         ans(1) =''
         partid = 0
         partid2=1
@@ -906,8 +908,10 @@ C
 
       ! READ IN INFORMATION ON INITIAL DRIFTER POSITIONS IF ACTIVE
       ! (NOTE THIS REQUIRES SPATIAL INFORMATION TO BE READ IN LXLY.INP ABOVE)
-      IF (ISPD.GE.2) CALL DRIFTERINP
-
+      IF (ISPD.GE.2) THEN
+        CALL AREA_CENTRD
+        CALL DRIFTERINP
+      END IF
 C            
 C **  READ SPATIAL AVERAGING MAP FOR FOOD CHAIN MODEL OUTPUT
 C

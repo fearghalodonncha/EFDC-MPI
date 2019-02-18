@@ -189,8 +189,8 @@ CONTAINS
 
   ! acFILEEXT for allocatable arrays based on
   CHARACTER (LEN=50) GRID_X,GRID_Y,FORMAT_STRING
-  CHARACTER*3,ALLOCATABLE,DIMENSION(:)::FILEEXT
   CHARACTER*4,ALLOCATABLE,DIMENSION(:)::INTCHAR4
+  CHARACTER*3,ALLOCATABLE,DIMENSION(:)::FILEEXT
   CHARACTER(84),ALLOCATABLE,DIMENSION(:)::FILE_OUT
   CHARACTER(84),ALLOCATABLE,DIMENSION(:)::FILE_IN
   INTEGER,ALLOCATABLE,DIMENSION(:)::LVLS
@@ -203,8 +203,6 @@ CONTAINS
   NVARS = KC
   NLONS = IC_GLOBAL
   NLATS = JC_GLOBAL
-  
-  ALLOCATE(FILEEXT(5000))
   ALLOCATE(LVLS(NVARS))
   ALLOCATE(INTCHAR4(NFILES)) 
   ALLOCATE(FILE_IN(5000))
@@ -231,9 +229,7 @@ CONTAINS
   do ii =1,NFILES
    write(INTCHAR4(ii),'(I4.4)') ii
 end do
-do ii =1, 5000
-    write(FILEEXT(ii), '(I3.3)')ii
-  end do
+
 
 
  EASTING(:) = 0.; NORTHING(:) = 0.
@@ -314,7 +310,15 @@ END DO
 READ(1,*)
 DO ii=1,NPRX*NPRY  
   READ(1,*) DOMAINID(ii) 
-END DO                
+END DO
+  ALLOCATE(FILEEXT(NPRX*NPRY))
+  IF (MPI_PAR_FLAG == 1) THEN
+    DO ii =1, NPRX*NPRY
+      WRITE(FILEEXT(ii), '(I3.3)')ii
+    END DO
+  ELSE
+    FILEEXT(:) = ''
+  END IF
 TIMEFILE= 0  
   map_u_vel(:,:,:) =-9999.
   map_v_vel(:,:,:) =-9999.
@@ -332,7 +336,7 @@ TIMEFILE= 0
       IIB = IIB +1
       IF (DOMAINID(FILELOOP) == -1) GOTO 333  ! skip partitions that didn't write
       unitname = unitname  + 1
-      FILE_IN(fileloop)= 'VELVECH'//FILEEXT(iib)//'.OUT'
+      FILE_IN(fileloop)= 'VELVECH'//trim(FILEEXT(iib))//'.OUT'
       OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
       READ(unitname,*) var1,timesec_out,partid,LA
       DO i=2,LA
@@ -342,7 +346,7 @@ TIMEFILE= 0
       END DO
       IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 ) THEN
         unitname = unitname  + 1
-        FILE_IN(fileloop)= 'SALCONH'//FILEEXT(iib)//'.OUT'
+        FILE_IN(fileloop)= 'SALCONH'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
@@ -352,7 +356,7 @@ TIMEFILE= 0
       END IF
       IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
        unitname = unitname  + 1
-        FILE_IN(fileloop)= 'TEMCONH'//FILEEXT(iib)//'.OUT'
+        FILE_IN(fileloop)= 'TEMCONH'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA 
         DO i=2,LA
@@ -362,7 +366,7 @@ TIMEFILE= 0
       END IF
       IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
         unitname = unitname  + 1
-        FILE_IN(fileloop)= 'DYECONH'//FILEEXT(iib)//'.OUT'
+        FILE_IN(fileloop)= 'DYECONH'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA
@@ -372,7 +376,7 @@ TIMEFILE= 0
       END IF
       IF (ISPPH == 1 ) THEN
          unitname = unitname  + 1
-        FILE_IN(fileloop)= 'SURFCON'//FILEEXT(iib)//'.OUT'
+        FILE_IN(fileloop)= 'SURFCON'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
         DO i=2,LA

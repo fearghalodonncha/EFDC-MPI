@@ -1671,9 +1671,7 @@ C**********************************************************************C
 C  
 C **  ADVANCE NEUTRALLY BUOYANT PARTICLE DRIFTER TRAJECTORIES  
 C  
-      !IF(ISPD.EQ.1)THEN  
-      !  IF(N.GE.NPDRT) CALL DRIFTER  
-      IF(ISPD.GE.2)THEN                     !DHC       
+      IF(ISPD.GE.2)THEN                     !DHC
         IF (TIMEDAY.GE.LA_BEGTI.AND.TIMEDAY.LE.LA_ENDTI) THEN
           T1TMP=SECNDS(SECNDS_ZERO)                
           CALL DRIFTERC

@@ -1,0 +1,44 @@
+*** 
+* DRIFTER.INP File for Version 1.3
+* Comment Lines Starts With '*'
+* Using C67 ISPD in EFDC.INP
+* ISPD:    0 No tracking calculation
+*          2 Explicit Euler
+*          3 Pre-Corrector Euler
+*          4 Runge-Kutta 4
+* ZOPT:    Lagrangian Particle Tracking Option in the Z direction:
+*          0 Depths are Fixed at the Initial Seeding Depth
+*          1 Fully 3D Lagrangian Neutrally Buoyant Particles
+* PRAN:    Random Walk Option to add a random movement
+*          0 No random component
+*          1 Random Walk, Horizontal ONLY
+*          2 Random Walk, Vertical   ONLY
+*          3 Random Walk, 3D Random  FULL
+* DIFOP    Option For Random Walk Diffusivity
+*          0 Use AH(L,K) and AV(L,K) from EFDC computations (Horizontal diffusion should be turned on in EFDC)
+*          1 Use HORDIF  VERDIF from this file
+* HORDIF   Horizontal Diffusivity (m^2/s) 
+* VERDIF   Vertical Diffusivity   (m^2/s)
+* DEPOP:   Option for specifying initial vertical position in input file
+*          0 Elevations are specified
+*          1 Depths are specified
+*     ZOPT PRAN DIFOP   HORDIF    VERDIF      DEPOP
+         1    0    0         0         0         0
+**********************************************************************
+*   Julian Time to BEGIN and END Particle Tracking Computations
+*                                  OUTPUT 
+*   BEGIN[day]      END[day]      FREQ[min]
+         0.012            30            10
+**********************************************************************
+* Number Of Drifters: NPD
+        7
+**********************************************************************
+* Initial Coordinates Of Drifters
+*      XLA         YLA         ZLA/DLA
+    15.000   75.000        -5.
+    25.000   105.000       -5.
+    35.000   125.000        -5.
+    45.000   275.000        -5.
+    55.000   335.000       -5.
+    65.000   375.000        -5.
+    75.000   425.0000       -5.
