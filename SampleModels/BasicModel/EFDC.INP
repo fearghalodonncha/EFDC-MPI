@@ -11,7 +11,7 @@
 *  GENERATED WITH DYNAMIC SOLUTIONS-INTERNATIONAL'S EFDC_EXPLORER_GVC        *
 *                                                                            *
 ******************************************************************************
-* PROJECT NAME: SNL-EFDC Training
+* PROJECT NAME :EFDC_MPI Training
 ******************************************************************************
 C1 RUN TITLE
 *   TEXT DESCRIPTION UP TO 80 CHARACTERS IN LENGTH FOR THIS INPUT FILE AND RUN
@@ -42,7 +42,7 @@ C2 RESTART, GENERAL CONTROL AND AND DIAGNOSTIC SWITCHES
 *  ISTIMING:1 TO EVALUATE PROCEDURE SIMULATION TIMES
 *
 C2 ISRESTI ISRESTO ISRESTR IS_SEDZLJ  ISLOG  ISDIVEX ISNEGH   ISMMC   ISBAL  IS2TIM   ISHOW ISTIMING
-       1       1       0       0       0       0       0       0       0       1       1       1
+       0       1       0       0       0       0       0       0       0       1       1       1
 -------------------------------------------------------------------------------
 C3 EXTERNAL MODE SOLUTION OPTION PARAMETERS AND SWITCHES
 *
@@ -121,7 +121,7 @@ C5 MOMENTUM ADVEC AND HORIZ DIFF SWITCHES AND MISC SWITCHES
 *  
 *
 C5 ISCDMA  ISAHMF  ISDISP  ISWASP   ISDRY    ISQQ  ISRLID   ISVEG  ISVEGL   ISITB  ISEVER  IINTPG
-       0       1       0       0       0       1       0       0       0       0       0       0
+       0       1       0       0       11       1       0       0       0       0       0       0
 -------------------------------------------------------------------------------
 C6 DISSOLVED AND SUSPENDED CONSTITUENT TRANSPORT SWITCHES
 *  TURB INTENSITY=0,SAL=1,TEM=2,DYE=3,SFL=4,TOX=5,SED=6,SND=7,CWQ=8
@@ -495,17 +495,17 @@ C24 VOLUMETRIC SOURCE/SINK LOCATIONS, MAGNITUDES, AND CONCENTRATION SERIES
 *  QSFACTOR: FRACTION OF TIME SERIES FLOW NQSERQ ASSIGNED TO THIS CELL
 *  
 C24  IQS     JQS     QSSE     NQSMUL  NQSMFF  IQSERQ  ICSER1  ICSER2  ICSER3  ICSER4  ICSER5  ICSER6  ICSER7   QSFACTOR  ! ID
-       3      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       4      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       5      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       6      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       7      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       8      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-       9      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-      10      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-      11      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-      12      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
-      13      53  9.0000E+01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       3      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       4      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       5      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       6      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       7      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       8      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       9      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      10      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      11      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      12      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      13      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
 -------------------------------------------------------------------------------
 C25 TIME CONSTANT INFLOW CONCENTRATIONS FOR TIME CONSTANT VOLUMETRIC SOURCES
 *
@@ -1377,7 +1377,7 @@ C67 DRIFTER DATA (FIRST 4 PARAMETER FOR SUB DRIFER, SECOND 6 FOR SUB LAGRES)
 *  IPLRPD    1,2,3 WRITE FILES TO PLOT ALL,EVEN,ODD HORIZ LAG VEL VECTORS
 *
 C67 ISPD NPD NPDRT NWPD ISLRPD ILRPD1 ILRPD2 JLRPD1 JLRPD2 MLRPDRT IPLRPD
-       0       0       0      12       0       3      28       9       7      12       1
+    2    0    0    12     0       3      28       9       7      12       1
 -------------------------------------------------------------------------------
 C68 INITIAL DRIFTER POSITIONS (FOR USE WITH SUB DRIFTER)
 *

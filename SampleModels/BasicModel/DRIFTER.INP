@@ -23,7 +23,7 @@
 *          0 Elevations are specified
 *          1 Depths are specified
 *     ZOPT PRAN DIFOP   HORDIF    VERDIF      DEPOP
-         1    0    0         0         0         0
+         1    3    0         0         0         0
 **********************************************************************
 *   Julian Time to BEGIN and END Particle Tracking Computations
 *                                  OUTPUT 
