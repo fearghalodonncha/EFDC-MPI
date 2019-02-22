@@ -296,7 +296,7 @@ C
           JSVPH=0  
         ENDIF  
         IF(ISDYNSTP.EQ.0)THEN  
-          TIME=DT*FLOAT(N)+TCON*TBEGIN  
+          TIME=INT(DT*FLOAT(N)+TCON*TBEGIN)  
         ELSE  
           TIME=TIMESEC  
         ENDIF  

@@ -20,7 +20,7 @@
 !** initialize variables for declaring appropriate month,day,time
      INTEGER  jd,yyyy,mm,dd,l,hh,minu
 
-      INTEGER*8 timesec,jul_day,tday,year_ref
+      INTEGER*8 timesec,jul_day,tday,year_ref,jd_out
       REAL*8 time,time_day,tsecmod
       time_day = float(timesec)/86400.   ! convert from time in days to time in seconds
       jul_day = jd_out(year_ref,1,1)    ! currently our base jul_day reference is 01-01-2000

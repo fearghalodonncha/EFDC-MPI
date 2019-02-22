@@ -8,10 +8,10 @@ C
 C     Merged SNL and DS-INTL
       USE GLOBAL  
 
-      REAL :: DAYNEXT
-      REAL :: SUNDAY1, SUNDAY2, SUNSOL1, SUNSOL2
-      REAL :: SUNFRC1, SUNFRC2
-      INTEGER*4 :: M
+      REAL,SAVE :: DAYNEXT
+      REAL,SAVE :: SUNDAY1, SUNDAY2, SUNSOL1, SUNSOL2
+      REAL,SAVE :: SUNFRC1, SUNFRC2
+      INTEGER*4,SAVE :: M
       
       DATA IWQTAGR,IWQTSTL/2*0/  
       DATA ISMTICI/0/  
@@ -174,7 +174,7 @@ C
             SUNSOL1 = SUNSOL2
             SUNFRC1 = SUNFRC2
             
-            ! *** BUILD THE AVERAGE DAILY SOLAR RADIATION        
+            ! *** BUILD THE AVERAGE DAILY SOLAR RADIATION       
             M1 = 0
             M2 = 0
             SUNSOL2 = 0.
