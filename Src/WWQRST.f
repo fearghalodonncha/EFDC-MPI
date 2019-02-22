@@ -29,7 +29,7 @@ C
 C  
 C ALSO WRITE BINARY RESTART FILE:  
 C  
-   90 FORMAT(2I5, 1P, 22E12.4)  
+   90 FORMAT(2I5, 1P, 23E12.4)  
   101 FORMAT('CC  WQ RESTART FILE TIME STEP, TIME = ',I10,F12.5)  
   102 FORMAT('C   L    K  BC          BD          BG          ',  
      &    'RPOC        LPOC        DOC         ',  
