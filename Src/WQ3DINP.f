@@ -176,7 +176,7 @@ C
       ENDIF  
 
       ! *** READ WQ TIMESERIES
-      IF(IWQPSL==2)CALL RWQCSR !SCJ skip reading RWQCSR if there are only constant point source loads
+      IF(IWQPSL/=0)CALL RWQCSR !SCJ skip reading RWQCSR if there are only constant point source loads
 C  
   100 FORMAT('  TIME = ',A11,' HH.MM.SS.HH')  
       RETURN  

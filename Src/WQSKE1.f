@@ -10,14 +10,14 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
 
       IMPLICIT NONE
       
-      INTEGER*4 NQ,NW,NS,IZ,IMWQZ,NSTPTMP
+      INTEGER*4 NQ,NS,IZ,IMWQZ,NSTPTMP,M
       INTEGER*4 K,L
       
       REAL WQAVGIO,CNS1,RMULTMP,TIME,RLIGHT1,RLIGHT2
       REAL WQGNC,WQGND,WQGNG,WQGNM,WQGPM,WQF1NM,WQGPC,WQGPD,WQGPG
       REAL WQF1NC,WQF1ND,WQF1NG,WQKESS,XMRM,YMRM,WQTT1
-      REAL WQFDI0,WQTTT
-      REAL WQF2IC,WQF2ID,WQF2IG,SADWQ,WQGSD,WQTTB,WQISM,WQFDM,WQF2IM
+      
+      REAL WQF2IC,WQF2ID,WQF2IG,SADWQ,WQGSD,WQF2IM
       REAL UMRM,VMRM,WQVEL,WQLVF,WQF4SC,WQKDOC,WQKHP,WQTTS
       REAL WQKHN,WQTTM,TVAL1,TVAL2,TVAL3,TVAL4,TVAL5
       REAL RLNSAT1,RLNSAT2,XNUMER,XDENOM,WQLDF,WQTTC,WQTTD,WQTTG
@@ -44,17 +44,14 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
       REAL WQGCO2M,WQGCO2C,WQGCO2G,WQGCO2D		!  CO2 Limitation Consts added by AA
 !      REAL WQHTCT, WQHTDT, WQHGT, WQLTHICK
 	    
-      REAL CHL_ABOVE
+!      REAL CHL_ABOVE
       
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::DELKC  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::DZCHP
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TSSS_ABOVE
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::CHLS_ABOVE
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::POMS_ABOVE
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::DZC_ABOVE
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISC
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISD
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISG
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISM
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQI0TOP
 
 C
@@ -148,50 +145,39 @@ C
 
       IF(.NOT.ALLOCATED(DELKC))THEN
         ALLOCATE(DELKC(KCM))  
-        ALLOCATE(DZCHP(LCM))  
-        ALLOCATE(TSSS_ABOVE(LCM))  
-        ALLOCATE(CHLS_ABOVE(LCM))  
-        ALLOCATE(POMS_ABOVE(LCM))  
-        ALLOCATE(DZC_ABOVE(LCM))  
+        ALLOCATE(DZCHP(LCM))   
         ALLOCATE(WQISC(LCM))  
         ALLOCATE(WQISD(LCM))  
         ALLOCATE(WQISG(LCM))  
+        ALLOCATE(WQISM(LCM)) 
         ALLOCATE(WQI0TOP(LCM))  
 
-        DO K=1,KC  
-          DELKC(K)=0.  
-        ENDDO  
-        DELKC(KC)=1.  
+        DELKC(1:KC-1)=0.0
+        DELKC(KC)=1.0 
         DZCHP=0.0
       ENDIF
 C
       CNS1=2.718  
-      NS=1  
+      NS=1
 C    
 C COMPUTE WQCHL,WQTAMP,WQPO4D,WQSAD AT A NEW TIME STEP: WQCHLX=1/WQCHLX  
 C  
       ! *** Compute WQCHL (Chlorophyll) Using Algal Biomass & factors
-      DO K=1,KC  
-        DO L=2,LA  
-         WQCHL(L,K) = WQV(L,K,1)*WQCHLC + WQV(L,K,2)*WQCHLD  
-     &        + WQV(L,K,3)*WQCHLG  
-        ENDDO  
-      ENDDO  
+      WQCHL(2:LA,1:KC)=WQV(2:LA,1:KC,1)*WQCHLC
+     &                +WQV(2:LA,1:KC,2)*WQCHLD
+     &                +WQV(2:LA,1:KC,3)*WQCHLG
+ 
 C
 C INITIALIZE SOLAR RADIATION AND OPTIMAL LIGHT
 C
       ! *** INITIAL SOLAR RADIATION AT TOP OF SURFACE LAYER
       IF(USESHADE)THEN
-        DO L=2,LA
-          WQI0TOP(L)=WQI0 * PSHADE(L)
-        ENDDO
+        WQI0TOP(2:LA)=WQI0 * PSHADE(2:LA)
       ELSE
-        DO L=2,LA
-          WQI0TOP(L)=WQI0
-        ENDDO
+        WQI0TOP(2:LA)=WQI0
       ENDIF
       ! ***  COMPUTE THE CURRENT OPTIMAL LIGHT INTENSITY
-      IF(IWQSUN .EQ. 2)THEN  
+      IF(IWQSUN==2)THEN  
         WQAVGIO = WQCIA*WQI1 + WQCIB*WQI2 + WQCIC*WQI3  
       ELSE
         WQAVGIO = WQCIA*WQI0 + WQCIB*WQI1 + WQCIC*WQI2
@@ -200,149 +186,100 @@ C
  !     WQAVGIO = WQAVGIO / (WQFD + 1.E-18)											!!!!!!!!!!
 
       ! *** DZWQ=1/H (for a layer), VOLWQ=1/VOL (m^-3)
-      TSSS_ABOVE=0.0 
-      CHLS_ABOVE=0.0
-      POMS_ABOVE=0.0 
-      DZC_ABOVE =0.0
       DO K=KC,1,-1  
-        DO L=2,LA  
-          TWQ(L)=TEM(L,K)              !layer temperature for WQ calcs
-          SWQ(L)=MAX(SAL(L,K), 0.0)    !layer salinity for WQ calcs
-          DZCHP(L)=DZC(K)*HP(L)        !layer thickness of a cell in meters
-          DZWQ(L) = 1.0 / DZCHP(L)     !inverse layer thickness
-          VOLWQ(L) = DZWQ(L) / DXYP(L) !inverse volume of each cell in a layer
-          IMWQZT(L)=IWQZMAP(L,K)       !binary map for WQ calcs
-        ENDDO  
+        TWQ(2:LA)=TEM(2:LA,K)                 !layer temperature for WQ calcs
+        SWQ(2:LA)=MAX(SAL(2:LA,K), 0.0)       !layer salinity for WQ calcs
+        DZCHP(2:LA)=DZC(K)*HP(2:LA)           !layer thickness of a cell in meters
+        DZWQ(2:LA) = 1.0 / DZCHP(2:LA)        !inverse layer thickness
+        VOLWQ(2:LA) = DZWQ(2:LA) / DXYP(2:LA) !inverse volume of each cell in a layer
+        IMWQZT(2:LA)=IWQZMAP(2:LA,K)          !binary map for WQ calcs
             
         ! *** ZERO WQWPSL IF FLOWS ARE NEGATIVE.  THESE ARE HANDLED IN CALFQC (PMC)
-        IF(IWQPSL.NE.2)THEN
+        IF(IWQPSL/=2)THEN
           DO NQ=1,NQSIJ  
-            IF((QSERCELL(K,NQ)+QSS(K,NQ)).LE.0.0)THEN
-              ! *** ZERO THE FLUX
-              L=LQS(NQ)  
-              DO NW=1,NWQV
-                WQWPSL(L,K,NW)=0.0
-              ENDDO
-            ENDIF
+            IF((QSERCELL(K,NQ)+QSS(K,NQ))<=0.0)WQWPSL(LQS(NQ),K,1:NWQV)=0.0 ! *** ZERO THE FLUX
           ENDDO
         ENDIF
-                
-    	  WQBCSET=0.0	
-	!EVALUATING THE RATE OF ALGAE LEAVING THE CELL THROUGH SETTLING OR FLOATING
-	  DO L=2,LA  
-		IF(WQWSC(IMWQZT(L)).LT.0) THEN		!VB PERMITS CYANOBACTERIA TO FLOAT AND/OR SETTLE
-			IF(K.EQ.KC) THEN			
-				WQBCSET(L,1) = 0.0			!ALGAE AT THE WATER SURFACE CANT FLOAT INTO THE CELL ABOVE
-			ELSE
-				WQBCSET(L,1) = -WQWSC(IMWQZT(L))*DZWQ(L)   ! *** CYANOBACTERIA	!NEEDS TO BE A POSITIVE QTY	
-			ENDIF
-		ELSE
-			WQBCSET(L,1) = WQWSC(IMWQZT(L))*DZWQ(L)   ! *** CYANOBACTERIA
-		ENDIF
-		IF(WQWSD(IMWQZT(L)).LT.0) THEN		!VB PERMITS DIATOMS TO FLOAT AND/OR SETTLE
-			IF(K.EQ.KC) THEN
-				WQBDSET(L,1) = 0.0
-			ELSE
-				WQBDSET(L,1) = -WQWSD(IMWQZT(L))*DZWQ(L)   ! *** Diatoms	
-			ENDIF
-		ELSE
-			WQBDSET(L,1) = WQWSD(IMWQZT(L))*DZWQ(L)   ! *** Diatoms
-		ENDIF
-		IF(WQWSG(IMWQZT(L)).LT.0) THEN		!VB PERMITS GREEN ALGAE TO FLOAT AND/OR SETTLE
-			IF(K.EQ.KC) THEN
-				WQBGSET(L,1) = 0.0
-			ELSE
-				WQBGSET(L,1) = -WQWSG(IMWQZT(L))*DZWQ(L)   ! *** ALGAE	
-			ENDIF
-		ELSE
-			WQBGSET(L,1) = WQWSG(IMWQZT(L))*DZWQ(L)   ! *** ALGAE
-		ENDIF
-	  ENDDO
-		
-
-        ! *** ZONE SPECIFIC SETTING VELOCITIES, (m/day)   
-        DO L=2,LA  
-          !WQBCSET(L,1) = WQWSC(IMWQZT(L))*DZWQ(L)   ! *** Cyanobacteria   
-          !WQBDSET(L,1) = WQWSD(IMWQZT(L))*DZWQ(L)   ! *** Diatoms
-          !WQBGSET(L,1) = WQWSG(IMWQZT(L))*DZWQ(L)   ! *** Green
-          WQRPSET(L,1) = WQWSRP(IMWQZT(L))*DZWQ(L)  ! *** Refractory POM
-          WQLPSET(L,1) = WQWSLP(IMWQZT(L))*DZWQ(L)  ! *** Labile POM 
-        ENDDO
-
-        ! *** SET SETTLING FOR TAM SORPTION: CURRENT LAYER  
-        IF(IWQSRP.EQ.1)THEN  
-          DO L=2,LA  
-            WQWSSET(L,1) = WQWSS(IMWQZT(L))*DZWQ(L)  
-          ENDDO  
-        ENDIF  
-
-	  DO L=2,LA  
-		IF(K.NE.KC)THEN 
-			IMWQZT1(L)=IWQZMAP(L,K+1)  
-		ENDIF
-		IF(K.NE.1) THEN
-			IMWQZT2(L)=IWQZMAP(L,K-1)  
-		ENDIF
-	  ENDDO 
-        DO L=2,LA
-		IF(K.NE.KC)THEN 
-	  		IF(WQWSC(IMWQZT1(L)).LT.0) THEN
-				WQBCSET(L,2) = 0.0  
-			ELSE
-				WQBCSET(L,2) = WQWSC(IMWQZT1(L))*DZWQ(L)  
-			ENDIF
-	  		IF(WQWSD(IMWQZT1(L)).LT.0) THEN
-				WQBDSET(L,2) = 0.0  
-			ELSE
-				WQBDSET(L,2) = WQWSD(IMWQZT1(L))*DZWQ(L)  
-			ENDIF
-	  		IF(WQWSG(IMWQZT1(L)).LT.0) THEN
-				WQBGSET(L,2) = 0.0  
-			ELSE
-				WQBGSET(L,2) = WQWSG(IMWQZT1(L))*DZWQ(L)  
-			ENDIF
-		ENDIF
-		IF(K.NE.1)THEN
-			IF(WQWSC(IMWQZT2(L)).LT.0) THEN
-				WQBCSET(L,2) = WQBCSET(L,2)-WQWSC(IMWQZT2(L))*DZWQ(L)  
-		!	ELSE
-		!		WQBCSET(L,2) = WQBCSET(L,2) 0.0  
-			ENDIF
-			IF(WQWSD(IMWQZT2(L)).LT.0) THEN
-				WQBDSET(L,2) = WQBDSET(L,2)-WQWSD(IMWQZT2(L))*DZWQ(L) 
-		!	ELSE
-		!		WQBDSET(L,2) = 0.0  
-			ENDIF
-			IF(WQWSG(IMWQZT2(L)).LT.0) THEN
-				WQBGSET(L,2) = WQBGSET(L,2)-WQWSG(IMWQZT2(L))*DZWQ(L)  
-		!	ELSE
-		!		WQBGSET(L,2) = 0.0  
-			ENDIF
-		ENDIF
-	  ENDDO
-        IF(K.NE.KC) THEN
-			DO L=2,LA 
-		!		WQBCSET(L,2) = WQWSC(IMWQZT1(L))*DZWQ(L)  
-		!		WQBDSET(L,2) = WQWSD(IMWQZT1(L))*DZWQ(L)  
-		!		WQBGSET(L,2) = WQWSG(IMWQZT1(L))*DZWQ(L)  
-				WQRPSET(L,2) = WQWSRP(IMWQZT1(L))*DZWQ(L)  
-				WQLPSET(L,2) = WQWSLP(IMWQZT1(L))*DZWQ(L)  
-			ENDDO  
+        IF(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1)THEN !EVALUATING THE RATE OF ALGAE LEAVING THE CELL THROUGH SETTLING OR FLOATING    
+	    DO L=2,LA  
+		  IF(WQWSC(IMWQZT(L))<0.0) THEN		!VB PERMITS CYANOBACTERIA TO FLOAT AND/OR SETTLE
+		    IF(K==KC) THEN			
+			  WQBCSET(L,1) = 0.0			!ALGAE AT THE WATER SURFACE CANT FLOAT INTO THE CELL ABOVE
+              ELSE
+		      WQBCSET(L,1) = -WQWSC(IMWQZT(L))*DZWQ(L)   ! *** CYANOBACTERIA	!NEEDS TO BE A POSITIVE QTY	
+              ENDIF
+		  ELSE
+              WQBCSET(L,1) = WQWSC(IMWQZT(L))*DZWQ(L)   ! *** CYANOBACTERIA
+		  ENDIF
+		  IF(WQWSD(IMWQZT(L))<0.0) THEN		!VB PERMITS DIATOMS TO FLOAT AND/OR SETTLE
+              IF(K==KC) THEN
+			  WQBDSET(L,1) = 0.0
+              ELSE
+			  WQBDSET(L,1) = -WQWSD(IMWQZT(L))*DZWQ(L)   ! *** Diatoms	
+              ENDIF
+		  ELSE
+		    WQBDSET(L,1) = WQWSD(IMWQZT(L))*DZWQ(L)   ! *** Diatoms
+		  ENDIF
+		  IF(WQWSG(IMWQZT(L))<0.0) THEN		!VB PERMITS GREEN ALGAE TO FLOAT AND/OR SETTLE
+              IF(K==KC) THEN
+			  WQBGSET(L,1) = 0.0
+              ELSE
+		  	  WQBGSET(L,1) = -WQWSG(IMWQZT(L))*DZWQ(L)   ! *** ALGAE	
+              ENDIF
+		  ELSE
+		    WQBGSET(L,1) = WQWSG(IMWQZT(L))*DZWQ(L)   ! *** ALGAE
+		  ENDIF
+	    ENDDO
         ENDIF
+        ! *** ZONE SPECIFIC SETTING VELOCITIES, (m/day)   
+        IF(ISTRWQ(7)==1)WQRPSET(2:LA,1) = WQWSRP(IMWQZT(2:LA))*DZWQ(2:LA)  ! *** Refractory POM
+        IF(ISTRWQ(8)==1)WQLPSET(2:LA,1) = WQWSLP(IMWQZT(2:LA))*DZWQ(2:LA)  ! *** Labile POM 
+        ! *** SET SETTLING FOR TAM SORPTION: CURRENT LAYER  
+        IF(IWQSRP==1)WQWSSET(2:LA,1) = WQWSS(IMWQZT(2:LA))*DZWQ(2:LA)  
 
+        IF(K/=KC)IMWQZT1(2:LA)=IWQZMAP(2:LA,K+1)  
+        IF(K/=1)IMWQZT2(2:LA)=IWQZMAP(2:LA,K-1)  
+        
+        IF(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1)THEN
+          DO L=2,LA
+		  IF(K/=KC)THEN 
+	        IF(WQWSC(IMWQZT1(L))<0.0) THEN
+			  WQBCSET(L,2) = 0.0  
+              ELSE
+			  WQBCSET(L,2) = WQWSC(IMWQZT1(L))*DZWQ(L)  
+              ENDIF
+              IF(WQWSD(IMWQZT1(L))<0.0) THEN
+			  WQBDSET(L,2) = 0.0  
+              ELSE
+			  WQBDSET(L,2) = WQWSD(IMWQZT1(L))*DZWQ(L)  
+              ENDIF
+	  	    IF(WQWSG(IMWQZT1(L))<0.0) THEN
+			  WQBGSET(L,2) = 0.0  
+              ELSE
+			  WQBGSET(L,2) = WQWSG(IMWQZT1(L))*DZWQ(L)  
+              ENDIF
+		  ENDIF
+		  IF(K/=1)THEN
+		    IF(WQWSC(IMWQZT2(L))<0.0)WQBCSET(L,2) = WQBCSET(L,2)-WQWSC(IMWQZT2(L))*DZWQ(L)  
+              IF(WQWSD(IMWQZT2(L))<0.0)WQBDSET(L,2) = WQBDSET(L,2)-WQWSD(IMWQZT2(L))*DZWQ(L) 
+              IF(WQWSG(IMWQZT2(L))<0.0)WQBGSET(L,2) = WQBGSET(L,2)-WQWSG(IMWQZT2(L))*DZWQ(L)  
+		  ENDIF
+          ENDDO
+        ENDIF
+        
+        IF(K/=KC) THEN
+          WQRPSET(2:LA,2) = WQWSRP(IMWQZT1(2:LA))*DZWQ(2:LA)  
+          WQLPSET(2:LA,2) = WQWSLP(IMWQZT1(2:LA))*DZWQ(2:LA)  
+        ENDIF
 ! *** SET SETTLING FOR TAM SORPTION: ONE LAYER UP
-	  IF(IWQSRP.EQ.1.AND.K.NE.KC)THEN  
-		DO L=2,LA  
-		  WQWSSET(L,2) = WQWSS(IMWQZT1(L))*DZWQ(L)  
-		ENDDO  
-	  ENDIF
+	  IF(IWQSRP==1.AND.K/=KC)WQWSSET(2:LA,2) = WQWSS(IMWQZT1(2:LA))*DZWQ(2:LA)  
 C  
 C FIND AN INDEX FOR LOOK-UP TABLE FOR TEMPERATURE DEPENDENCY  
 C  
 		! *** DSLLC BEGIN BLOCK
         DO L=2,LA  
           IWQT(L)=NINT((TWQ(L)-WQTDMIN)/WQTDINC)+1  
-          IF(IWQT(L).LT.1 .OR. IWQT(L).GT.NWQTD)THEN  
+          IF(IWQT(L)<1 .OR. IWQT(L)>NWQTD)THEN  
             OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',STATUS='UNKNOWN')  
             WRITE(1,*)' *** ERROR IN WQSKE1:TEMPERATURE LOOKUP TABLE'
             WRITE(1,911) TIMEDAY, L, IL(L), JL(L), K, TWQ(L),TEM(L,K)  
@@ -355,7 +292,7 @@ C
 		! *** DSLLC END BLOCK
   600 FORMAT(' I,J,K,TEM = ',3I5,E13.4)  
   911 FORMAT('ERROR: TIME, L, I, J, K, TWQ(L),TEM(L,K) = ',  
-     &    F10.5, 4I4, 2F10.4,/)  
+     &    F10.5, I5, 2I4, I3, 2F10.4,/)  
   
         !C NOTE: MRM 04/29/99  ADDED ARRAYS TO KEEP TRACK OF  
         !C       NITROGEN, PHOSPHORUS, LIGHT, AND TEMPERATURE LIMITS  
@@ -371,211 +308,210 @@ C
           RNH4WQ(L) = MAX (WQV(L,K,14), 0.0)  ! *** Ammonia
           RNO3WQ(L) = MAX (WQV(L,K,15), 0.0)  ! *** Nitrate
           PO4DWQ(L) = MAX (WQPO4D(L,K), 0.0)  ! *** Phosphate
-          CO2WQ(L)  = MAX (WQV(L,K,22), 0.0)  ! *** CO2			!AA Added
           RNH4NO3(L) = RNH4WQ(L) + RNO3WQ(L)  ! *** Total Inorganic Nitrogen
-          WQGNC = RNH4NO3(L) / (WQKHNC+RNH4NO3(L)+ 1.E-18)  
-          WQGND = RNH4NO3(L) / (WQKHND+RNH4NO3(L)+ 1.E-18)  
-          WQGNG = RNH4NO3(L) / (WQKHNG+RNH4NO3(L)+ 1.E-18)
-          WQGPC = PO4DWQ(L) / (WQKHPC+PO4DWQ(L)+ 1.E-18)  
-          WQGPD = PO4DWQ(L) / (WQKHPD+PO4DWQ(L)+ 1.E-18)  
-          WQGPG = PO4DWQ(L) / (WQKHPG+PO4DWQ(L)+ 1.E-18)  
-          WQGCO2C = CO2WQ(L) / (WQKHCO2C+CO2WQ(L)+ 1.E-18)		!AA
-          WQGCO2D = CO2WQ(L) / (WQKHCO2D+CO2WQ(L)+ 1.E-18)		!AA
-          WQGCO2G = CO2WQ(L) / (WQKHCO2G+CO2WQ(L)+ 1.E-18)		!AA
-
-          XLIMNC(L,K) = XLIMNC(L,K) + WQGNC  
-          XLIMND(L,K) = XLIMND(L,K) + WQGND  
-          XLIMNG(L,K) = XLIMNG(L,K) + WQGNG  
-          XLIMPC(L,K) = XLIMPC(L,K) + WQGPC  
-          XLIMPD(L,K) = XLIMPD(L,K) + WQGPD  
-          XLIMPG(L,K) = XLIMPG(L,K) + WQGPG
-          XLIMCO2C(L,K) = XLIMCO2C(L,K) + WQGCO2C					!AA 
-          XLIMCO2D(L,K) = XLIMCO2D(L,K) + WQGCO2D					!AA
-          XLIMCO2G(L,K) = XLIMCO2G(L,K) + WQGCO2G					!AA
-
-          IF(IDNOTRVA.GT.0 .AND. K.EQ.1)THEN						! For bio mats     
-            WQGNM = RNH4NO3(L) / (WQKHNM+RNH4NO3(L) + 1.E-18)  
-            WQGPM = PO4DWQ(L) / (WQKHPM+PO4DWQ(L) + 1.E-18) 
-            WQGCO2M = CO2WQ(L) / (WQKHCO2M+CO2WQ(L) + 1.E-18)		!AA
-            IF(ISTRWQ(22).GT.0)THEN								
-              WQF1NM = MIN(WQGNM, WQGPM, WQGCO2M)					!AA  Minimum of the N/P/CO2 Limit: Mats
-            ELSE													
-              WQF1NM = MIN(WQGNM, WQGPM)							!AA  Minimum of the N/P     Limit: Mats
+          CO2WQ(L)  = MAX (WQV(L,K,22), 0.0)  ! *** CO2			!AA Added
+          IF(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1)THEN !Microalgae?
+            WQGNC = RNH4NO3(L) / (WQKHNC+RNH4NO3(L) + 1.E-18)  
+            WQGND = RNH4NO3(L) / (WQKHND+RNH4NO3(L) + 1.E-18)  
+            WQGNG = RNH4NO3(L) / (WQKHNG+RNH4NO3(L) + 1.E-18)
+            WQGPC = PO4DWQ(L) / (WQKHPC+PO4DWQ(L) + 1.E-18)  
+            WQGPD = PO4DWQ(L) / (WQKHPD+PO4DWQ(L) + 1.E-18)  
+            WQGPG = PO4DWQ(L) / (WQKHPG+PO4DWQ(L) + 1.E-18)  
+            WQGCO2C = CO2WQ(L) / (WQKHCO2C+CO2WQ(L) + 1.E-18)
+            WQGCO2D = CO2WQ(L) / (WQKHCO2D+CO2WQ(L) + 1.E-18)
+            WQGCO2G = CO2WQ(L) / (WQKHCO2G+CO2WQ(L) + 1.E-18)
+            XLIMNC(L,K) = XLIMNC(L,K) + WQGNC  !Cyanobacteria nitrogen limitation
+            XLIMND(L,K) = XLIMND(L,K) + WQGND  !Diatom        nitrogen limitation  
+            XLIMNG(L,K) = XLIMNG(L,K) + WQGNG  !Green algae   nitrogen limitation
+            XLIMPC(L,K) = XLIMPC(L,K) + WQGPC  !Cyanobacteria phosphorus limitation  
+            XLIMPD(L,K) = XLIMPD(L,K) + WQGPD  !Diatom        phosphorus limitation   
+            XLIMPG(L,K) = XLIMPG(L,K) + WQGPG  !Green algae   phosphorus limitation
+            XLIMCO2C(L,K) = XLIMCO2C(L,K) + WQGCO2C  !Cyanobacteria CO2 limitation
+            XLIMCO2D(L,K) = XLIMCO2D(L,K) + WQGCO2D  !Diatom        CO2 limitation  
+            XLIMCO2G(L,K) = XLIMCO2G(L,K) + WQGCO2G  !Green algae   CO2 limitation
+            XLIMTC(L,K) = XLIMTC(L,K) + WQTDGC(IWQT(L))  !Cyanobacteria temperature limitation  
+            XLIMTD(L,K) = XLIMTD(L,K) + WQTDGD(IWQT(L))   !Diatom       temperature limitation 
+            XLIMTG(L,K) = XLIMTG(L,K) + WQTDGG(IWQT(L))   !Green algae  temperature limitation 
+            IF(ISTRWQ(22)>0)THEN 
+              WQF1NC = MIN(WQGNC, WQGPC, WQGCO2C)			!Minimum of the N/P/CO2 Limit: Cyanobacteria		
+	      ELSE
+              WQF1NC = MIN(WQGNC, WQGPC)					!Minimum of the N/P     Limit: Cyanobacteria
             ENDIF
-            XLIMNM(L,K) = XLIMNM(L,K) + WQGNM  
-            XLIMPM(L,K) = XLIMPM(L,K) + WQGPM
-            XLIMCO2M(L,K) = XLIMCO2M(L,K) + WQGCO2M
-          ENDIF
-
-          IF(ISTRWQ(22) .GT. 0)THEN 
-            WQF1NC = MIN(WQGNC, WQGPC, WQGCO2C)					!AA  Minimum of the N/P/CO2 Limit: Cyanobacteria		
-	    ELSE
-            WQF1NC = MIN(WQGNC, WQGPC)							!AA  Minimum of the N/P     Limit: Cyanobacteria
-          ENDIF
-
-          IF(IWQSI.EQ.1 .AND. ISTRWQ(22).GT.0)THEN  
-            SADWQ = MAX (WQSAD(L,K), 0.0)  
-            WQGSD = SADWQ / (WQKHS+SADWQ+ 1.E-18)  
-            WQF1ND = MIN(WQGND, WQGPD, WQGSD, WQGCO2D)			!AA  Minimum of the N/P/S/CO2 Limit: Diatoms	
-          ENDIF
-          IF(IWQSI.EQ.0 .AND. ISTRWQ(22).GT.0)THEN  
-            WQF1ND = MIN(WQGND, WQGPD, WQGCO2D)					!AA  Minimum of the N/P/CO2   Limit: Diatoms	
-          ENDIF
-          IF(IWQSI.EQ.0 .AND. ISTRWQ(22).EQ.0)THEN  
-            WQF1ND = MIN(WQGND, WQGPD)							!AA  Minimum of the N/P       Limit: Diatoms	
-          ENDIF 
-		
-          IF(ISTRWQ(22) .GT. 0)THEN  
-            WQF1NG = MIN(WQGNG, WQGPG, WQGCO2G)					!AA  Minimum of the N/P/CO2   Limit: Greens			
-	    ELSE
-            WQF1NG = MIN(WQGNG, WQGPG)							!AA  Minimum of the N/P       Limit: Greens	
-          ENDIF
-																				
-          IF(IDNOTRVA.GT.0)THEN  
-            PO4DWQ(L) = MAX (WQPO4D(L,K), 0.0)  
-          ENDIF  
-          ! *** IN C&C, F2IC=F2IC/FCYAN, FACTOR TO ALLOW CYANOBACTERIA MAT FORMATION  
-          ! *** LIGHT EXTINCTION (THIS WILL ALWAYS BE TRUE EXCEPT FOR IWQSUN=2)
-          IF(WQI0.GT.0.1)THEN
-            DZC_ABOVE(L)=DZC_ABOVE(L)+DZC(K)
-            IF(ISTRAN(6).GT.0.OR.ISTRAN(7).GT.0)THEN
-              TSSS_ABOVE(L)=TSSS_ABOVE(L)+(SEDT(L,K)+SNDT(L,K))*DZC(K)
+            IF(IWQSI==1)THEN !SILICA LIMITATION?
+              SADWQ = MAX (WQSAD(L,K), 0.0)  
+              WQGSD = SADWQ / (WQKHS+SADWQ+ 1.E-18)  
+              IF(ISTRWQ(22)>0)THEN !CO2 LIMITATION?
+                WQF1ND = MIN(WQGND, WQGPD, WQGSD, WQGCO2D) !Minimum of the N/P/Si/CO2 Limit: Diatoms
+              ELSE
+                WQF1ND = MIN(WQGND, WQGPD, WQGSD)          !Minimum of the N/P/Si     Limit: Diatoms
+              ENDIF
+            ELSEIF(IWQSI==0)THEN
+              IF(ISTRWQ(22)>0)THEN !CO2 LIMITATON?    
+                WQF1ND = MIN(WQGND, WQGPD, WQGCO2D)        !Minimum of the N/P/CO2    Limit: Diatoms
+              ELSE
+                WQF1ND = MIN(WQGND, WQGPD)                 !Minimum of the N/P        Limit: Diatom
+              ENDIF
+            ENDIF	
+            IF(ISTRWQ(22)>0)THEN  
+              WQF1NG = MIN(WQGNG, WQGPG, WQGCO2G)			!Minimum of the N/P/CO2   Limit: Greens			
+	      ELSE
+              WQF1NG = MIN(WQGNG, WQGPG)					!Minimum of the N/P       Limit: Greens	
             ENDIF
-            !CHLS_ABOVE(L)=CHLS_ABOVE(L)+WQCHL(L,K)*DZC(K) !Not needed - erroneous formulation
-            POMS_ABOVE(L)=POMS_ABOVE(L)+(WQV(L,K,4)+WQV(L,K,5))*DZC(K)
-            ! *** COMPUTE TOTAL EXTINCTION COEFFICIENT
-            WQKESS=WQKEB(IMWQZT(L))
- !           WQKESS=WQKESS+WQKETSS*TSSS_ABOVE(L)/DZC_ABOVE(L) !This may not be correct for TSS as it looks at all TSS above the current layer
- !           WQKESS=WQKESS+WQKEPOM*POMS_ABOVE(L)/DZC_ABOVE(L) !This may not be correct for POM as it looks at all POM above the current layer
-            WQKESS=WQKESS+WQKETSS*(SEDT(L,K)+SNDT(L,K))  *DZCHP(L) !SCJ this seems to be the correct way to do this
-            WQKESS=WQKESS+WQKEPOM*(WQV(L,K,4)+WQV(L,K,5))*DZCHP(L) !SCJ this seems to be the correct way to do this
-            CHL_ABOVE=CHLS_ABOVE(L)/DZC_ABOVE(L)
-            IF(WQKECHL .LT. 0.0)THEN
-              ! *** Compute Extinction Factor as a fn(Chla)
-			 XMRM = 0.054*WQCHL(L,K)**0.6667 + 0.0088*WQCHL(L,K)
-            ELSE
-	         XMRM = WQKECHL*WQCHL(L,K)								
-            ENDIF  
-            WQKESS = WQKESS+XMRM  
-            ! *** OPTIMAL LIGHT INTENSITY AT OPTIMAL DEPTH
-            IF(K.EQ.KC)THEN
-              WQISC(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPC),WQISMIN)  
-              WQISD(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPD),WQISMIN)  
-              WQISG(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPG),WQISMIN) 
-            ENDIF
-            !WQTT1 = (CNS1 * WQFD * DZWQ(L)) / WQKETOT(L,K)	!Not needed - erroneous formulation WQTT1=(2.718*FD)/(Kess*dz)
-            ! *** CURRENT LIGHT GROWTH LIMITING FACTOR
-!AA Begin
-		    IF(K.EQ.KC)THEN										!AA Initialize free surface intensity
-			  WQITOP(L,K) = WQI0TOP(L)
-	      ELSE												!AA Calculate surface intensity as a function of the layer above's surface intensity
-			  WQITOP(L,K) = WQITOP(L,K+1)*EXP(-WQKESS*DZCHP(L))
-		    ENDIF !SEE DiTORO ET AL (1971, EQNS. (11)&(12)) 
-		    EXPA0=EXP(-WQITOP(L,K)/WQISC(L))
-		    EXPA1=EXP(-WQITOP(L,K)/WQISC(L)*EXP(-WQKESS*DZCHP(L)))
-		    XLIMIC(L,K)=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0)
-		    EXPA0=EXP(-WQITOP(L,K)/WQISD(L))
-		    EXPA1=EXP(-WQITOP(L,K)/WQISD(L)*EXP(-WQKESS*DZCHP(L)))
-		    XLIMID(L,K)=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0)
-		    EXPA0=EXP(-WQITOP(L,K)/WQISG(L))
-		    EXPA1=EXP(-WQITOP(L,K)/WQISG(L)*EXP(-WQKESS*DZCHP(L)))
-		    XLIMIG(L,K)=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0)
-
-		    WQF2IC = XLIMIC(L,K)
-		    WQF2ID = XLIMID(L,K)
-	      WQF2IG = XLIMIG(L,K)
-!AA End      
-          ELSE
-            WQF2IC=0.0
-            WQF2ID=0.0
-            WQF2IG=0.0
-          ENDIF
-          ! *** UPDATE SOLAR RADIATION AT BOTTOM OF THIS LAYER  !AA
-          ! *** MACROALGAE SUBMODEL - COMPUTE IF HAVE SOLAR RADIATION
-          IF(IDNOTRVA.GT.0 .AND. K.EQ.1.AND.WQI0TOP(L).GT.1.0E-18)THEN  
-            IZ=IWQZMAP(L,K)  
-            WQFDI0 = - WQI0TOP(L) / (WQFD + 1.E-18)
-            WQISM = MAX( WQAVGIO*EXP(-WQKESS*WQDOPM(IZ)), WQISMIN )  
-            WQFDM = WQFDI0 / (WQISM + 1.E-18)  
-            WQF2IM = WQTT1 * (EXP(WQFDM*WQTTB) - EXP(WQFDM*WQTTT))  
-            !WQF2IM = WQF2IM * PSHADE(L)  
-            UMRM = 0.5*( U(L,K) + U(LEAST(L)   ,K) )  
-            VMRM = 0.5*( V(L,K) + V(LNC(L),K) )  
-            WQVEL=SQRT(UMRM*UMRM + VMRM*VMRM)  
-            WQLVF=1.0  
-C  
-            !C OPTION 1 FOR VELOCITY LIMITATION ASSUMES MACROALGAE GROWTH  
-            !C IS LIMITED AT LOW VELOCITIES DUE TO REDUCED AVAILABILITY OF  
-            !C NUTRIENTS REACHING THE ALGAE BIOMASS.  USES A MICHAELIS-MENTON  
-            !C TYPE OF EQUATION.  
-            IF(IWQVLIM .EQ. 1)THEN  
-              IF(WQVEL .GT. WQKMVMIN(L))THEN  
-                WQLVF = WQVEL / (WQKMV(L) + WQVEL)  
-              ELSE  
-                WQLVF = WQKMVMIN(L) / (WQKMV(L) + WQKMVMIN(L))  
-              ENDIF  
-            ENDIF  
-C  
-            !C OPTION 2 FOR VELOCITY LIMITATION APPLIES A FIVE-PARAMETER LOGISTIC  
-            !C FUNCTION THAT CAN BE ADJUSTED TO LIMIT MACROALGAE GROWTH FOR  
-            !C EITHER LOW OR HIGH (SCOUR) VELOCITIES.  IN STREAMS WITH LOW NUTRIENTS,  
-            !C THE LOW VELOCITY WILL LIKELY BE LIMITING SINCE AMPLE NUTRIENTS MAY  
-            !C NOT REACH THE ALGAE BIOMASS DUE TO REDUCED FLOW.  IN STREAMS WITH  
-            !C ABUNDANT NUTRIENTS, LOW VELOCITIES WILL NOT LIMIT MACROALGAE GROWTH,  
-            !C INSTEAD, HIGH VELOCITIES WILL LIKELY SCOUR THE MACROALGAE AND DETACH  
-            !C IT FROM THE SUBSTRATE.  
-            IF(IWQVLIM .EQ.2)THEN  
-              XNUMER = WQKMVA(L) - WQKMVD(L)  
-              XDENOM = 1.0 + (WQVEL/WQKMVC(L))**WQKMVB(L)  
-              WQLVF = WQKMVD(L) + ( XNUMER / (XDENOM**WQKMVE(L)) )  
-            ENDIF  
-C  
-            ! *** USE THE MORE SEVERELY LIMITING OF VELOCITY OR NUTRIENT FACTORS:  
-            WQF1NM = MIN(WQLVF, WQF1NM)  
-C  
-            !C FIRST CONVERT FROM MACROALGAE FROM A CONCENTRATION (MG C/M3)  
-            !C TO A DENSITY (MG C/M2).  
-            XMRM = WQV(L,K,IDNOTRVA)*DZCHP(L)  
-            WQLDF = WQKBP(L) / (WQKBP(L) + XMRM)  
-            WQPM(L)= WQPMM(IMWQZT(L))*WQF1NM*WQF2IM*WQTDGM(IWQT(L))*  
-     &          WQLDF  
-            XLIMVM(L,K) = XLIMVM(L,K) + WQLVF  
-            XLIMDM(L,K) = XLIMDM(L,K) + WQLDF  
-            XLIMIM(L,K) = XLIMIM(L,K) + WQF2IM  
-            XLIMTM(L,K) = XLIMTM(L,K) + WQTDGM(IWQT(L))  
-          ENDIF  
-          XLIMTC(L,K) = XLIMTC(L,K) + WQTDGC(IWQT(L))  
-          XLIMTD(L,K) = XLIMTD(L,K) + WQTDGD(IWQT(L))  
-          XLIMTG(L,K) = XLIMTG(L,K) + WQTDGG(IWQT(L))  
-C  
-          ! *** Compute the Growth Rate based on Maximums & Limiting Factors
-          IF(IWQSTOX.EQ.1)THEN  
-            WQF4SC = WQSTOX / (WQSTOX + SWQ(L)*SWQ(L)+1.E-12)  
-           WQPC(L)=WQPMC(IMWQZT(L))*WQF1NC*WQF2IC*WQTDGC(IWQT(L))*WQF4SC  
-          ELSE  
-            WQPC(L) = WQPMC(IMWQZT(L))*WQF1NC*WQF2IC*WQTDGC(IWQT(L))  
-          ENDIF  
-          WQPD(L) = WQPMD(IMWQZT(L))*WQF1ND*WQF2ID*WQTDGD(IWQT(L))  
-          WQPG(L) = WQPMG(IMWQZT(L))*WQF1NG*WQF2IG*WQTDGG(IWQT(L)) 
 C  
 C ALGAL BASAL METABOLISM & PREDATION  
 C  
-          WQBMC(L) = WQBMRC(IMWQZT(L)) * WQTDRC(IWQT(L))  
-          WQPRC(L) = WQPRRC(IMWQZT(L)) * WQTDRC(IWQT(L))  
+            WQBMC(L) = WQBMRC(IMWQZT(L)) * WQTDRC(IWQT(L))  
+            WQPRC(L) = WQPRRC(IMWQZT(L)) * WQTDRC(IWQT(L))  
 C  
 C THE VARIABLE WQTDGP ADJUSTS PREDATION AND BASAL METABOLISM BASED ON A  
 C LOWER/UPPER OPTIMUM TEMPERATURE FUNCTION.  THIS WILL ALLOW DIATOMS TO  
 C BLOOM IN WINTER IF WQTDGP IS CLOSE TO ZERO.  
 C  
-          WQBMD(L)=WQBMRD(IMWQZT(L))*WQTDRD(IWQT(L))*WQTDGP(IWQT(L))  
-          WQPRD(L)=WQPRRD(IMWQZT(L))*WQTDRD(IWQT(L))*WQTDGP(IWQT(L))  
-          WQBMG(L) = WQBMRG(IMWQZT(L)) * WQTDRG(IWQT(L))  
-          WQPRG(L) = WQPRRG(IMWQZT(L)) * WQTDRG(IWQT(L))  
-          IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-            WQBMM(L) = WQBMRM(IMWQZT(L)) * WQTDRM(IWQT(L))  
+            WQBMD(L)=WQBMRD(IMWQZT(L))*WQTDRD(IWQT(L))*WQTDGP(IWQT(L))  
+            WQPRD(L)=WQPRRD(IMWQZT(L))*WQTDRD(IWQT(L))*WQTDGP(IWQT(L))  
+            WQBMG(L) = WQBMRG(IMWQZT(L)) * WQTDRG(IWQT(L))  
+            WQPRG(L) = WQPRRG(IMWQZT(L)) * WQTDRG(IWQT(L)) 
+          ENDIF
+!***For macroalgae defined in VEGE.INP
+          IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.!If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN 
+!***WQGNM is nitrate/ammonium limitation
+            WQGNM = RNH4NO3(L) / (WQKHNM+RNH4NO3(L) + 1.E-18)
+            MACLIM(L,K,4) = WQGNM !NO3/NH4 limitation saved
+!***WQGPM is phosphate limitation
+            WQGPM = PO4DWQ(L) / (WQKHPM+PO4DWQ(L) + 1.E-18)
+            MACLIM(L,K,5) = WQGPM !PO4 limitation saved
+!***WQGCO2M is CO2 limitation
+!***WQF1NM is total nutrient limitation
+            IF(ISTRWQ(22)>0)THEN								
+              WQGCO2M = CO2WQ(L) / (WQKHCO2M+CO2WQ(L) + 1.E-18)	!CO2 macroalgae limitation
+              MACLIM(L,K,6) = WQGCO2M !CO2 limitation saved
+              WQF1NM = MIN(WQGNM, WQGPM, WQGCO2M)					!Minimum of the N/P/CO2 Limit: macroalgae
+              XLIMCO2M(L,K) = XLIMCO2M(L,K) + WQGCO2M !CO2
+            ELSE													
+              WQF1NM = MIN(WQGNM, WQGPM)							!Minimum of the N/P     Limit: macroalgae
+            ENDIF
+            XLIMNM(L,K) = XLIMNM(L,K) + WQGNM  !Macroalgae nitrate/ammonium limitation
+            XLIMPM(L,K) = XLIMPM(L,K) + WQGPM  !Macroalgae phosphorus limitation
+            MACLIM(L,K,3) = WQTDGM(IWQT(L))    !Temperature limitation saved
+            XLIMTM(L,K) = XLIMTM(L,K) + WQTDGM(IWQT(L))  !Macroalgae temperature limitation
+!C BIOLOGICAL CARRYING CAPACITY LIMITATION
+!C FIRST CONVERT FROM MACROALGAE FROM A CONCENTRATION (MG C/M3) TO A DENSITY (MG C/M2).
+            WQLDF=1.0 !Initialize biomass carrying capacity limitation (it is overwritten if it is considered)
+            IF(IWQVLIM>0)THEN
+              XMRM = WQV(L,K,IDNOTRVA)*DZCHP(L)  
+              WQLDF = WQKBP(L) / (WQKBP(L) + XMRM) !Macroalgae biomass carrying capacity limitation
+              XLIMDM(L,K) = XLIMDM(L,K) + WQLDF
+            ENDIF
+!C OPTION 1 FOR VELOCITY LIMITATION ASSUMES MACROALGAE GROWTH  
+!C IS LIMITED AT LOW VELOCITIES DUE TO REDUCED AVAILABILITY OF  
+!C NUTRIENTS REACHING THE ALGAE BIOMASS.  USES A MICHAELIS-MENTON  
+!C TYPE OF EQUATION.  
+            WQLVF=1.0 !Initialize velocity limitation (overwritten if it is considered)
+            IF(IWQVLIM==1)THEN
+              UMRM = 0.5*( U(L,K) + U(LEAST(L),K) )  
+              VMRM = 0.5*( V(L,K) + V(LNC(L),  K) )  
+              WQVEL=SQRT(UMRM*UMRM + VMRM*VMRM)  
+              IF(WQVEL>WQKMVMIN(L))THEN  
+                WQLVF = WQVEL / (WQKMV(L) + WQVEL)  
+              ELSE  
+                WQLVF = WQKMVMIN(L) / (WQKMV(L) + WQKMVMIN(L))  
+              ENDIF
+!C OPTION 2 FOR VELOCITY LIMITATION APPLIES A FIVE-PARAMETER LOGISTIC  
+!C FUNCTION THAT CAN BE ADJUSTED TO LIMIT MACROALGAE GROWTH FOR  
+!C EITHER LOW OR HIGH (SCOUR) VELOCITIES.  IN STREAMS WITH LOW NUTRIENTS,  
+!C THE LOW VELOCITY WILL LIKELY BE LIMITING SINCE AMPLE NUTRIENTS MAY  
+!C NOT REACH THE ALGAE BIOMASS DUE TO REDUCED FLOW.  IN STREAMS WITH  
+!C ABUNDANT NUTRIENTS, LOW VELOCITIES WILL NOT LIMIT MACROALGAE GROWTH,  
+!C INSTEAD, HIGH VELOCITIES WILL LIKELY SCOUR THE MACROALGAE AND DETACH  
+!C IT FROM THE SUBSTRATE.  
+            ELSEIF(IWQVLIM==2)THEN  
+              XNUMER = WQKMVA(L) - WQKMVD(L)  
+              XDENOM = 1.0 + (WQVEL/WQKMVC(L))**WQKMVB(L)  
+              WQLVF = WQKMVD(L) + ( XNUMER / (XDENOM**WQKMVE(L)) )  
+              XLIMVM(L,K) = XLIMVM(L,K) + WQLVF  !Macroalgae velcoity limitation
+            ENDIF
+! *** USE THE MORE SEVERELY LIMITING OF VELOCITY OR NUTRIENT FACTORS:  
+            WQF1NM = MIN(WQLVF, WQF1NM)
+! *** MACROALGAE BASAL METABOLISM AND PREDATION
+            WQBMM(L) = WQBMRM(IMWQZT(L)) * WQTDRM(IWQT(L))
             WQPRM(L) = WQPRRM(IMWQZT(L)) * WQTDRM(IWQT(L))  
+            MACLIM(L,K,7) = WQBMM(L) !Macroalgae basal metabolic rate saved
+            MACLIM(L,K,8) = WQPRM(L) !Macroalgae predation rate saved
+          ENDIF																		
+          ! *** IN C&C, F2IC=F2IC/FCYAN, FACTOR TO ALLOW CYANOBACTERIA MAT FORMATION
+          ! *** COMPUTE TOTAL EXTINCTION COEFFICIENT
+          ! *** LIGHT EXTINCTION (THIS WILL ALWAYS BE TRUE EXCEPT FOR IWQSUN=2)
+          WQKESS=WQKEB(IMWQZT(L)) !Start with background light extinction
+          IF(ISTRWQ(4)>0.OR.ISTRWQ(5)>0)WQKESS=WQKESS+WQKEPOM*(WQV(L,K,4)+WQV(L,K,5))*DZCHP(L) !Add any refractory and particulate organic carbon component
+          IF(ISTRAN(6)>0.OR.ISTRAN(7)>0)WQKESS=WQKESS+WQKETSS*(SEDT(L,K)+SNDT(L,K))  *DZCHP(L) !Add any sediment component
+          IF(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1)THEN !Add any Chlorophyll component
+            IF(WQKECHL<0.0)THEN
+              ! *** Compute Extinction Factor as a fn(Chla)
+		    XMRM = 0.054*WQCHL(L,K)**0.6667 + 0.0088*WQCHL(L,K)
+            ELSE
+	        XMRM = WQKECHL*WQCHL(L,K)								
+            ENDIF  
+            WQKESS = WQKESS+XMRM
+          ENDIF
+          IF(IDNOTRVA>0)WQKESS = WQKESS + WQKECHL*WQV(L,K,IDNOTRVA)*DZCHP(L) !Add any macroalgae component (may need its own light extinction, Ke, variable WQKEMAC) 
+		IF(K==KC)THEN										!AA Initialize free surface intensity
+		  WQITOP(L,K) = WQI0TOP(L)
+	    ELSE												!AA Calculate surface intensity as a function of the layer above's surface intensity
+		  WQITOP(L,K) = WQITOP(L,K+1)*EXP(-WQKESS*DZCHP(L))
+          ENDIF !SEE DiTORO ET AL (1971, EQNS. (11)&(12)) 
+          IF(WQI0>0.1.AND.(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1))THEN !If there is sunlight and microalgae 
+            ! *** OPTIMAL LIGHT INTENSITY AT OPTIMAL DEPTH
+            IF(K==KC)THEN
+              WQISC(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPC),WQISMIN)  
+              WQISD(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPD),WQISMIN)  
+              WQISG(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPG),WQISMIN)
+            ENDIF
+            ! *** LIGHT GROWTH-LIMITING FACTOR
+		  EXPA0=EXP(-WQITOP(L,K)/WQISC(L))
+		  EXPA1=EXP(-WQITOP(L,K)/WQISC(L)*EXP(-WQKESS*DZCHP(L)))
+		  WQF2IC=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0) !Cyanobacteria light limitation
+            XLIMIC(L,K) = XLIMIC(L,K) + WQF2IC
+		  EXPA0=EXP(-WQITOP(L,K)/WQISD(L))
+		  EXPA1=EXP(-WQITOP(L,K)/WQISD(L)*EXP(-WQKESS*DZCHP(L)))
+		  WQF2ID=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0) !Diatom light limitation
+            XLIMID(L,K) = XLIMID(L,K) + WQF2ID
+		  EXPA0=EXP(-WQITOP(L,K)/WQISG(L))
+		  EXPA1=EXP(-WQITOP(L,K)/WQISG(L)*EXP(-WQKESS*DZCHP(L)))
+		  WQF2IG=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0) !Green algae light limitation
+            XLIMIG(L,K) = XLIMIG(L,K) + WQF2IG
+! *** Compute Microalgal Growth Rate based on Maximums & Limiting Factors
+            IF(IWQSTOX==1)THEN  
+              WQF4SC = WQSTOX / (WQSTOX + SWQ(L)*SWQ(L)+1.E-12)  
+              WQPC(L)=WQPMC(IMWQZT(L))*WQF1NC*WQF2IC*WQTDGC(IWQT(L))*WQF4SC  
+            ELSE  
+              WQPC(L) = WQPMC(IMWQZT(L))*WQF1NC*WQF2IC*WQTDGC(IWQT(L))  
+            ENDIF  
+            WQPD(L) = WQPMD(IMWQZT(L))*WQF1ND*WQF2ID*WQTDGD(IWQT(L))  
+            WQPG(L) = WQPMG(IMWQZT(L))*WQF1NG*WQF2IG*WQTDGG(IWQT(L)) 
+          ENDIF
+          ! *** MACROALGAE SUBMODEL
+          IF(WQI0>0.1 .AND. IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.  !If macroalgae, and GAMVEG/=0
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !If layer is within the height of the macroalgae
+            IZ=IWQZMAP(L,K)
+!            IF(K==KC)THEN										!AA Initialize free surface intensity
+!			WQITOP(L,K) = WQI0TOP(L)
+!	      ELSE												!AA Calculate surface intensity as a function of the layer above's surface intensity
+!			WQITOP(L,K) = WQITOP(L,K+1)*EXP(-WQKESS*DZCHP(L))
+!		  ENDIF !SEE DiTORO ET AL (1971, EQNS. (11)&(12)) 
+            WQISM(L) = MAX( WQAVGIO*EXP(-WQKESS*WQDOPM(IZ)), WQISMIN )  !Optimal light
+            EXPA0=EXP(-WQITOP(L,K)/WQISM(L))!SCJ had to correct same as above for microalgae
+! *** UPDATE SOLAR RADIATION AT BOTTOM OF THIS LAYER
+            EXPA1=EXP(-WQITOP(L,K)/WQISM(L)*EXP(-WQKESS*DZCHP(L)))!SCJ had to correct same as above for microalgae
+!*********WQF2IM is the light limitation for macroalgae
+		  WQF2IM=EXP(1.0)*WQFD/(DZCHP(L)*WQKESS)*(EXPA1-EXPA0) !Macroalgae light limitation
+            XLIMIM(L,K) = XLIMIM(L,K) + WQF2IM !*********XLIMIM is the light limitation for macroalgae
+            MACLIM(L,K,2) = WQF2IM !light limitation saved
+!*** Maximum macroalgae growth rate modulated by WQF1NM (light limitation}, WQF2IM (nutrient limitation), WQTDGM (temperature limitation), and WQLDF (ecological carrying capacity limitation) 
+            WQPM(L)= WQPMM(IMWQZT(L))*WQF1NM*WQF2IM*WQTDGM(IWQT(L))*WQLDF  !Macroalgae growth rate f(I)*g(T)*h(N)
+            MACLIM(L,K,1) = WQPM(L) !Macroalgae growth rate saved
           ENDIF  
-        ENDDO  
+        ENDDO
 C  
 C END HORIZONTAL LOOP FOR ALGAE PARMETERS  
 C  
@@ -585,9 +521,9 @@ C
           WQOBTOT(L) = WQV(L,K,1)+WQV(L,K,2)+WQV(L,K,3)  
           WQKRPC(L) = (WQKRC + WQKRCALG*WQOBTOT(L)) * WQTDHDR(IWQT(L))  
           WQKLPC(L) = (WQKLC + WQKLCALG*WQOBTOT(L)) * WQTDHDR(IWQT(L))  
-          IF(IDNOTRVA.GT.0 .AND. K.EQ.1)THEN  
-            XMRM = WQKDCALM(IZ) * WQV(L,K,IDNOTRVA)  
-          ENDIF  
+          IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND. !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))
+     &      XMRM = WQKDCALM(IZ) * WQV(L,K,IDNOTRVA)  
 C  
 C M. MORTON 08/28/99: ADDED SPATIALLY VARIABLE DOC HYDROLYSIS RATE WQKDC  
 C    TO ACHIEVE BETTER CONTROL IN SYSTEMS WITH A COMBINATION OF FRESHWAT  
@@ -595,9 +531,9 @@ C    STREAMS AND TIDAL RIVERS WITH DIFFERENT CHARACTERISTICS.
 C  
           WQKDOC=(WQKDC(IZ)+WQKDCALG*WQOBTOT(L) + XMRM)*WQTDMNL(IWQT(L))  
           O2WQ(L) = MAX(WQV(L,K,19), 0.0)  
-          WQTT1 = WQKDOC / (WQKHORDO + O2WQ(L)+ 1.E-18)  
+          WQTT1 = WQKDOC / (WQKHORDO + O2WQ(L) + 1.E-18)  
           WQKHR(L) = WQTT1 * O2WQ(L)  
-          WQDENIT(L)=WQTT1*WQAANOX*RNO3WQ(L)/(WQKHDNN+RNO3WQ(L)+ 1.E-18)  
+          WQDENIT(L)=WQTT1*WQAANOX*RNO3WQ(L)/(WQKHDNN+RNO3WQ(L) + 1.E-18)  
         ENDDO  
 C  
 C 7-10 PHOSPHORUS  
@@ -606,24 +542,24 @@ C
         DO L=2,LA  
           WQAPC(L)=1.0/(WQCP1PRM+WQCP2PRM*EXP(-WQCP3PRM*PO4DWQ(L)))  
           WQKHP = (WQKHPC+WQKHPD+WQKHPG) / 3.0  
-          WQTT1 = WQKHP / (WQKHP+PO4DWQ(L)+ 1.E-18) * WQOBTOT(L)  
+          WQTT1 = WQKHP / (WQKHP+PO4DWQ(L) + 1.E-18) * WQOBTOT(L)  
           WQKRPP(L) = (WQKRP + WQKRPALG*WQTT1) * WQTDHDR(IWQT(L))  ! *** RPOP--> PO4
           WQKLPP(L) = (WQKLP + WQKLPALG*WQTT1) * WQTDHDR(IWQT(L))  ! *** LPOP--> DOP
           WQKDOP(L) = (WQKDP + WQKDPALG*WQTT1) * WQTDMNL(IWQT(L))  ! *** DOP --> PO4
         ENDDO
         ! *** PHOSPHATE SETTLING   
         DO L=2,LA  
-          IF(IWQSRP.EQ.1)THEN  
+          IF(IWQSRP==1)THEN  
             WQTTM = WQKPO4P*WQTAMP(L,K)  
             WQH10(L) = - WQWSSET(L,1) * WQTTM / (1.0+WQTTM)  
-            IF(K.NE.KC)THEN  
+            IF(K/=KC)THEN  
               WQTTM = WQKPO4P*WQTAMP(L,K+1)  
               WQT10(L) = WQWSSET(L,2) * WQTTM / (1.0+WQTTM)  
             ENDIF  
-          ELSE IF(IWQSRP.EQ.2)THEN  
+          ELSEIF(IWQSRP==2)THEN  
             WQTTS = WQKPO4P*SEDT(L,K)  
             WQH10(L) = - WSEDO(NS) * WQTTS * DZWQ(L) / (1.0+WQTTS)  
-            IF(K.NE.KC)THEN  
+            IF(K/=KC)THEN  
               WQTTS = WQKPO4P*SEDT(L,K)  
               WQT10(L) = WSEDO(NS) * WQTTS * DZWQ(L) / (1.0+WQTTS)  
             ENDIF  
@@ -639,47 +575,47 @@ C
         ! *** HYDROLYSIS  
         DO L=2,LA  
           WQKHN = (WQKHNC+WQKHND+WQKHNG) / 3.0  
-          WQTT1 = WQKHN / (WQKHN+RNH4NO3(L)+ 1.E-18) * WQOBTOT(L)  
+          WQTT1 = WQKHN / (WQKHN+RNH4NO3(L) + 1.E-18) * WQOBTOT(L)  
           WQKRPN(L) = (WQKRN + WQKRNALG*WQTT1) * WQTDHDR(IWQT(L))  ! *** RPON-->NH3
           WQKLPN(L) = (WQKLN + WQKLNALG*WQTT1) * WQTDHDR(IWQT(L))  ! *** LON -->DON
           WQKDON(L) = (WQKDN + WQKDNALG*WQTT1) * WQTDMNL(IWQT(L))  ! *** DON -->NH3
         ENDDO  
         DO L=2,LA  
-          IF(RNH4NO3(L).EQ.0.0)THEN  
+          IF(RNH4NO3(L)==0.0)THEN  
             WQPNC(L)=0.0  
             WQPND(L)=0.0  
             WQPNG(L)=0.0  
             WQPNM(L)=0.0  
           ELSE  
-            WQTTC = RNH4WQ(L)/(WQKHNC+RNO3WQ(L)+ 1.E-18)  
-            WQTTD = RNH4WQ(L)/(WQKHND+RNO3WQ(L)+ 1.E-18)  
-            WQTTG = RNH4WQ(L)/(WQKHNG+RNO3WQ(L)+ 1.E-18)  
-            WQTTM = RNH4WQ(L)/(WQKHNM+RNO3WQ(L)+ 1.E-18)  
-            WQPNC(L) = (RNO3WQ(L)/(WQKHNC+RNH4WQ(L)+ 1.E-18)  
-     &          + WQKHNC/(RNH4NO3(L)+ 1.E-18)) * WQTTC  
-            WQPND(L) = (RNO3WQ(L)/(WQKHND+RNH4WQ(L)+ 1.E-18)  
-     &          + WQKHND/(RNH4NO3(L)+ 1.E-18)) * WQTTD  
-            WQPNG(L) = (RNO3WQ(L)/(WQKHNG+RNH4WQ(L)+ 1.E-18)  
-     &          + WQKHNG/(RNH4NO3(L)+ 1.E-18)) * WQTTG  
-            WQPNM(L) = (RNO3WQ(L)/(WQKHNM+RNH4WQ(L)+ 1.E-18)  
-     &          + WQKHNM/(RNH4NO3(L)+ 1.E-18)) * WQTTM  
+            WQTTC = RNH4WQ(L)/(WQKHNC+RNO3WQ(L) + 1.E-18)  
+            WQTTD = RNH4WQ(L)/(WQKHND+RNO3WQ(L) + 1.E-18)  
+            WQTTG = RNH4WQ(L)/(WQKHNG+RNO3WQ(L) + 1.E-18)  
+            WQTTM = RNH4WQ(L)/(WQKHNM+RNO3WQ(L) + 1.E-18)  
+            WQPNC(L) = (RNO3WQ(L)/(WQKHNC+RNH4WQ(L) + 1.E-18)  
+     &          + WQKHNC/(RNH4NO3(L) + 1.E-18)) * WQTTC  
+            WQPND(L) = (RNO3WQ(L)/(WQKHND+RNH4WQ(L) + 1.E-18)  
+     &          + WQKHND/(RNH4NO3(L) + 1.E-18)) * WQTTD  
+            WQPNG(L) = (RNO3WQ(L)/(WQKHNG+RNH4WQ(L) + 1.E-18)  
+     &          + WQKHNG/(RNH4NO3(L) + 1.E-18)) * WQTTG  
+            WQPNM(L) = (RNO3WQ(L)/(WQKHNM+RNH4WQ(L) + 1.E-18)  
+     &          + WQKHNM/(RNH4NO3(L) + 1.E-18)) * WQTTM  
           ENDIF  
           WQNIT(L) = O2WQ(L) * WQTDNIT(IWQT(L)) /  
      &        ( (WQKHNDO+O2WQ(L)) * (WQKHNN+RNH4WQ(L)) + 1.E-18)  
         ENDDO  
-        IF(IWQSI.EQ.1)THEN  
+        IF(IWQSI==1)THEN  
           DO L=2,LA  
-            IF(IWQSRP.EQ.1)THEN  
+            IF(IWQSRP==1)THEN  
               WQTTM = WQKSAP*WQTAMP(L,K)  
               WQN17(L) = - WQWSSET(L,1) * WQTTM / (1.0+WQTTM)  
-              IF(K.NE.KC)THEN  
+              IF(K/=KC)THEN  
                 WQTTM = WQKSAP*WQTAMP(L,K+1)  
                 WQT17(L) = WQWSSET(L,2) * WQTTM / (1.0+WQTTM)  
               ENDIF  
-            ELSE IF(IWQSRP.EQ.2)THEN  
+            ELSEIF(IWQSRP==2)THEN  
               WQTTS = WQKSAP*SEDT(L,K)  
               WQN17(L) = - WSEDO(NS) * WQTTS * DZWQ(L) / (1.0+WQTTS)  
-              IF(K.NE.KC)THEN  
+              IF(K/=KC)THEN  
                 WQTTS = WQKSAP*SEDT(L,K+1)  
                 WQT17(L) = WSEDO(NS) * WQTTS * DZWQ(L) / (1.0+WQTTS)  
               ENDIF  
@@ -709,7 +645,7 @@ C
 !          WQDOS(L) = EXP(RLNSAT2)  
 !          XDOSAT(L,K) = XDOSAT(L,K) + WQDOS(L)*DTWQ*DZCHP(L)   
 ! *** DO Saturation, Modified by SCJ, see Garcia and Gordon, Limnology and Oceanography 37(6), 1992, Eqn. 8 and Table 1
-          TVAL1=log((298.15-TWQ(L))/(273.15+TWQ(L)))
+          TVAL1=LOG((298.15-TWQ(L))/(273.15+TWQ(L)))
           TVAL2=TVAL1*TVAL1
           TVAL3=TVAL1*TVAL2
           TVAL4=TVAL1*TVAL3
@@ -722,36 +658,35 @@ C
           XDOSAT(L,K) = XDOSAT(L,K) + WQDOS(L)*DTWQ*DZCHP(L)
           
 !************* CO2 parameters
-	  CDOSATIDX(L) = -2385.73/(TWQ(L) + 273.15) -	!VB COMPUTING THE pK FOR SAT CONC OF CO2; K - HENRY'S CONST
+	    CDOSATIDX(L) = -2385.73/(TWQ(L) + 273.15) -	!VB COMPUTING THE pK FOR SAT CONC OF CO2; K - HENRY'S CONST
      &	                       0.0152642 * (TWQ(L) + 273.15) + 14.0184
 !          K * MOL WT OF CO2 * PARTAL PRES OF CO2 IN ATM
-	  WQCDOS(L) = 10.**(-CDOSATIDX(L)+PPCDO) * (44.* 1000.) !VB EVALUATING CONC OF CO2 IN G/M^3 
+	    WQCDOS(L) = 10.**(-CDOSATIDX(L)+PPCDO) * (44.* 1000.) !VB EVALUATING CONC OF CO2 IN G/M^3 
 !************* CO2 parameters
           ! *** Compute Reaeration
-          IF(K.EQ.KC)THEN 
-           
+          IF(K==KC)THEN 
             WINDREA = WINDST(L)  
             ! DO NOT ALLOW WIND SPEEDS ABOVE 11 M/SEC IN THE FOLLOWING EQUATION
             WQWREA=0.728*SQRT(WINDREA)+(0.0372*WINDREA-0.317)*WINDREA  
 C  
-            IF(IWQKA(IZ) .EQ. 0)THEN  
+            IF(IWQKA(IZ)==0)THEN  
               WQVREA = WQKRO(IZ)  
               WQWREA = 0.0  
-            ELSEIF(IWQKA(IZ) .EQ. 1)THEN  
+            ELSEIF(IWQKA(IZ)==1)THEN  
               WQVREA = WQKRO(IZ)  
-            ELSEIF(IWQKA(IZ) .EQ. 2)THEN  
+            ELSEIF(IWQKA(IZ)==2)THEN  
               UMRM = 0.5*(U(L,K)+U(LEAST(L),K))  
               VMRM = 0.5*(V(L,K)+V(LNC(L),K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 3.933 TYPICALLY  
               WQVREA = WQKRO(IZ) * XMRM**0.5 / HP(L)**0.5  
-            ELSEIF(IWQKA(IZ) .EQ. 3)THEN  
+            ELSEIF(IWQKA(IZ)==3)THEN  
               UMRM = MAX(U(L,K), U(LEAST(L),K))  
               VMRM = MAX(V(L,K), V(LNC(L),K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 5.32 TYPICALLY  
               WQVREA = WQKRO(IZ) * XMRM**0.67 / HP(L)**1.85  
-            ELSEIF(IWQKA(IZ) .EQ. 4)THEN  
+            ELSEIF(IWQKA(IZ)==4)THEN  
               ! *** MODIFIED OWENS AND GIBBS REAERATION EQUATION:  
               ! *** NOTE: NORMALIZED TO A DEPTH OF 1.0 FT, I.E., THIS EQUATION GIVES THE  
               ! ***       SAME REAERATION AS OWENS & GIBBS AT 1.0 FT DEPTH; AT HIGHER  
@@ -762,7 +697,7 @@ C
               YMRM = HP(L)*3.0*(1.0 - HP(L)/(HP(L)+0.1524))  
               ! *** WQKRO = 5.32 TYPICALLY  
               WQVREA = WQKRO(IZ) * XMRM**0.67 / YMRM**1.85  
-            ELSEIF(IWQKA(IZ) .EQ. 5)THEN  
+            ELSEIF(IWQKA(IZ)== 5)THEN  
               UMRM = MAX(U(L,K), U(LEAST(L),K))  
               VMRM = MAX(V(L,K), V(LNC(L),K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
@@ -781,41 +716,36 @@ C
             WQP22(L) = 0.0							!VB Kr FOR CO2 IS ZERO FOR CELLS NOT AT THE SURFACE
           ENDIF  
         ENDDO  
-        IF(IWQSRP.EQ.1)THEN  
-          DO L=2,LA  
-            WQR20(L) = WQWPSL(L,K,20)*VOLWQ(L)  
-     &          + (WQV(L,K,20) - WQTAMP(L,K)) * WQWSSET(L,1)  
-          ENDDO
-  
-          IF(K.EQ.1)THEN
+        IF(IWQSRP==1)THEN
+          WQR20(2:LA) = WQWPSL(2:LA,K,20)*VOLWQ(2:LA)  
+     &          + (WQV(2:LA,K,20) - WQTAMP(2:LA,K)) * WQWSSET(2:LA,1)  
+          IF(K==1)THEN
             DO L=2,LA  
               IF(LMASKDRY(L))THEN
                 WQR20(L) = WQR20(L)  
-     &          + WQTDTAM(IWQT(L))*DZWQ(L)/(WQKHBMF+O2WQ(L)+ 1.E-18)
+     &          + WQTDTAM(IWQT(L))*DZWQ(L)/(WQKHBMF+O2WQ(L) + 1.E-18)
               ENDIF
             ENDDO
           ENDIF
   
-          IF(K.NE.KC)THEN
-            DO L=2,LA  
-              WQR20(L) = WQR20(L)  
-     &          + (WQV(L,K+1,20) - WQTAMP(L,K+1)) * WQWSSET(L,2)  
-            ENDDO 
-          ELSE     ! K.EQ.KC
-            WQR20(L)=WQR20(L)+(WQWDSL(L,KC,20)+WQATML(L,KC,20))*VOLWQ(L)
+          IF(K/=KC)THEN
+            WQR20(2:LA) = WQR20(2:LA)  
+     &          + (WQV(2:LA,K+1,20) - WQTAMP(2:LA,K+1)) * WQWSSET(2:LA,2)  
+          ELSE     ! K==KC
+            WQR20(2:LA)=WQR20(2:LA)+(WQWDSL(2:LA,KC,20)+WQATML(2:LA,KC,20))*VOLWQ(2:LA)
           ENDIF 
         ENDIF  
 C  
-        IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-          DO L=2,LA  
+        DO L=2,LA  
+          IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND. !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN
             WQA1C = (WQPM(L) - WQBMM(L) - WQPRM(L)-WQWSM*DZWQ(L))*DTWQO2  
             WQVA1C = 1.0 / (1.0 - WQA1C)  
-            WQV(L,K,IDNOTRVA)=(WQV(L,K,IDNOTRVA)+WQA1C*WQV(L,  
-     &          K,IDNOTRVA))*WQVA1C*SMAC(L)  
-            WQV(L,K,IDNOTRVA) = MAX(WQV(L,K,IDNOTRVA),WQMCMIN)*SMAC(L)  
+            WQV(L,K,IDNOTRVA)=(WQV(L,K,IDNOTRVA)+WQA1C*WQV(L,K,IDNOTRVA))*WQVA1C*SMAC(L)  !Macroalgae growth equation
+            WQV(L,K,IDNOTRVA) = MAX(WQV(L,K,IDNOTRVA),WQMCMIN)*SMAC(L)  !Note the lower bound put on macroalgae from Bmin in C44 of WQ3DWC.INP
             WQO(L,IDNOTRVA) = WQVO(L,K,IDNOTRVA)+WQV(L,K,IDNOTRVA)  
-          ENDDO  
-        ENDIF  
+          ENDIF  
+        ENDDO
 C
 C******************************************************************************
 C ***
@@ -928,9 +858,8 @@ C
             ! ***  ALGAE PREDATION SOURCE OF RPOC  
             WQA4 = WQFCRP * (WQPRC(L)*WQO(L,1)  
      &          + WQPRD(L)*WQO(L,2) + WQPRG(L)*WQO(L,3))  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA4 = WQA4+WQFCRPM*WQPRM(L)*WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+            IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND. HPVEG(M).LE.HP(L)*FLOAT(K)/FLOAT(KC)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae  
+     &        WQA4 = WQA4+WQFCRPM*WQPRM(L)*WQVO(L,K,IDNOTRVA)  
   
             ! ***  PT_SRC_LOADS    VOLUMN  
             WQR4 = WQWPSL(L,K,4) * VOLWQ(L)  
@@ -963,18 +892,14 @@ C
             ! ***     HYDROLYSIS    SETTLING  
             WQC5 = - (WQKLPC(L)  + WQLPSET(L,1))*DTWQO2 
             WQKK(L) = 1.0 / (1.0 - WQC5)    
-            WQA5 = WQFCLP * (WQPRC(L)*WQO(L,1)		!Predation
-     &          + WQPRD(L)*WQO(L,2) + WQPRG(L)*WQO(L,3))  
-
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA5 =WQA5 + WQFCLPM * WQPRM(L)*WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+            WQA5 = WQFCLP * (WQPRC(L)*WQO(L,1) + WQPRD(L)*WQO(L,2) + WQPRG(L)*WQO(L,3)) !Predation
+            IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND. HPVEG(M)<=HP(L)*FLOAT(K)/FLOAT(KC)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae  
+     &        WQA5 =WQA5 + WQFCLPM * WQPRM(L)*WQVO(L,K,IDNOTRVA)  
   
-            ! ***  PT_SRC_LOADS    VOLUMN  
+            ! ***  PT_SRC_LOADS    VOLUME  
             WQR5 = WQWPSL(L,K,5) * VOLWQ(L)
   
-            WQRR(L) = WQV(L,K,5) + DTWQ*WQR5 + DTWQO2*WQA5     ! *** PMC
-     &              + WQC5*WQV(L,K,5)
+            WQRR(L) = WQV(L,K,5) + DTWQ*WQR5 + DTWQO2*WQA5 + WQC5*WQV(L,K,5)    ! *** PMC
           ENDDO  
           IF(K.NE.KC)THEN  
             ! *** Add in settling from above
@@ -1005,9 +930,10 @@ C
             WQA6D=WQFCDD + CFCDDWQ*( WQKHRD/(WQKHRD+O2WQ(L)+ 1.E-18) )  
             WQA6G=WQFCDG + CFCDGWQ*( WQKHRG/(WQKHRG+O2WQ(L)+ 1.E-18) )  
             WQA6 = ( WQA6C*WQBMC(L) + WQFCDP*WQPRC(L) )*WQO(L,1)  
-     &          + ( WQA6D*WQBMD(L) + WQFCDP*WQPRD(L) )*WQO(L,2)  
-     &          + ( WQA6G*WQBMG(L) + WQFCDP*WQPRG(L) )*WQO(L,3)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
+     &           + ( WQA6D*WQBMD(L) + WQFCDP*WQPRD(L) )*WQO(L,2)  
+     &           + ( WQA6G*WQBMG(L) + WQFCDP*WQPRG(L) )*WQO(L,3)  
+            IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND. !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN
               IZ=IWQZMAP(L,K)  
               WQA6M=(WQFCDM+(1.-WQFCDM)*WQKHRM(IZ) /  
      &            (WQKHRM(IZ) + O2WQ(L) + 1.E-18))*WQBMM(L)  
@@ -1017,8 +943,7 @@ C
             ! ***  PT_SRC_LOADS    VOLUMN  
             WQR6 = WQWPSL(L,K,6) * VOLWQ(L)
   
-            WQRR(L) = WQV(L,K,6) + DTWQ*WQR6 + WQD6*WQV(L,K,6)   
-     &              + DTWQO2*(WQA6 +WQKLPC(L)*WQO(L,5))
+            WQRR(L) = WQV(L,K,6) + DTWQ*WQR6 + WQD6*WQV(L,K,6) + DTWQO2*(WQA6 +WQKLPC(L)*WQO(L,5))
           ENDDO
 
           IF(K.EQ.KC)THEN
@@ -1044,15 +969,13 @@ C
             WQA7D = (WQFPRD*WQBMD(L) + WQFPRP*WQPRD(L)) * WQO(L,2)  
             WQA7G = (WQFPRG*WQBMG(L) + WQFPRP*WQPRG(L)) * WQO(L,3)  
             WQA7 = (WQA7C+WQA7D+WQA7G) * WQAPC(L)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA7 = WQA7 + (WQFPRM*WQBMM(L) + WQFPRPM*WQPRM(L))  
-     &            * WQVO(L,K,IDNOTRVA)* WQAPC(L)*WQAPCM  
-            ENDIF  
+            IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA7 = WQA7 + (WQFPRM*WQBMM(L) + WQFPRPM*WQPRM(L)) * WQVO(L,K,IDNOTRVA)* WQAPC(L)*WQAPCM  
   
             ! ***  PT_SRC_LOADS    VOLUMN  
             WQR7 = WQWPSL(L,K,7) * VOLWQ(L)  
-            WQRR(L) = WQV(L,K,7) + DTWQ*WQR7 + DTWQO2*WQA7 
-     &              + WQE7*WQV(L,K,7)   
+            WQRR(L) = WQV(L,K,7) + DTWQ*WQR7 + DTWQO2*WQA7 + WQE7*WQV(L,K,7)   
           ENDDO  
           IF(K.NE.KC)THEN  
             ! *** Add in settling from above
@@ -1083,17 +1006,15 @@ C
             WQA8D = (WQFPLD*WQBMD(L) + WQFPLP*WQPRD(L)) * WQO(L,2)  
             WQA8G = (WQFPLG*WQBMG(L) + WQFPLP*WQPRG(L)) * WQO(L,3)  
             WQA8 = (WQA8C+WQA8D+WQA8G) * WQAPC(L)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA8 = WQA8 +     (WQFPLM*WQBMM(L) + WQFPLPM*WQPRM(L))  
-     &            * WQVO(L,K,IDNOTRVA)* WQAPC(L)*WQAPCM  
-            ENDIF  
-  
+            IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA8 = WQA8 + (WQFPLM*WQBMM(L) + WQFPLPM*WQPRM(L)) * WQVO(L,K,IDNOTRVA) * WQAPC(L) * WQAPCM
+
             ! ***  PT_SRC_LOADS    VOLUMN  
             WQR8 = WQWPSL(L,K,8) * VOLWQ(L)  
-            WQRR(L) = WQV(L,K,8) + DTWQ*WQR8 + DTWQO2*WQA8    
-     &              + WQF8*WQV(L,K,8)  
+            WQRR(L) = WQV(L,K,8) + DTWQ*WQR8 + DTWQO2*WQA8 + WQF8*WQV(L,K,8)      
           ENDDO  
-          IF(K.NE.KC)THEN  
+          IF(K.NE.KC)THEN
             ! *** Add in settling from above
             DO L=2,LA  
               WQRR(L) = WQRR(L) + DTWQO2*WQLPSET(L,2)*WQO(L,8)
@@ -1121,7 +1042,8 @@ C
             WQA9D = (WQFPDD*WQBMD(L) + WQFPDP*WQPRD(L)) * WQO(L,2)  
             WQA9G = (WQFPDG*WQBMG(L) + WQFPDP*WQPRG(L)) * WQO(L,3)  
             WQA9 = (WQA9C+WQA9D+WQA9G) * WQAPC(L)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
+          IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
               WQA9 = WQA9 + (WQFPDM*WQBMM(L) + WQFPDPM*WQPRM(L))  
      &            * WQVO(L,K,IDNOTRVA) * WQAPC(L)*WQAPCM  
             ENDIF  
@@ -1152,10 +1074,9 @@ C
             WQA10D=(WQFPID*WQBMD(L)+WQFPIP*WQPRD(L)-WQPD(L))*WQO(L,2)  
             WQA10G=(WQFPIG*WQBMG(L)+WQFPIP*WQPRG(L)-WQPG(L))*WQO(L,3)  
             WQKK(L) = (WQA10C+WQA10D+WQA10G) * WQAPC(L)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQKK(L) =WQKK(L)+(WQFPIM*WQBMM(L)+WQFPIP*WQPRM(L)-WQPM(L))  
-     &            *WQVO(L,K,IDNOTRVA) * WQAPC(L)*WQAPCM  
-            ENDIF  
+            IF(IDNOTRVA>0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQKK(L) = WQKK(L)+(WQFPIM*WQBMM(L)+WQFPIP*WQPRM(L)-WQPM(L))*WQVO(L,K,IDNOTRVA) * WQAPC(L)*WQAPCM  
   
             ! ***    PT_SRC_LOADS    VOLUMN  
             WQRR(L) = WQWPSL(L,K,10) * VOLWQ(L)  
@@ -1205,7 +1126,8 @@ C
             WQA11D=(WQFNRD*WQBMD(L)+WQFNRP*WQPRD(L))*WQANCD*WQO(L,2)  
             WQA11G=(WQFNRG*WQBMG(L)+WQFNRP*WQPRG(L))*WQANCG*WQO(L,3)  
             WQA11 = WQA11C+WQA11D+WQA11G  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
+            IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
               WQA11 =WQA11 +     (WQFNRM*WQBMM(L)+WQFNRPM*WQPRM(L))  
      &            *WQANCM*WQVO(L,K,IDNOTRVA)  
             ENDIF  
@@ -1246,17 +1168,17 @@ C
             WQA12D=(WQFNLD*WQBMD(L)+WQFNLP*WQPRD(L))*WQANCD*WQO(L,2)  
             WQA12G=(WQFNLG*WQBMG(L)+WQFNLP*WQPRG(L))*WQANCG*WQO(L,3)  
             WQA12 = WQA12C+WQA12D+WQA12G  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA12 =WQA12 +(WQFNLM*WQBMM(L)+WQFNLPM*WQPRM(L))  
-     &            *WQANCM*WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+            IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA12 =WQA12 + (WQFNLM*WQBMM(L)+WQFNLPM*WQPRM(L))*WQANCM*WQVO(L,K,IDNOTRVA)  
   
             ! ***    PT_SRC_LOADS    VOLUMN  
             WQR12 = WQWPSL(L,K,12) * VOLWQ(L)  
 
             WQRR(L) = WQV(L,K,12) + DTWQ*WQR12 + DTWQO2*WQA12
      &              + WQJ12*WQV(L,K,12)
-          ENDDO  
+          ENDDO
+            
           IF(K.NE.KC)THEN  
             ! *** Add in settling from above
             DO L=2,LA  
@@ -1285,10 +1207,9 @@ C
             WQA13D=(WQFNDD*WQBMD(L)+WQFNDP*WQPRD(L))*WQANCD*WQO(L,2)  
             WQA13G=(WQFNDG*WQBMG(L)+WQFNDP*WQPRG(L))*WQANCG*WQO(L,3)  
             WQA13 = WQA13C+WQA13D+WQA13G  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA13 =WQA13 + (WQFNDM*WQBMM(L)+WQFNDPM*WQPRM(L))  
-     &            *WQANCM*WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+          IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA13 =WQA13 + (WQFNDM*WQBMM(L)+WQFNDPM*WQPRM(L))*WQANCM*WQVO(L,K,IDNOTRVA) 
   
             ! ***    PT_SRC_LOADS    VOLUMN  
             WQR13 = WQWPSL(L,K,13) * VOLWQ(L)
@@ -1340,14 +1261,11 @@ C
             WQA14G=WQFNIG*WQBMG(L)+WQFNIP*WQPRG(L)-WQPNG(L)*WQPG(L)  
             WQA14 = WQA14C*WQANCC*WQO(L,1)  
      &          + WQA14D*WQANCD*WQO(L,2) + WQA14G*WQANCG*WQO(L,3)  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA14 = WQA14 + (WQFNIM*WQBMM(L)+WQFNIPM*WQPRM(L)  
-     &            - WQPNM(L)*WQPM(L))*WQANCM*WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+            IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA14 = WQA14 + (WQFNIM*WQBMM(L)+WQFNIPM*WQPRM(L) - WQPNM(L)*WQPM(L))*WQANCM*WQVO(L,K,IDNOTRVA)
             WQRR(L) = WQV(L,K,14) + DTWQ*WQRR(L) + WQF14*WQV(L,K,14) 
-     &                + DTWQO2*( WQA14 
-     &                  + WQKRPN(L)*WQO(L,11) + WQKDON(L)*WQO(L,13) )  
-     &                
+     &              + DTWQO2*( WQA14 + WQKRPN(L)*WQO(L,11) + WQKDON(L)*WQO(L,13) )        
             WQV(L,K,14)=SCB(L)*(WQRR(L)*WQKK(L))+(1.-SCB(L))*WQV(L,K,14)  
             WQO(L,14)=WQVO(L,K,14)+WQV(L,K,14)
           ENDDO  
@@ -1379,10 +1297,9 @@ C
             WQA15D = (WQPND(L)-1.0)*WQPD(L) * WQANCD * WQO(L,2)  
             WQA15G = (WQPNG(L)-1.0)*WQPG(L) * WQANCG * WQO(L,3)  
             WQA15 = WQA15C+WQA15D+WQA15G  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
-              WQA15 =WQA15 + (WQPNM(L)-1.0)*WQPM(L)*WQANCM  
-     &            *WQVO(L,K,IDNOTRVA)  
-            ENDIF  
+            IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L)) !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
+     &        WQA15 =WQA15 + (WQPNM(L)-1.0)*WQPM(L)*WQANCM*WQVO(L,K,IDNOTRVA)
             WQB15 = WQV(L,K,15) + DTWQ*WQRR(L) + DTWQO2*( WQA15
      &           - WQANDC*WQDENIT(L)*WQO(L,6) + WQNIT(L)*WQO(L,14))
 
@@ -1558,17 +1475,15 @@ C
             DO L=2,LA  
               WQKK(L) = 1.0 / (1.0 - DTWQO2*WQP19(L)) 
               ! ***             ATM DRY DEP    ATM WET DEP    VOLUME  
-             WQRR(L)=WQRR(L)+(WQWDSL(L,KC,19)+WQATML(L,KC,19))*VOLWQ(L) !VJ - volume should multiply both load terms
+              WQRR(L)=WQRR(L)+(WQWDSL(L,KC,19)+WQATML(L,KC,19))*VOLWQ(L) !VJ - volume should multiply both load terms
               ! *** Reaeration
               !WQRR(L) = WQRR(L) - WQP19(L)*(WQDOS(L) - WQV(L,K,19)) !This is the equation from WQ theory manual
 	        ! O2-reaeration changes
               WQRR(L) = WQRR(L) + WQKRDOS(L)  !WQKRDOS=-WQP19*WQDOS SCJ this seems wrong because it allows too much DO if it is produced by a lot of algae
               WQV(L,KC,19)=MIN(WQV(L,KC,19),WQDOS(L)) !This does not allow O2 to exceed saturation at the water surface for high density algae systems
             ENDDO
-          ELSE  
-            DO L=2,LA  
-              WQKK(L) = 1.0
-            ENDDO
+          ELSE 
+            WQKK(2:LA) = 1.0
           ENDIF 
 
           ! *** Bottom Processes 
@@ -1630,15 +1545,14 @@ C
      &             * WQAOCR
             ! *** MODIFIED BY MRM 05/23/99 TO ALLOW DIFFERENT AOCR CONSTANTS TO BE APPLIED  
             ! ***   TO PHOTOSYNTHESIS AND RESPIRATION TERMS FOR MACROALGAE  
-            IF(IDNOTRVA.GT.0.AND.K.EQ.1)THEN  
+          IF(IDNOTRVA.GT.0 .AND. GAMVEG(MVEGL(L))/=0.0 .AND.
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !If macroalgae, and GAMVEG/=0, and it is within the height of the macroalgae
               ! *** TRAPEZIODAL AVERAGE CONCENTRATIONS
               WQO(L,IDNOTRVA)=WQVO(L,K,IDNOTRVA)+WQV(L,K,IDNOTRVA)
               IZ = IWQZMAP(L,K)  
               WQTTM = (1.3 - 0.3*WQPNM(L)) * WQPM(L)  
-              XMRM=(1.0-WQFCDM)*O2WQ(L)*WQBMM(L)/(WQKHRM(IZ)+O2WQ(L)  
-     &            +1.E-18)  
-              WQA19A = WQTTM*WQO(L,IDNOTRVA)*WQAOCRPM - 
-     &                 XMRM*WQO(L,IDNOTRVA)*WQAOCRRM  
+              XMRM=(1.0-WQFCDM)*O2WQ(L)*WQBMM(L)/(WQKHRM(IZ)+O2WQ(L) + 1.E-18) 
+              WQA19A = WQTTM*WQO(L,IDNOTRVA)*WQAOCRPM - XMRM*WQO(L,IDNOTRVA)*WQAOCRRM 
               WQA19 = WQA19 + WQA19A
               TMP19 = WQTTM*WQO(L,IDNOTRVA)*WQAOCRPM * DTWQxH2     
               XDOPPM(L,K) = XDOPPM(L,K) + TMP19
@@ -1700,13 +1614,13 @@ C
 		! O2-reaeration changes
 		! If DO conc. is greater than saturated DO conc., excess DO
 		! gets released out, which is calculated as XDOOUT.
-		IF(K==KC)THEN
-			IF(WQV(L,KC,19)>WQDOS(L))THEN
-				XDOOUT(L,KC)=(WQV(L,KC,19)-WQDOS(L))*DTWQ*DZCHP(L)
-				WQV(L,KC,19)=WQDOS(L)
-				XDOALL(L,K)=XDOALL(L,K)-XDOOUT(L,KC)
-			ENDIF
-		ENDIF
+		  IF(K==KC)THEN
+		    IF(WQV(L,KC,19)>WQDOS(L))THEN
+			  XDOOUT(L,KC)=(WQV(L,KC,19)-WQDOS(L))*DTWQ*DZCHP(L)
+			  WQV(L,KC,19)=WQDOS(L)
+			  XDOALL(L,K)=XDOALL(L,K)-XDOOUT(L,KC)
+              ENDIF
+		  ENDIF
 
           ENDDO  
         ENDIF  
@@ -1742,13 +1656,13 @@ C
               WQKK(L) = WQTD2FCB(IWQT(L))  
 C  
               ! ***      ATM DRY DEP       LOADS          VOLUMN  
-		WQR21= (WQWDSL(L,K,21)+WQWPSL(L,K,21))*VOLWQ(L)			!VB CHANGED NWQV TO 21
+		    WQR21= (WQWDSL(L,K,21)+WQWPSL(L,K,21))*VOLWQ(L)			!VB CHANGED NWQV TO 21
            ! WQR21= (WQWDSL(L,K,NWQV)+WQWPSL(L,K,NWQV))*VOLWQ(L)  
 C  
               ! ***                   ATM WET DEP      VOLUMN  
               WQR21 = WQR21 + DELKC(K)*(WQATML(L,KC,21)*VOLWQ(L))  
            ! WQRR(L) = WQV(L,K,NWQV)*WQTD1FCB(IWQT(L)) + DTWQ*WQR21		!VB CHANGED NWQV TO 21
-		WQRR(L) = WQV(L,K,21)*WQTD1FCB(IWQT(L)) + DTWQ*WQR21
+		    WQRR(L) = WQV(L,K,21)*WQTD1FCB(IWQT(L)) + DTWQ*WQR21
               WQV(L,K,21)=SCB(L)*( WQRR(L)*WQKK(L) )  
      &            +(1.-SCB(L))*WQV(L,K,21)  
               !WQVO(L,K,21) = WQVO(L,K,21)+WQV(L,K,21)  
@@ -2003,59 +1917,4 @@ C
  1113 FORMAT(2I5,12E12.4)  
  1414 FORMAT(I12,11E12.4)  
       RETURN  
-      END  
-      
-      SUBROUTINE COMPUTE_WC_ABOVE
-      ! *** COMPUTE THE WATER COLUMN CONCENTRATIONS FOR TSS, POM AND CHLA 
-      ! *** THE 
-      
-      USE GLOBAL
-      
-      REAL TSSS_ABOVE,WQCHLS_ABOVE,POMS_ABOVE
-      REAL K_ABOVE
-      
-      K=KC
-      IF(ISTRAN(6).GT.0.OR.ISTRAN(7).GT.0)THEN
-        TSSS_ABOVE=SNDT(L,K)+SEDT(L,K)
-        TSS_ABOVE=TSSS_ABOVE
-      ELSE
-        TSS_ABOVE=0.0
-      ENDIF
-      
-      IF(ISTRAN(8).GT.0)THEN
-        ! *** Water Quality is Active so account for Chlorophyll and POM
-        ! *** If using WQ then use the WQ Coefficients
-        WQCHLS_ABOVE=WQCHL(L,K)
-        WQCHL_ABOVE=WQCHLS_ABOVE
-        POMS_ABOVE=WQV(L,K,4)+WQV(L,K,5) 
-        POM_ABOVE =POMS_ABOVE
-      ENDIF
-      
-          K_ABOVE=1.
-
-          ! *** ENSURE AT LEAST THE FSWRATF FRACTION OF SRO IS ATTENUATED
-          IF((1.-EXPTOP).GT.FSWRATF)THEN
-            SRON=SOLSWRT(L)*EXPTOP
-          ELSE
-            SRON=SOLSWRT(L)*(1.0-FSWRATF)
-          ENDIF
-          DO K = KS,1,-1
-            ! *** Net Extinction Coefficient
-            K_ABOVE=K_ABOVE+1.
-            IF(ISTRAN(6).GT.0.OR.ISTRAN(7).GT.0)THEN
-              TSSS_ABOVE=TSSS_ABOVE+SNDT(L,K)+SEDT(L,K)
-              TSS_ABOVE=TSSS_ABOVE/K_ABOVE
-            ENDIF
-            IF(ISTRAN(8).GT.0)THEN
-              ! *** Water Quality is Active so account for Chlorophyll
-              ! *** If using WQ then use the WQ Coefficients
-              POMS_ABOVE=POMS_ABOVE+WQV(L,K,4)+WQV(L,K,5) 
-              POM_ABOVE=POMS_ABOVE/K_ABOVE
-
-              WQCHLS_ABOVE=WQCHLS_ABOVE+WQCHL(L,K)
-              WQCHL_ABOVE=WQCHLS_ABOVE/K_ABOVE
-            ENDIF
-
-          ENDDO  
-      RETURN
       END
