@@ -21,13 +21,13 @@
       USE GLOBAL  
       USE OMP_LIB
 	IMPLICIT NONE
-        INTEGER IINCL,JINCL,I,J
+!        INTEGER IINCL,JINCL,I,J
 	INTEGER::L,K,LN,LS,ID,JD,KD,NWR,IU,JU,KU,LU,NS,LNW,LSE,LL
 	INTEGER::LD,NMD,LHOST,LCHNU,LW,LE,LCHNV
-        DOUBLE PRECISION LST,LEND,foo
+!        DOUBLE PRECISION LST,LEND,foo
 	REAL::TMPANG,WU,WV,CACSUM,CFEFF,VEAST2,VWEST2,FCORE,FCORW
 	REAL::UNORT1,USOUT1,UNORT2,USOUT2,FCORN,FCORS,VTMPATU
-	REAL::UTMPATV,UMAGTMP,VMAGTMP,DZICK,DZICKC,DZPU,DZPV
+	REAL::UTMPATV,UMAGTMP,VMAGTMP,DZICKC,DZPU,DZPV
 	REAL::RCDZF,TMPVAL,WVFACT,DETH,CI11H,CI12H,CI22H,DETU
 	REAL::CI11V,CI12V,CI21V,CI22V,CI21H,CI12U,CI21U,CI22U,DETV,CI11U
 	REAL::UHC,UHB,VHC,VHB,UHC1,UHB1,VHC1,VHB1,UHC2,UHB2,VHC2,VHB2
@@ -666,51 +666,45 @@
 !----------------------------------------------------------------------C   
 !!!Begin SCJ block
       IF(ISVEG>=1)THEN
-        FXVEGE(:)=0.0;FYVEGE(:)=0.0
+        FXVEGE(:)=0.0;FYVEGE(:)=0.0 !initialize sum of vegetative forces in the water column
         DO L=2,LA  !loop over the model area
           IF(.NOT.LMASKDRY(L).OR.MVEGL(L)==MVEGOW)CYCLE  !if the cell is dry, or if it is open water, or if there is no vegetation in cell L, skip this cell
           IF(MVEGL(L)==0.AND.MVEGL(LWEST(L))==0.AND.MVEGL(LSC(L))==0)CYCLE !if not this cell and no surrounding cells are vegetation, skip
           DO K=1,KC  !loop over the model layers
-            LW=LWEST(L)       !west cell
-            LE=LEAST(L)       !east cell
+            LW=LWEST(L)  !west cell
+            LE=LEAST(L)  !east cell
             LS=LSC(L)    !south cell
             LN=LNC(L)    !north cell
             LNW=LNWC(L)  !northwest cell
             LSE=LSEC(L)  !southeast cell
-            UTMPATV=0.25*(U(L,K)+U(LE,K)+U(LS,K)+U(LSE,K))  !u-velocity at v face
-            VTMPATU=0.25*(V(L,K)+V(LW,K)+V(LN,K)+V(LNW,K))  !v-velocity at u face
-            UMAGTMP=SQRT( U(L,K)*U(L,K)+VTMPATU*VTMPATU )   !u-face velocity vector magnitude
-            VMAGTMP=SQRT( UTMPATV*UTMPATV+V(L,K)*V(L,K) )   !v-face velocity vector magnitude
-!FXVEG/FYVEG come from CALTBXY unitless, but they are really just a form of the drag coefficient with terms accounting for the area density
-!FXVEG/FYVEG only change inasmuch as the water depth changes and are zero in layers not penetrated by vegetation
-!FXVEG/FYVEG are C_d(N/L^2) 
-!FXVEG/FYVEG are now multiplied by the cell area and cell-averaged velocity
-!FXVEG/FYVEG are C_d(N/L^2)A|q|
-            FXVEG(L,K)=UMAGTMP*SUB(L)*FXVEG(L,K)  ![m/s] |q_x|C_d
-            FYVEG(L,K)=VMAGTMP*SVB(L)*FYVEG(L,K)  ![m/s] |q_y|C_d
+            UTMPATV=0.25*(U(L,K)+U(LE,K) + U(LS,K)+U(LSE,K))  !u-velocity at v face
+            VTMPATU=0.25*(V(L,K)+V(LW,K) + V(LN,K)+V(LNW,K))  !v-velocity at u face
+            UMAGTMP=SQRT( U(L,K)*U(L,K)  +VTMPATU*VTMPATU )   !u-face velocity vector magnitude
+            VMAGTMP=SQRT( UTMPATV*UTMPATV+  V(L,K)*V(L,K) )   !v-face velocity vector magnitude
+!FXVEG/FYVEG come from CALTBXY as unitless, they are terms accounting for the drag coefficient (C_d) with a term accounting for the vegetative area density RDLSPQ (N/L^2) multiplied by the flow-facing area of each "reed" (BPVEG*HPVEG*RDLPSQ)
+!FXVEG/FYVEG only change inasmuch as the water depth changes and are zero in layers not penetrated by vegetation. Layer thickness is included by multiplying by DZC(K) below. 
+!FXVEG/FYVEG are C_d(N/L^2)*BPVEG*HPVEG (plus some other factors) [-], this dimensionless term is now called C_v
+!FXVEG/FYVEG are now multiplied by the face-centered cell area and local cell-averaged velocity to yield C_v|q|A in units of [m^3/s]
+            FXVEG (L,K)=  UMAGTMP * SUB(L) * FXVEG(L,K)*DZC(K) * DXYU(L) ![m^3/s] |q_x|C_d(N/L^2)A Note that FXVEG is multiplied by DZC to divide out by the HP term in CALTBXY (actual layer force)
+            FYVEG (L,K)=  VMAGTMP * SVB(L) * FYVEG(L,K)*DZC(K) * DXYV(L) ![m^3/s] |q_y|C_d(N/L^2)A Note that FYVEG is multiplied by DZC to divide out by the HP term in CALTBXY (actual layer force)
+            FXVEGE(L)  =FXVEGE(L)+FXVEG(L,K)*HUI(L)*DXYIU(L) ![1/s] Calculate vegetative dissipation for FUHDYE for momentum conservation in CALPUV (need to have sum of forces in column, not average, provided to CALPUV). This is volume normalized as CALPUV is expecting.
+            FYVEGE(L)  =FYVEGE(L)+FYVEG(L,K)*HVI(L)*DXYIV(L) ![1/s] Calculate vegetative dissipation for FVHDXE for momentum conservation in CALPUV (need to have sum of forces in column, not average, provided to CALPUV). This is volume normalized as CALPUV is expecting.
+!Note that FXVEG/FYVEG come from CALTBXY as the drag coefficient that has been multiplied by the water-column height
           ENDDO
-!FXVEG/FXVEGE are multiplied by the local velocity to yield units of [m^4/s^2]
-!FXVEG/FXVEGE are added to the body forces as C_d(N/L^2)A|q|q
-          FXVEGE(L)=SUM(FXVEG(L,:)*DZC(:))  !Columns of vegetative resistance [m/s] used in FUHDXE (this is the average force on the water column)
-          FYVEGE(L)=SUM(FYVEG(L,:)*DZC(:))  !Columns of vegetative resistance [m/s] used in FVHDYE (this is the average force on the water column)
-          FX(L,:)=FX(L,:)+(FXVEG(L,:)-FXVEGE(L))*U(L,:)*DXYU(L) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) FXVEGE goes into FUHDXE for momentum conservation
-          FY(L,:)=FY(L,:)+(FYVEG(L,:)-FYVEGE(L))*V(L,:)*DXYV(L) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) FYVEGE goes into FVHDYE for momentum conservation
+!FXVEG/FYVEG are added to the body forces as C_d(N/L^2)A|q|q
+!FXVEG/FYVEG are multiplied by the local velocity to yield units of [m^4/s^2]
+          FX(L,:)=FX(L,:)+(FXVEG(L,:)-SUM(FXVEG(L,:)*DZC(:)))*U(L,:) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear. 
+          FY(L,:)=FY(L,:)+(FYVEG(L,:)-SUM(FYVEG(L,:)*DZC(:)))*V(L,:) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear.
         ENDDO
-        IF(MAXVAL(MVEGL(2:LA))>90)CALL MHKPWRDIS !MHK devices exist
-!        FXVEGE(:)=FXVEGE(:)*HUI(:) !Calculate vegetative dissipation for FUHDYE for momentum conservation in CALPUV
-!        FYVEGE(:)=FYVEGE(:)*HVI(:) !Calculate vegetative dissipation for FVHDXE for momentum conservation in CALPUV
-        FXVEGE(:)=FXVEGE(:)*HUI(:)*FLOAT(KC) !Calculate vegetative dissipation for FUHDYE for momentum conservation in CALPUV (need to have sum of forces, not average provided to CALPUV)
-        FYVEGE(:)=FYVEGE(:)*HVI(:)*FLOAT(KC) !Calculate vegetative dissipation for FVHDXE for momentum conservation in CALPUV (need to have sum of forces, not average provided to CALPUV)
-        FXVEGE(:)=FXVEGE(:)+FXMHKE(:)*HUI(:)*DXYIU(:) !Add MHK to vegetative dissipation in FUHDYE for momentum conservation in CALPUV (divide by volume)
-        FYVEGE(:)=FYVEGE(:)+FYMHKE(:)*HVI(:)*DXYIV(:) !Add MHK to vegetative dissipation in FVHDXE for momentum conservation in CALPUV (divide by volume)
-        FXVEGE(:)=FXVEGE(:)+FXSUPE(:)*HUI(:)*DXYIU(:) !Add MHK support to vegetative dissipation in FUHDYE for momentum conservation in CALPUV (divide by volume)
-        FYVEGE(:)=FYVEGE(:)+FYSUPE(:)*HVI(:)*DXYIV(:) !Add MHK support to vegetative dissipation in FVHDXE for momentum conservation in CALPUV (divide by volume)
+        IF(LMHK)THEN
+          CALL MHKPWRDIS !MHK devices exist
+          FXVEGE(:)=FXVEGE(:)+FXMHKE(:)+FXSUPE(:) !Add MHK to vegetative dissipation in FUHDYE for momentum conservation in CALPUV (MHK/SUP come in from MHKPWR as volume normalized)
+          FYVEGE(:)=FYVEGE(:)+FYMHKE(:)+FYSUPE(:) !Add MHK to vegetative dissipation in FVHDXE for momentum conservation in CALPUV (MHK/SUP come in from MHKPWR as volume normalized)
+        ENDIF
       ENDIF
 !!!End SCJ block
  1947 FORMAT(3I5,10E12.4)  
- 1948 FORMAT(15X,10E12.4)  
-
-
+ 1948 FORMAT(15X,10E12.4)
 
 ! FEARGHAL aquaculture installation simulation capabilities
       IF (aquaincl == 1) CALL AQUAEXTR
@@ -741,13 +735,12 @@
 ! **  DISTRIBUTE OVER SURFACE LAYER IF ISBODYF=2  
 !  
 !----------------------------------------------------------------------C  
-      IF(ISBODYF.EQ.1)THEN  
+      IF(ISBODYF.EQ.1.OR.ISUVDA.GE.1)THEN  
 !  
         DO K=1,KC  
-          DZICK=1./DZC(K)  
           DO L=2,LA  
-            FX(L,K)=FX(L,K)-DYU(L)*HU(L)*FBODYFX(L)  
-            FY(L,K)=FY(L,K)-DXV(L)*HV(L)*FBODYFY(L)  
+            FX(L,K)=FX(L,K)-DYU(L)*HU(L)*FBODYFX(L,K)  
+            FY(L,K)=FY(L,K)-DXV(L)*HV(L)*FBODYFY(L,K)  
           ENDDO  
         ENDDO  
 !  
@@ -757,8 +750,8 @@
 !  
         DZICKC=1./DZC(KC)  
         DO L=2,LA  
-          FX(L,KC)=FX(L,KC)-DZICKC*DYU(L)*HU(L)*FBODYFX(L)  
-          FY(L,KC)=FY(L,KC)-DZICKC*DXV(L)*HV(L)*FBODYFY(L)  
+          FX(L,KC)=FX(L,KC)-DZICKC*DYU(L)*HU(L)*FBODYFX(L,K)  
+          FY(L,KC)=FY(L,KC)-DZICKC*DXV(L)*HV(L)*FBODYFY(L,K)  
         ENDDO  
 !  
       ENDIF  
