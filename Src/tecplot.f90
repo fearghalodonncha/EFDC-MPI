@@ -13,9 +13,11 @@ SUBROUTINE TECPLOT
   REAL,DIMENSION(LC)::AVGSED
   REAL,DIMENSION(KC)::CTEMP1
   REAL,DIMENSION(IC-4)::MAGREF1,MAGREF2
+  REAL :: LOCALVOL
   REAL :: RHOw, HTCAP, HTCONT, HTEMP							!VB HEAT CONTENT VARIABLES
   REAL :: WQV2, WQV3, WQV19, WQV22, WQVTEMP,WQV16,WQV17, WQV6, TIMESTEP			!VB TEMPORARY VARIABLES FOR TIMESERIES O/P
   REAL :: WTEMP, WVOL, VOLTEMP, WTMP, WQV10, WQV14, WQV15
+  REAL :: WQV23,IlimMac,TlimMac,NlimMac,PlimMac,MacGro !Macroalgae
   REAL :: VELPDF !velocity PDF variable for ocean model
   REAL,SAVE::ELAST,TLAST
   INTEGER,SAVE::nstep
@@ -44,7 +46,12 @@ SUBROUTINE TECPLOT
 	  WRITE(222,'(7X,100(3X,I3,3X,I3))') (ICOUNT(ILL,2),ICOUNT(ILL,3),ILL=1,TCOUNT)
     ENDIF
 	OPEN (UNIT=111,FILE='tecplot2d.dat')
-    IF(ISTRAN(8)==1)THEN !WQ data
+    IF(IDNOTRVA/=0)THEN !Macroalgae output
+      WRITE(111,'(A42)')'TITLE = "EFDC 2D Tecplot Macroalgae Data"'
+	  WRITE(111,'(A81)')'VARIABLES="X","Y","U","V","MAC(kg/m^3)","Temp","Ilim","Tlim","Nlim","Plim","Grow"'!,"DO(g)","CO2(g)"' !,"HEAT(kJ)","VOL(M3)"'
+      OPEN(112,FILE="2Dtransient.dat")
+      WRITE(112,*)"Time, MAC, Light, Temp, P4D, NHX, NOX"
+    ELSEIF(ISTRAN(8)==1)THEN !WQ data
 	  WRITE(111,'(A36)')'TITLE = "EFDC 2D Tecplot Algae Data"'
 	  WRITE(111,'(A77)')'VARIABLES="X","Y","U","V","SPEED","CHG(g)","P4D","NHX","NOX","DO(g)","CO2(g)"' !,"HEAT(kJ)","VOL(M3)"'
       OPEN(112,FILE="2Dtransient.dat")
@@ -107,8 +114,58 @@ SUBROUTINE TECPLOT
   WRITE(timeline(31:34),'(I4.4)')nstep
   WRITE(111,'(A66,I4.4)')timeline,nstep
 ! WRITE(110,*)'ZONE T="',tbegin+float(nstep-1)*dt*float(ishprt)/86400.0,'" I= ' ,IC-4,' J= ' ,JC-4,' K = ',KC,' F=POINT'
-  WRITE(111,*)'ZONE T="',TIMESTEP,'" I= ' ,IC-4,' J= ' ,JC-4,' F=POINT'
-  IF(ISTRAN(8)==1)THEN
+  IF(IDNOTRVA/=0)THEN
+    WRITE(111,*)'ZONE T="',TIMESTEP,'" I= ' ,3,' J= ' ,3,' F=POINT' !HARD WIRDED FOR NOW********
+  ELSE
+    WRITE(111,*)'ZONE T="',TIMESTEP,'" I= ' ,IC-4,' J= ' ,JC-4,' F=POINT'
+  ENDIF
+  IF(IDNOTRVA/=0)THEN !Macroalgae  
+    DO J=3,JC-2
+      DO I=3,IC-2
+        L=LIJ(I,J)
+        IF(MVEGL(L)>0.AND.MVEGL(L)<90) THEN
+!VB       TWATER=SUM(TEM(LIJ(I,J),1:KC)*DZC(1:KC))
+!	      TALT=MAXVAL(TWQ(LIJ(I,J))
+          UTMPS=0.0;VTMPS=0.0;WTEMP=0.0;WQV10=0.0;WQV14=0.0;WQV15=0.0;WQV23=0.0
+          IlimMac=0.0;TlimMac=0.0;NlimMac=0.0;PlimMac=0.0;MacGro=0.0;LOCALVOL=0.0
+          DO K=1,KC
+            IF(HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !Macroalgae in this layer
+              LOCALVOL=LOCALVOL+DZC(K)
+	          UTMPS=UTMPS+(U(L,K)*CUE(L)+V(L,K)*CVE(L))*DZC(K)
+	          VTMPS=VTMPS+(U(L,K)*CUN(L)+V(L,K)*CVN(L))*DZC(K)
+  	          WTEMP=WTEMP+TEM(L,K)*DZC(K) !Temperature
+              IlimMac=IlimMac+MACLIM(L,K,2)*DZC(K) !light limitation
+              TlimMac=TlimMac+MACLIM(L,K,3)*DZC(K) !temperature limitation
+              NlimMac=NlimMac+MACLIM(L,K,4)*DZC(K) !nitrate limitation
+              PlimMac=PlimMac+MACLIM(L,K,5)*DZC(K) !phosphate limitation
+              MacGro=MacGro+MACLIM(L,K,1)*DZC(K)   !Growth rate
+              WQV10=WQV10+WQV(L,K,10)*DZC(K) !total phosphate
+              WQV14=WQV14+WQV(L,K,14)*DZC(K) !ammonia nitrogen
+              WQV15=WQV15+WQV(L,K,15)*DZC(K) !nitrate nitrogen
+              WQV23=WQV23+WQV(L,K,IDNOTRVA)*DZC(K) !macroalgae
+            ENDIF
+          ENDDO !Calculate volume-weighted averages
+          IF(LOCALVOL==0.0)LOCALVOL=1.0
+          WRITE(111,'(4(1X,F10.3), 7(1X,F10.4))')DLON(L),DLAT(L),UTMPS/LOCALVOL,VTMPS/LOCALVOL,WQV23/LOCALVOL, &
+           WTEMP/LOCALVOL,IlimMac/LOCALVOL,TlimMac/LOCALVOL,NlimMac/LOCALVOL,PlimMac/LOCALVOL,MacGro/LOCALVOL
+	    ENDIF
+      ENDDO
+    ENDDO
+    !WTEMP=0.0
+    !WQV3=0;WQV10=0;WQV14=0;WQV15=0;WQV10=0;WQV22=0
+    !DO L=2, LA
+    !  VOLTEMP = DXYP(L)*HP(L)
+    !  WVOL = WVOL + VOLTEMP
+    !  WTEMP=WTEMP+VOLTEMP*SUM(DZC(1:KC)*TEM(L,1:KC))
+    !  WQV3=WQV3+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,3))
+    !  WQV10=WQV10+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,10))
+    !  WQV14=WQV14+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,14))
+    !  WQV15=WQV15+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,15))
+    !  WQV19=WQV19+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,19))
+    !  WQV22=WQV22+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,22))
+    !ENDDO
+    !WRITE(112,'(10(f9.4,1x))')timestep,WTEMP/WVOL,WQV3/WVOL,WQV19/WVOL,WQV22/WVOL,WQV10/WVOL,WQV14/WVOL,WQV15/WVOL              
+  ELSEIF(ISTRAN(8)==1)THEN
 !VB HEAT CONTENT VARIABLE
     RHOw=1000	   !KG/M3
     HTCAP=4.187	   !kJ/KG-K
@@ -155,8 +212,7 @@ SUBROUTINE TECPLOT
       WQV19=WQV19+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,19))
       WQV22=WQV22+VOLTEMP*SUM(DZC(1:KC)*WQV(L,1:KC,22))
     ENDDO
-    WRITE(112,'(10(f9.4,1x))')timestep,WTEMP/WVOL, &
-                         WQV3/WVOL,WQV19/WVOL,WQV22/WVOL,WQV10/WVOL,WQV14/WVOL,WQV15/WVOL              
+    WRITE(112,'(10(f9.4,1x))')timestep,WTEMP/WVOL,WQV3/WVOL,WQV19/WVOL,WQV22/WVOL,WQV10/WVOL,WQV14/WVOL,WQV15/WVOL              
   ELSEIF(IWRSP(1)==98)THEN			
 ! OUTPUT FOR TECPLOT, SEDIMENT DATA
     MB(1) = 0.0 !Mass in bedload (kg)
