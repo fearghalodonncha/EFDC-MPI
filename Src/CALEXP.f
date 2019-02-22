@@ -595,15 +595,13 @@ C
           ENDDO  
         ENDDO  
 C  
-        IF(MAXVAL(MVEGL(2:LA))>90)CALL MHKPWRDIS !MHK devices exist
+        IF(LMHK)CALL MHKPWRDIS !MHK devices exist
         DO L=2,LA  
           FXVEGE(L)=DXYIU(L)*FXVEGE(L)/H1U(L)  
           FYVEGE(L)=DXYIV(L)*FYVEGE(L)/H1V(L)  
         ENDDO  
-        FXVEGE(:)=FXVEGE(:)+FXMHKE(:)/H1U(:) !Add MHK to vegetative dissipation in FUHDYE for momentum conservation in CALPUV
-        FYVEGE(:)=FYVEGE(:)+FYMHKE(:)/H1V(:) !Add MHK to vegetative dissipation in FVHDXE for momentum conservation in CALPUV
-        FXVEGE(:)=FXVEGE(:)+FXSUPE(:)/H1U(:) !Add MHK support to vegetative dissipation in FUHDYE for momentum conservation in CALPUV
-        FYVEGE(:)=FYVEGE(:)+FYSUPE(:)/H1V(:) !Add MHK support to vegetative dissipation in FVHDXE for momentum conservation in CALPUV
+        FXVEGE(:)=FXVEGE(:)+FXMHKE(:)+FXSUPE(:) !Add MHK to vegetative dissipation in FUHDYE for momentum conservation in CALPUV
+        FYVEGE(:)=FYVEGE(:)+FYMHKE(:)+FYSUPE(:) !Add MHK to vegetative dissipation in FVHDXE for momentum conservation in CALPUV
 C  
       ENDIF  
 C  
@@ -633,13 +631,13 @@ C **  DISTRIBUTE OVER SURFACE LAYER IF ISBODYF=2
 C  
 C----------------------------------------------------------------------C  
 C  
-      IF(ISBODYF.EQ.1)THEN  
+      IF(ISBODYF.EQ.1.OR.ISUVDA.GE.1)THEN  
 C  
         DO K=1,KC  
           DZICK=1./DZC(K)  
           DO L=2,LA  
-            FX(L,K)=FX(L,K)-DYU(L)*HU(L)*FBODYFX(L)  
-            FY(L,K)=FY(L,K)-DXV(L)*HV(L)*FBODYFY(L)  
+            FX(L,K)=FX(L,K)-DYU(L)*HU(L)*FBODYFX(L,K)  
+            FY(L,K)=FY(L,K)-DXV(L)*HV(L)*FBODYFY(L,K)  
           ENDDO  
         ENDDO  
 C  
@@ -649,8 +647,8 @@ C
 C  
         DZICKC=1./DZC(KC)  
         DO L=2,LA  
-          FX(L,KC)=FX(L,KC)-DZICKC*DYU(L)*HU(L)*FBODYFX(L)  
-          FY(L,KC)=FY(L,KC)-DZICKC*DXV(L)*HV(L)*FBODYFY(L)  
+          FX(L,KC)=FX(L,KC)-DZICKC*DYU(L)*HU(L)*FBODYFX(L,K)  
+          FY(L,KC)=FY(L,KC)-DZICKC*DXV(L)*HV(L)*FBODYFY(L,K)  
         ENDDO  
 C  
       ENDIF  
