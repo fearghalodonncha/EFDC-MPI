@@ -106,7 +106,7 @@ C
   300 CONTINUE  
       IF(IDRYTBP.EQ.0)THEN  
 !$OMP PARALLEL SHARED(DEFAULT)  
-        DO K=1,KC  
+        DO K=1,KS
 !$OMP DO  schedule(static,chunksize) 
           DO L=2,LA  
               FUHU(L,K)=UHDY2(L,K)*CON1(LUPU(L,K),K)  
@@ -114,6 +114,10 @@ C
               FWU(L,K)=W2(L,K)*CON1(L,KUPW(L,K))  
           ENDDO  
         ENDDO 
+        DO L=2,LA
+          FUHU(L,KC)=UHDY2(L,KC)*CON1(LUPU(L,KC),KC)
+          FVHU(L,KC)=VHDX2(L,KC)*CON1(LUPV(L,KC),KC)
+        END DO
 !$OMP END PARALLEL 
       ELSE  
         DO K=1,KC  
