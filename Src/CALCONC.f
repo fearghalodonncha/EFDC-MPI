@@ -24,6 +24,7 @@ C
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TOXASM
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::SEDASM
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::SNDASM
+      
 
       IF(.NOT.ALLOCATED(EEB))THEN
         ALLOCATE(EEB(LCM))
@@ -725,20 +726,20 @@ C
 C  
 C **  DATA ASSIMILATION  
 C  
-      IF(NLCDA.GT.0)THEN  
+      IF(ISACDA==1.AND.NLCDA>0)THEN  
         SALASM=0.0  
         TEMASM=0.0  
         DYEASM=0.0  
         SFLASM=0.0  
-        DO NT=1,NTOX  
-          TOXASM(NT)=0.0  
-        ENDDO  
-        DO NS=1,NSED  
-          SEDASM(NS)=0.0  
-        ENDDO  
-        DO NS=1,NSND  
-          SNDASM(NS)=0.0  
-        ENDDO  
+!        DO NT=1,NTOX  
+          TOXASM(:)=0.0  
+!        ENDDO  
+!        DO NS=1,NSED  
+          SEDASM(:)=0.0  
+!        ENDDO  
+!        DO NS=1,NSND  
+          SNDASM(:)=0.0  
+!        ENDDO  
 C  
         IWASM=0  
 C  
@@ -747,17 +748,17 @@ C
           CLOSE(1,STATUS='DELETE')  
           OPEN(1,FILE='CDATASM.DIA')  
           IWASM=1  
-          DO NLC=1,NLCDA  
-            DO NDAYA=1,NTC  
-              FSALASM(NDAYA,NLC)=0.  
-              FVOLASM(NDAYA,NLC)=0.  
-              FTEMASM(NDAYA,NLC)=0.  
-            ENDDO  
-          ENDDO  
+!          DO NLC=1,NLCDA  
+!            DO NDAYA=1,NTC  
+              FSALASM(:,:)=0.  
+              FVOLASM(:,:)=0.  
+              FTEMASM(:,:)=0.  
+!            ENDDO  
+!          ENDDO  
         ENDIF  
 C  
         NDAYA=MOD(N,NTSPTC)  
-        NDAYA=1+(N-NDAYA)/NTSPTC  
+        NDAYA=MIN(1+(N-NDAYA)/NTSPTC,NTC) !SCJ do not let NDAYA exceed NTC due to roundoff error
 C        WRITE(6,1212)N,NDAYA  
 C  
         IF(N.EQ.NTSPTC)THEN  
@@ -770,7 +771,7 @@ C
           DO K=1,KC  
             DO NLC=1,NLCDA  
               L=LIJ(ICDA(NLC),JCDA(NLC))  
-              CONASMOLD=SAL(L,K)  
+              CONASMOLD=SAL(L,K)
               NSID=NCSERA(NLC,1)  
               IF(IWASM.EQ.1) WRITE(1,1111)N,NLC,ICDA(NLC),JCDA(NLC),NS,
      &            CSERT(K,NS,1),SAL(L,K)  
@@ -830,7 +831,7 @@ C
           DO K=1,KC  
             DO NLC=1,NLCDA  
               L=LIJ(ICDA(NLC),JCDA(NLC))  
-              CONASMOLD=DYE(L,K)  
+              CONASMOLD=DYE(L,K) 
               NSID=NCSERA(NLC,3)  
               IF(ITPCDA(NLC).EQ.0)THEN  
                 IF(NS.GT.0)THEN  
@@ -852,7 +853,7 @@ C
           DO K=1,KC  
             DO NLC=1,NLCDA  
               L=LIJ(ICDA(NLC),JCDA(NLC))  
-              CONASMOLD=SFL(L,K)  
+              CONASMOLD=SFL(L,K)
               NSID=NCSERA(NLC,4)  
               IF(ITPCDA(NLC).EQ.0)THEN  
                 IF(NSID.GT.0)THEN  
@@ -876,7 +877,7 @@ C
             DO K=1,KC  
               DO NLC=1,NLCDA  
                 L=LIJ(ICDA(NLC),JCDA(NLC))  
-                CONASMOLD=TOX(L,K,NT)  
+                CONASMOLD=TOX(L,K,NT)
                 NSID=NCSERA(NLC,M)  
                 IF(ITPCDA(NLC).EQ.0)THEN  
                   IF(NSID.GT.0)THEN  
@@ -903,7 +904,7 @@ C
             DO K=1,KC  
               DO NLC=1,NLCDA  
                 L=LIJ(ICDA(NLC),JCDA(NLC))  
-                CONASMOLD=SED(L,K,NS)  
+                CONASMOLD=SED(L,K,NS)
                 NSID=NCSERA(NLC,M)  
                 IF(ITPCDA(NLC).EQ.0)THEN  
                   IF(NSID.GT.0)THEN  
@@ -932,7 +933,7 @@ C
             DO K=1,KC  
               DO NLC=1,NLCDA  
                 L=LIJ(ICDA(NLC),JCDA(NLC))  
-                CONASMOLD=SND(L,K,NX)  
+                CONASMOLD=SND(L,K,NX)
                 NSID=NCSERA(NLC,M)  
                 IF(ITPCDA(NLC).EQ.0)THEN  
                   IF(NSID.GT.0)THEN  
@@ -975,9 +976,236 @@ C
 C  
       ENDIF  
 C  
- 1111 FORMAT(' SAL '5I5,2F10.3)  
- 1112 FORMAT(' TEM '5I5,2F10.3)  
- 1212 FORMAT(' N,NDAYA = ',2I12)  
+C
+C----------------------------------------------------------------------C
+C
+C     FULL GRID ASSIMILATION WITH FACTOR FOR EACH CELL
+C
+C     SPONGE LAYER Temperature ASSIMILATION WITH FACTOR FOR EACH CELL
+C
+      IF(ISACDA==3)THEN   
+C ***Relax CSERext according to time series files. 
+C****Greg Rocheleau       5/4/2011  
+C	
+C
+        IF(ISCDA(1)==1)THEN
+          DO K=1,KC
+            DO LL=1,NLCDA
+              L=LIJ(IDC(LL),JDC(LL))
+              NS=CDAWTNS(LL)
+              SAL(L,K)=CDAWT(LL)*CSERT(K,NS,1)*TCSERKC(K) 
+     &  +(1.-CDAWT(LL)*TCSERKC(K))*SAL(L,K)
+            ENDDO
+          ENDDO
+	  ENDIF
+C
+        IF(ISCDA(2)==1)THEN
+          DO K=1,KC
+            DO LL=1,NLCDA
+              L=LIJ(IDC(LL),JDC(LL))
+              NS=CDAWTNS(LL)
+              TEM(L,K)=CDAWT(LL)*CSERT(K,NS,2)*TCSERKC(K) 
+     &  +(1.-CDAWT(LL)*TCSERKC(K))*TEM(L,K)
+            ENDDO
+          ENDDO
+	  ENDIF
+C------------------------------------------------
+CGR   TEMPERATURE
+      IF(ISCDA(2)==1)THEN
+C
+      DO K=1,KC
+        DO LL=1,NCBW
+          IF(ISPBW(LL)==2)THEN
+            L=LCBW(LL)
+            DO NSPNG=1,ISCDA(1) 
+              L=L+1
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,2)+
+     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+            ENDDO
+          ENDIF
+        ENDDO
+      ENDDO
+C
+      DO K=1,KC
+        DO LL=1,NCBS
+          IF(ISPBS(LL).EQ.2)THEN
+            L=LCBS(LL)
+            DO NSPNG=1,ISCDA(1)      
+              L=LNC(L)
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,2)+
+     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+            ENDDO
+          ENDIF
+        ENDDO
+      ENDDO
+C      
+      DO K=1,KC
+        DO LL=1,NCBE
+          IF(ISPBE(LL)==2)THEN
+            L=LCBE(LL)
+            DO NSPNG=1,ISCDA(1) 
+              L=L-1
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,2)+
+     &       (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+            ENDDO
+          ENDIF
+        ENDDO
+      ENDDO
+C
+      DO K=1,KC
+        DO LL=1,NCBN
+          IF(ISPBN(LL)==2)THEN
+            L=LCBN(LL)
+            DO NSPNG=1,ISCDA(1) 
+              L=LSC(L)
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,2)+
+     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+            ENDDO
+          ENDIF
+        ENDDO
+      ENDDO
+C      
+      ENDIF 
+CGR   SALINITY
+      IF(ISCDA(1)>1)THEN
+C
+        DO K=1,KC
+          DO LL=1,NCBW
+            IF(ISPBW(LL)==2)THEN
+              L=LCBW(LL)
+              DO NSPNG=1,ISCDA(1) 
+                L=L+1
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,1)+
+     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C
+        DO K=1,KC
+          DO LL=1,NCBS
+           IF(ISPBS(LL)==2)THEN
+              L=LCBS(LL)
+              DO NSPNG=1,ISCDA(1)      
+                L=LNC(L)
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,1)+
+     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C      
+        DO K=1,KC
+          DO LL=1,NCBE
+            IF(ISPBE(LL)==2)THEN
+              L=LCBE(LL)
+              DO NSPNG=1,ISCDA(1) 
+                L=L-1
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,1)+
+     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C
+        DO K=1,KC
+          DO LL=1,NCBN
+            IF(ISPBN(LL)==2)THEN
+              L=LCBN(LL)
+              DO NSPNG=1,ISCDA(1) 
+                L=LSC(L)
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,1)+
+     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C      
+      ENDIF 
+CGR-------------------------------------------            
+      IF(ISCDA(3)>=1)THEN
+C
+        DO K=1,KC
+          DO LL=1,NCBW
+            IF(ISPBW(LL)==2)THEN
+              L=LCBW(LL)
+              DO NSPNG=1,ISCDA(3) 
+                L=L+1
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C
+        DO K=1,KC
+          DO LL=1,NCBS
+            IF(ISPBS(LL).EQ.2)THEN
+              L=LCBS(LL)
+              DO NSPNG=1,ISCDA(3)      
+                L=LNC(L)
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C      
+        DO K=1,KC
+          DO LL=1,NCBE
+            IF(ISPBE(LL)==2)THEN
+              L=LCBE(LL)
+              DO NSPNG=1,ISCDA(3) 
+                L=L-1
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C
+        DO K=1,KC
+          DO LL=1,NCBN
+            IF(ISPBN(LL)==2)THEN
+              L=LCBN(LL)
+              DO NSPNG=1,ISCDA(3) 
+                L=LSC(L)
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+C      
+      ENDIF 
+C      
+      ENDIF
+C
+C
+ 1111 FORMAT(' SAL '5I5,2F10.3)	
+ 1112 FORMAT(' TEM '5I5,2F10.3)
+ 1212 FORMAT(' N,NDAYA = ',2I12)
+CDEBUG      WRITE(6,*)('	...line 1582...')
+C********************************************************************** 
+C-Greg Rocheleau 5/4/2011 Put back in original code that John Hamrick had written
+C
+C     FULL GRID ASSIMILATION WITH FACTOR FOR EACH CELL
+C
+      IF(ISACDA.EQ.2)THEN
+C
+        IF(ISCDA(1).EQ.1)THEN
+          DO K=1,KC
+          DO L=2,LA
+           SAL(L,K)=CDAWT(L)*SALINIT(L,K)+(1.-CDAWT(L))*SAL(L,K)
+          ENDDO
+          ENDDO
+	  ENDIF
+C
+        IF(ISCDA(2).EQ.1)THEN
+          DO K=1,KC
+          DO L=2,LA
+           TEM(L,K)=CDAWT(L)*TEMINIT(L,K)+(1.-CDAWT(L))*TEM(L,K)
+          ENDDO
+          ENDDO
+	  ENDIF
+C
+      ENDIF
 C  
 C **  SURFACE AND INTERNAL HEAT SOURCE-SINK CALCULATION  
 C **  DYE DECAY CALCULATION  
