@@ -17,7 +17,7 @@ C
 !     New variable needed to find the the depth to the thermocline
       REAL::ZTHERM(LCM),ZMET(LCM),DENMAX(LCM)
       INTEGER::KZTHERM(LCM),KZMET(LCM)
-      REAL::CP1,CP2,CP3,P2,alpha,Knot,Knottherm,Knotmet,BVFZ,KnotZ,Kv0
+      REAL::P2,alpha,Knot,Knottherm,Knotmet,BVFZ,KnotZ,Kv0  !SCJ deleted CP1,CP2,CP3,
       REAL::RIQZtherm,RIQZmet,RIQZ,BVFZtherm,BVFZmet,KZTH,KZM
       
       REAL::RIQold,RIQprint
@@ -308,17 +308,7 @@ C
              EXIT
             ENDIF
           ENDDO
-          IF (PARTID == MASTER_TASK) THEN
-            IF(MOD(N-1,86400)==0.AND.(L==1963.OR.L==130))THEN
-              WRITE(9876,'(3(i3,1x),3(f6.2,1x),i2,2(1x,e8.3))')
-     &IL(L),JL(L),KZTHERM(L),HP(L),ZTHERM(L),ZMET(L),KZMET(L),
-     &AV(L,KZTHERM(L)),AB(L,KZTHERM(L))
-            ENDIF
-          END IF
-        ENDDO
-        IF(PARTID == MASTER_TASK .AND. MOD(N-1,86400)==0)THEN
-          CLOSE(9876)
-        ENDIF        
+        ENDDO       
         DO K=1,KS  !KS=KC-1 (second layer from the top)
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
@@ -341,22 +331,12 @@ C
 !Surface frictional velocity computation following Vincon-Leite. 
             SURFVEL=
      &SQRT(1.8E-3*(1.29*(B(L,KS)+1.0))/(1000.0*(B(L,KC)+1.0)))*WINDST(L) !RRA: WINDST(L)is computed in CALTSXY This is calculated only at the surface layer
-            IF (PARTID == MASTER_TASK) THEN
-              IF(MOD(N-1,86400)==0.AND.(L==1963.OR.L==130))THEN
-                  WRITE(753,'("Time step: ",I8)')N
-                  WRITE(753,
-     &'("  N   I   J   K Richardsn   BVF       DenGrad   Density Tempera
-     &ture  SFAB    SFAV      BVFZtherm   BVFZmet    Knot   Knottherm Kn
-     &otmet")')
-              END IF
-            ENDIF
             DO K=KS,1,-1
 !Richardson number, RIQ computation as default in EFDC (Brunt-Vaisala frequency divided by vertical shear)
 !Vertical shear: [(del u)/(del z)]^2 + [(del v)/(del z)]^2
 !              SH2=((U(L,K+1)-U(L,K))*HPI(L)*DZIG(K))**2+
 !     &            ((V(L,K+1)-V(L,K))*HPI(L)*DZIG(K))**2
-!              RIQ=BVF/MIN(SH2+1.0E-6,RIQMAX) !Richardson number is Brunt-Vaisala frequency divided by vertical shear 
-
+!              RIQ=BVF/MIN(SH2+1.0E-6,RIQMAX) !Richardson number is Brunt-Vaisala frequency divided by vertical shear
 !Vincon-Leite Richardson number, RIQ, is independent of shear velocity
 ! Calibration parameter CP1: gamma
               CP1 = 570.0 !seconds
