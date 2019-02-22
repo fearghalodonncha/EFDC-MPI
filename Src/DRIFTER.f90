@@ -819,7 +819,6 @@ CONTAINS
         !AND CALCULATING THE AREA OF EACH CELL
         INTEGER(4)::I,J,K,L
         REAL(RKD)::XC(4),YC(4),AREA2
-        ALLOCATE(XCOR(LA,5),YCOR(LA,5),AREA(LA))
         XCOR = 0
         YCOR = 0
         AREA = 0
