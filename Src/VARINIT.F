@@ -3,7 +3,7 @@ C
       USE GLOBAL  
       LOGICAL:: EXIST
 C
-      KPCM=1  
+      KPCM=MAX(1,KPC)  
       MDVSM=1  
       MTVSM=1  
       NDDAM=1  
@@ -29,7 +29,6 @@ C
       NWQCSRM=1  
       NWQPSM=1  
       NWQPSRM=1
-C      NWQTDM=1   NOT USED
       NWQZM=1  
       NXYSDATM=1  
 C  

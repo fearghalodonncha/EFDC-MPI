@@ -614,15 +614,15 @@ SUBROUTINE VARZEROReal
       QSUM=0.0
       QSUME=0.0
       QSUMELPF=0.0
-      QSUMELPN=0.0
-      QSUMELPP=0.0
-      QSUMEN=0.0
+!      QSUMELPN=0.0
+!      QSUMELPP=0.0
+!      QSUMEN=0.0
       QSUM1E=0.0
       QSUMLPF=0.0
-      QSUMLPN=0.0
-      QSUMLPP=0.0
-      QSUMN=0.0
-      QSUMP=0.0
+!      QSUMLPN=0.0
+!      QSUMLPP=0.0
+!      QSUMN=0.0
+!      QSUMP=0.0
       QWATPA=0.0
       QWBDTOP=0.0
       QWR=0.0
@@ -1378,12 +1378,12 @@ SUBROUTINE VARZEROReal
       WQLPSET=0.0
       WQN17=0.0
       WQNIT=0.0
-	WQO=0.0
+	  WQO=0.0
       WQO18=0.0
-      WQOBCE=0.0
-      WQOBCN=0.0
-      WQOBCS=0.0
-      WQOBCW=0.0
+      WQOBCE=0.0;WQOBCE_GL=0.0
+      WQOBCN=0.0;WQOBCN_GL=0.0
+      WQOBCS=0.0;WQOBCS_GL=0.0
+      WQOBCW=0.0;WQOBCW_GL=0.0
       WQOBTOT=0.0
       WQP19=0.0
       WQPC=0.0
