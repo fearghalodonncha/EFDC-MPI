@@ -37,7 +37,6 @@ C
       LOGICAL PARSE_LOGICAL, status  
       REAL,ALLOCATABLE,DIMENSION(:)::RMULADS  
       REAL,ALLOCATABLE,DIMENSION(:)::ADDADS
-      REAL,ALLOCATABLE,DIMENSION(:)::BOFFMHK,BOFFSUP,TOFFMHK,TOFFSUP
       REAL,ALLOCATABLE,DIMENSION(:)::CONINIT,ATMWHT_TEMP,WNDWHT_TEMP
       REAL,ALLOCATABLE,DIMENSION(:,:)::DXP_GLOB
       REAL,ALLOCATABLE,DIMENSION(:,:)::DYP_GLOB
@@ -45,8 +44,9 @@ C
       INTEGER::ITURB=0,IPMC 
       INTEGER::RI_GLOBAL,RJ_GLOBAL
       INTEGER TINPUT,YBEG,MBEG,DBEG   ! TINPUT is used as YYYYMMDD format
+      INTEGER*8:: jd_out !SCJ added this
       REAL(8) TBEGIN_IN
-      LOGICAL EXIST
+      LOGICAL EXIST, CELL_INSIDE_DOMAIN
       ALLOCATE(RMULADS(NSTM))  
       ALLOCATE(ADDADS(NSTM))  
       ALLOCATE(CONINIT(KCM))
@@ -555,6 +555,75 @@ C
       IF(NPFORT.GE.1)THEN  
         CLOSE(2)  
       ENDIF  
+C
+C21A* READ WATER SURFACE ELEVATION AND VELOCITY DATA ASSIMILATION
+C 
+      IF(ISWSEDA>0.OR.ISUVDA>0)THEN
+        NCARD='21A'
+        CALL SEEK('C21A') 
+        READ(1,*,IOSTAT=ISO)ISWSEDA,NLWSEDA,ISUVDA,NLUVDA,NUVSER,KCUVDA,KCUVPOW
+        WRITE(7,1002)NCARD
+        WRITE(7,*) ISWSEDA,NLWSEDA,ISUVDA,NLUVDA,NUVSER,KCUVDA,KCUVPOW
+        IF(ISO.GT.0) GOTO 100
+C
+        DO N=1,NUVSER
+	    MUVTLAST(N)=1
+        ENDDO
+      ENDIF
+C
+C21B* WATER SURFACE ELEVATION DATA ASSIMILATION
+C 
+      IF(ISWSEDA>0)THEN
+        NCARD='21B'
+        CALL SEEK('C21B') 
+        DO N=1,NLWSEDA                                            
+          READ(1,*,IOSTAT=ISO)ICWSEDA_GL(N),JCWSEDA_GL(N),NWSESERA_GL(N),TSWSEDA_GL(N)
+          ICWSEDA(N)=XLOC(ICWSEDA_GL(N))
+          JCWSEDA(N)=YLOC(JCWSEDA_GL(N))
+          NWSESERA(N)=NWSESERA_GL(N)
+          TSWSEDA(N)=TSWSEDA_GL(N)
+        ENDDO
+          WRITE(7,1002)NCARD
+	    DO N=1,NLWSEDA                                            
+           WRITE(7,*)ICWSEDA_GL(N),JCWSEDA_GL(N),NWSESERA_GL(N),TSWSEDA_GL(N)
+        ENDDO 
+        IF(ISO.GT.0) GOTO 100
+      ENDIF
+C
+C21C* VELOCITY DATA ASSIMILATION
+CGR  4/7/10  CREATED SEPERATE ASSIMILATION FACTORS FOR U AND V COMPONENTS, TSUUDA AND TSVVDA 
+      IF(ISUVDA.GT.0.0)THEN
+        NCARD='21C'
+        CALL SEEK('C21C')
+        NSPNG=10 !Hard wired for 10 sponge layers. Never an input from Makai.
+	  IF(NLUVDA.GT.0.AND.NUVSER.GT.0)THEN 
+	    DO N=1,NLUVDA                                            
+            READ(1,*,IOSTAT=ISO)ICUVDA_GL(N),JCUVDA_GL(N),NUVSERA_GL(N),
+     &        TSUUDA(N),TSVVDA(N),NORMDIR(N),FSUVDA(N),IWUVDA(N),
+     &        IRVUDA(N),RRUVDA(N)
+            ICUVDA(N)=XLOC(ICUVDA_GL(N))
+            JCUVDA(N)=YLOC(JCUVDA_GL(N))
+            NUVSERA(N)=NUVSERA_GL(N)
+          ENDDO
+          WRITE(7,1002)NCARD
+	    DO N=1,NLUVDA                                            
+            WRITE(7,*)ICUVDA_GL(N),JCUVDA_GL(N),NUVSERA_GL(N),
+     &        TSUUDA(N),TSVVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+          ENDDO
+          IF(ISO.GT.0) GOTO 100
+	  ENDIF
+	  IF(NLUVDA.GT.0.AND.NUVSER.EQ.0)THEN
+          ALLOCATE(TSUVDA(1))
+	    N=1                                            
+          READ(1,*,IOSTAT=ISO)IDUM,JDUM,NUVSERA_GL(N),
+     &        TSUVDA(N),FSUVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+          NUVSERA(N)=NUVSERA_GL(N)
+          WRITE(7,1002)NCARD
+          WRITE(7,*)IDUM,JDUM,NUVSERA_GL(N),
+     &        TSUVDA(N),FSUVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+          IF(ISO.GT.0) GOTO 100
+	  ENDIF
+      ENDIF
 C  
 C22*  READ NUM OF SEDIMENT AMD TOXICS AND NUM OF CONCENTRATION TIME SERIES
       NCARD='22'  
@@ -699,7 +768,7 @@ C28*  READ JET/PLUME SOURCE LOCATIONS AND PARAMETERS
           IF(ISO.GT.0) GOTO 100  
         ENDDO  
 C  
-        write(*,*) 'READ C29'
+!        write(*,*) 'READ C29'
 C29*  READ ADDITIONAL JET/PLUME PARAMETERS  
         NCARD='29'  
         CALL SEEK('C29')  
@@ -1107,7 +1176,7 @@ C45*  READ TOXIC CONTAMINANT-SEDIMENT INTERACTION PARAMETERS
         ENDDO  
         ENDIF
 C  
-        write(*,*) 'READ C45'
+!        write(*,*) 'READ C45'
 C45A*  READ TOXIC CONTAMINANT ORGANIC CARBON PARAMETERS
         NCARD='45A'  
         CALL SEEK('C45A')   
@@ -1525,7 +1594,7 @@ C     SAL,TEM,DYE,SFL,TOX(1 TO NTOX)
           WRITE(7,1002)NCARD  
           WRITE(7,*) (CBN_GL(L,2,M),M=1,MMAX)  
           IF(ISO.GT.0) GOTO 100  
-        ENDDO  
+      ENDDO  
 C  
 C66*  READ CONSTANT SURFACE CONCENTRATION ON NORTH CONC BOUNDARIES
 C     SED(1 TO NSED),SND(1,NSND)
@@ -1543,7 +1612,7 @@ C     SED(1 TO NSED),SND(1,NSND)
 C  
 C66A*  READ CONCENTRATION DATA ASSIMILATION PARAMETERS
       NCARD='66A'  
-      CALL SEEK('C66A')  
+      CALL SEEK('C66A')
       READ(1,*,IOSTAT=ISO) NLCDA,TSCDA,(ISCDA(K),K=1,7)  
       WRITE(7,1002)NCARD  
       WRITE(7,*) NLCDA,TSCDA,(ISCDA(K),K=1,7)  
@@ -1554,10 +1623,12 @@ C      SERIES IDENTIFIERS
       IF(NLCDA.GT.0)THEN  
         NCARD='66B'  
         CALL SEEK('C66B')  
-        WRITE(7,1002)NCARD  
+        WRITE(7,1002)NCARD
         DO L=1,NLCDA
          READ(1,*,IOSTAT=ISO) ITPCDA(L),ICDA(L),JCDA(L),
-     &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7)
+     &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7) !Makai added variables KCSERDA,KCSERPOW here
+         KCSERDA=0
+         KCSERPOW=0
          WRITE(7,*)  ITPCDA(L),ICDA(L),JCDA(L),
      &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7)
          IF(ISO.GT.0) GOTO 100
@@ -2135,9 +2206,9 @@ C
         ENDDO  
         CLOSE(121)  
       ENDIF
-       do L = 2,LA
+!       do L = 2,LA
 !         if (partid == 1) write(*,*)XPAR(IL(L)), YPAR(JL(L)), sum((ATMWHT(L,:)))
-       end do 
+!       end do 
       IF(NWSER.LE.1)THEN  
         DO L=2,LA  
           WNDWHT(L,1)=1.  
@@ -2212,6 +2283,7 @@ C
 C **  READ IN DX, DY, DEPTH AND BOTTOM ELEVATION AT CELL CENTERS OF  
 C **  VARIABLE CELLS  
 C  
+      LMHK=.FALSE.
       IF(LVC.GT.0)THEN 
         IF (PARTID ==0) PRINT *,'READING DXDY.INP'
         OPEN(1,FILE='DXDY.INP',STATUS='UNKNOWN')  
@@ -2265,12 +2337,13 @@ C
             BELV1(L)=BELADJ + BELCVRT*BELVIJ  
             ZBR(L)=ZBRADJ + ZBRCVRT*ZBRIJ  
             MVEGL(L)=MVEGIJT
-		    IF(MVEGIJT>90)THEN !SCJ IF STATEMENT
-                      ITURB=ITURB+1
-		      IJLTURB(ITURB,1)=I
-		      IJLTURB(ITURB,2)=J
-		      IJLTURB(ITURB,3)=LIJ(I,J)
-	           ENDIF
+		  IF(MVEGIJT>90)THEN !SCJ IF STATEMENT
+              LMHK=.TRUE.
+              ITURB=ITURB+1
+		    IJLTURB(ITURB,1)=I
+		    IJLTURB(ITURB,2)=J
+		    IJLTURB(ITURB,3)=LIJ(I,J)
+	      ENDIF
           ENDDO  
         ENDIF  
       ENDIF
@@ -2571,23 +2644,21 @@ C
           READ(1,*)  
         ENDDO  
         READ(1,*)NBDF,CVTFACX,CVTFACY
-        FBODYFX(:)=0.0
-        FBODYFY(:)=0.0  
         DO LL=1,NBDF  
           READ(1,*)ITMP,JTMP,FBODY1,FBODY2  
           L=LIJ(ITMP,JTMP)  
-          FBODYFX(L)=CVTFACX*FBODY1  
-          FBODYFY(L)=CVTFACY*FBODY2  
+          FBODYFX(L,1:KC)=CVTFACX*FBODY1  
+          FBODYFY(L,1:KC)=CVTFACY*FBODY2  
         END DO  
-        FBODYFX(1)=0.0  
-        FBODYFY(1)=0.0  
-        FBODYFX(LC)=0.0  
-        FBODYFY(LC)=0.0  
+        FBODYFX(1,1:KC)=0.0  
+        FBODYFY(1,1:KC)=0.0  
+        FBODYFX(LC,1:KC)=0.0  
+        FBODYFY(LC,1:KC)=0.0  
         CLOSE(1)  
       ELSE  
         DO L=1,LC  
-          FBODYFX(L)=0.0  
-          FBODYFY(L)=0.0  
+          FBODYFX(L,1:KC)=0.0  
+          FBODYFY(L,1:KC)=0.0  
         END DO  
       ENDIF  
 C  
@@ -3683,7 +3754,174 @@ C
         ENDIF  
       ENDIF  
    19 FORMAT (/,' INITIAL BUOYANCY ARRAY:',//)  
-  907 FORMAT(12F6.2)  
+  907 FORMAT(12F6.2)
+      
+**********************************************************************C
+C
+C **  READ IN HORIZONTAL VELOCITY TIME SERIES FOR DATA ASSIMILATION
+C **  FILE UVSER.INP
+C
+C----------------------------------------------------------------------C
+C
+      INQUIRE(FILE='UVSER.INP', EXIST=EXIST)
+      IF(NUVSER.GE.1.AND.EXIST)THEN
+        OPEN(1,FILE='UVSER.INP',STATUS='UNKNOWN')
+C
+C **  SKIP OVER TITLE AND AND HEADER LINES
+C 
+        DO IS=1,19
+          READ(1,'(A120)')
+        ENDDO
+6669  FORMAT('READING UVSER.INP: NS,MUVSER,TC,TA,RM,AD',2I3,4F10.2)
+C
+        DO NS=1,NUVSER
+          READ(1,*,IOSTAT=ISO) ITYPE,MUVSER(NS),TCUVSER(NS),TAUVSER(NS),
+     &                   RMULADJ,ADDADJ
+	    WRITE(2,6669)NS,MUVSER(NS),TCUVSER(NS),
+     &                   TAUVSER(NS),RMULADJ,ADDADJ
+          IF(ISO.GT.0) GOTO 850
+          IF(ITYPE.EQ.-1)THEN
+            READ(1,*,IOSTAT=ISO) (WKQ(K),K=1,KC)
+            IF(ISO.GT.0) GOTO 860
+            IF(MUVSER(NS)>1000)print*,'TUVSER,USER,VSER under allocated';pause
+            DO M=1,MUVSER(NS)
+              READ(1,*,IOSTAT=ISO)TUVSER(M,NS),USERTMP,VSERTMP
+              IF(ISO.GT.0) GOTO 860
+              TUVSER(M,NS)=TUVSER(M,NS)+TAUVSER(NS)
+              USERTMP=(RMULADJ*(USERTMP+ADDADJ))
+              VSERTMP=(RMULADJ*(VSERTMP+ADDADJ))
+	        USER(M,1:KC,NS)=USERTMP*WKQ(1:KC)
+		    VSER(M,1:KC,NS)=VSERTMP*WKQ(1:KC)
+            ENDDO
+          ENDIF
+          IF(ITYPE.EQ.0)THEN
+            DO M=1,MUVSER(NS)
+              READ(1,*,IOSTAT=ISO)TUVSER(M,NS),(USER(M,K,NS),K=1,KC),
+     &                                      (VSER(M,K,NS),K=1,KC)
+              IF(ISO.GT.0) GOTO 860
+              TUVSER(M,NS)=TUVSER(M,NS)+TAUVSER(NS)
+              USER(M,1:KC,NS)=RMULADJ*(USER(M,1:KC,NS)+ADDADJ)
+              VSER(M,1:KC,NS)=RMULADJ*(VSER(M,1:KC,NS)+ADDADJ)
+            ENDDO
+          ENDIF
+          IF(ITYPE.GE.1)THEN
+            DO M=1,MUVSER(NS)
+              READ(1,*,IOSTAT=ISO)TUVSER(M,NS),USERTMP,VSERTMP
+              IF(ISO.GT.0) GOTO 860
+              TUVSER(M,NS)=TUVSER(M,NS)+TAUVSER(NS)
+              USERTMP=(RMULADJ*(USERTMP+ADDADJ))
+              VSERTMP=(RMULADJ*(VSERTMP+ADDADJ))
+              USER(M,1:KC,NS)=-99999.9
+              VSER(M,1:KC,NS)=-99999.9
+	        USER(M,ITYPE,NS)=USERTMP
+              VSER(M,ITYPE,NS)=VSERTMP
+            ENDDO
+          ENDIF
+        ENDDO
+C
+        CLOSE(1)
+
+C----------------------------------------------------------------------C
+CGR 5/10/2011
+ !     print*,'ISACDA set to 1';ISACDA=1;pause    
+        IF(ISACDA.EQ.2)THEN
+          ALLOCATE(IDC(LCM),JDC(LCM),CDAWT(LCM))
+          OPEN(1,FILE='CDAWTS.INP')
+          DO IS=1,4
+            READ(1,'(A120)')
+          ENDDO
+          DO L=2,LA
+            READ(1,*)LDC,IDC(L),JDC(L),CDAWT(L)
+  		  CDAWT(L)=TSCDA*CDAWT(L)
+          ENDDO
+          CLOSE(1)
+        ENDIF
+CGR 5/10/2011
+        IF(ISACDA.EQ.3)THEN
+          ALLOCATE(IDC(NLCDA),JDC(NLCDA),CDAWT(NLCDA),CDAWTNS(NLCDA))
+          OPEN(1,FILE='CDAWTV.INP')
+          DO IS=1,4
+            READ(1,'(A120)')
+          ENDDO
+          DO L=1,NLCDA
+            READ(1,*)LDC,IDC(L),JDC(L),CDAWTNS(L),CDAWT(L)
+		  CDAWT(L)=TSCDA*CDAWT(L)
+          ENDDO
+          CLOSE(1)
+        ENDIF
+      ENDIF
+C
+C----------------------------------------------------------------------C
+C          
+C
+ 7001 FORMAT(2I6,F12.5,50F10.5)
+C
+C**********************************************************************C
+C
+C **  READ IN HORIZONTAL VELOCITY SPATIAL FIELD FOR DATA ASSIMILATION
+C **  FILE UVDAMAP.INP
+C
+C----------------------------------------------------------------------C
+C
+      IF(NLUVDA.GT.0.AND.NUVSER.eq.0)THEN
+        OPEN(1,FILE='UVDAMAP.INP',STATUS='UNKNOWN')
+        OPEN(99,FILE='UVDAMAP.OUT',STATUS='UNKNOWN')
+C
+C **  SKIP OVER TITLE AND AND HEADER LINES
+C 
+        DO IS=1,7
+          READ(1,'(A120)')
+        ENDDO
+C
+        UVMAX=0.
+	  IMAX=0
+	  JMAX=0
+        NL=0
+        USERT=0.0
+        VSERT=0.0
+        DO NLT=1,NLUVDA
+	    READ(1,*)ITMP,JTMP,USTMP,VSTMP
+          ITMP=XLOC(ITMP)
+          JTMP=YLOC(JTMP)
+          L=LIJ(ITMP,JTMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+	      IF(IJCT(ITMP,JTMP).NE.0.AND.IJCT(ITMP,JTMP).NE.9)THEN
+	        NL=NL+1
+	        ICUVDA(NL)=ITMP
+		    JCUVDA(NL)=JTMP
+		    USERT(1,NL)=USTMP
+		    VSERT(1,NL)=VSTMP
+	        UVTMP=SQRT(USTMP*USTMP+VSTMP*VSTMP)
+	        WRITE(99,1999)ITMP,JTMP,USTMP,VSTMP,UVTMP
+	        IF(UVTMP.GT.UVMAX)THEN
+	          UVMAX=UVTMP
+	          IMAX=ITMP
+	          JMAX=JTMP
+	        ENDIF
+	        DO K=1,KC
+	          USERT(K,NL)=USERT(1,NL)
+	          VSERT(K,NL)=VSERT(1,NL)
+              ENDDO
+              NUVSERA(NL)=NL
+              TSUVDA(NL)=TSUVDA(1)
+              FSUVDA(NL)=FSUVDA(1)
+              IWUVDA(NL)=IWUVDA(1)
+              IRVUDA(NL)=IRVUDA(1)
+              RRUVDA(NL)=RRUVDA(1)
+            ENDIF
+          ENDIF
+        ENDDO
+	  NLUVDA=NL      
+	  WRITE(8,*)'I,J,UVMAX=',IMAX,JMAX,UVMAX  
+C
+        CLOSE(1)
+	  CLOSE(99)
+      ENDIF
+C
+ 1999 FORMAT(2I6,3F10.3)
+C
+C**********************************************************************C      
+      
 C  
 C **  READ IN OPEN BOUNDARY SURFACE ELEVATION TIME SERIES FROM THE  
 C **  FILE PSER.INP  
@@ -4554,13 +4792,29 @@ C
         ENDDO  
         READ(1,*)MVEGTYP,MVEGOW,NVEGSER,UVEGSCL  
         DO M=1,MVEGTYP  
-         READ(1,*,ERR=3120)IDUM,NVEGSERV(M),RDLPSQ(M),BPVEG(M),HPVEG(M),  
-     &        ALPVEG(M),BETVEG(M),GAMVEG(M),SCVEG(M)  
-          BDLTMP=BPVEG(M)*BPVEG(M)*RDLPSQ(M)  
-          PVEGX(M)=1.-BETVEG(M)*BDLTMP  
-          PVEGY(M)=1.-BETVEG(M)*BDLTMP  
-          PVEGZ(M)=1.-ALPVEG(M)*BDLTMP  
-          BDLPSQ(M)=BPVEG(M)*RDLPSQ(M)  
+         READ(1,*,ERR=3120)IDUM,NVEGSERV(M),RDLPSQ(M),VEGDIAMTMP,VEGHPTMP,  
+     &        ALPVEG(M),BETVEG(M),GAMVEG(M),SCVEG(M)
+!SCJ If macroalgae are to be in more than just the bottom layer, set GAMVEG equal to the elevation where growth starts (bottom of kelp farm).
+!SCJ If macroalgae should actually start at 0 elevation, then set GAMVEG = -1.0E-6.
+          IF(GAMVEG(M)==0.0)THEN !Flag for regular vegetation
+            BPVEG(M)=VEGDIAMTMP
+            HPVEG(M)=VEGHPTMP
+            BDLTMP=BPVEG(M)*BPVEG(M)*RDLPSQ(M)  
+            PVEGX(M)=1.-BETVEG(M)*BDLTMP  !Never used  
+            PVEGY(M)=1.-BETVEG(M)*BDLTMP  !Never used
+            PVEGZ(M)=1.-ALPVEG(M)*BDLTMP
+            BDLPSQ(M)=BPVEG(M)*RDLPSQ(M)
+          ELSE !Macroalgae
+            DO L=2,LA
+              IF(M/=MVEGL(L))CYCLE
+              MACDIAM(L)=VEGDIAMTMP !Kelp diameter changes with growth
+              ZMAXMAC(L)=VEGHPTMP !Kelp length changes with growth
+              ZMINMAC(L)=GAMVEG(M) !Bottom of kelp farm doesn't change, but L dimension kept for consistency (unused GAMVEG variable used for this)
+              BDLTMP=MACDIAM(L)*MACDIAM(L)*RDLPSQ(M)!Normalized area of MACROAGAE in this cell (-)
+              MVEGZ(L)=MAX(0.0,1.0-ALPVEG(M)*BDLTMP)!Blockage ratio in Z (-)
+              MACAD(L)=RDLPSQ(M)*MACDIAM(L)        !a*d (m) used to calculate drag, see papers written on this James and O'Donncha EFM 2019 BDLPSQ
+            ENDDO
+          ENDIF
         ENDDO  
         CLOSE(1)  
         IF(NVEGSER.GT.0)THEN  
@@ -4569,21 +4823,19 @@ C
           ENDDO  
         ENDIF
 	!!!BEGIN SCJ BLOCK
-	  IF(MAXVAL(MVEGL(2:LA))>90)THEN !MHK devices
-        PRINT *,'READING MHK.INP'
-        OPEN(1,FILE='MHK.INP',STATUS='UNKNOWN')  
-        DO NS=1,29  
-          READ(1,*)  
-        ENDDO  
-        READ(1,*,ERR=3122)MHKTYP,NFLAGPWR,UPSTREAM,OUTPUTFLAG
-        ALLOCATE(BOFFMHK(MHKTYP),BOFFSUP(MHKTYP))
-        ALLOCATE(TOFFMHK(MHKTYP),TOFFSUP(MHKTYP))
-        IF(NFLAGPWR==1)THEN
-          DO M=1,MHKTYP  
-            READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
+        IF(LMHK)THEN !MHK devices
+          PRINT *,'READING MHK.INP'
+          OPEN(1,FILE='MHK.INP',STATUS='UNKNOWN')  
+          DO NS=1,29  
+            READ(1,*)  
+          ENDDO  
+          READ(1,*,ERR=3122)MHKTYP,NFLAGPWR,UPSTREAM,OUTPUTFLAG
+          IF(NFLAGPWR==1)THEN
+            DO M=1,MHKTYP  
+              READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
      &BOFFMHK(M),BOFFSUP(M),TOFFMHK(M),TOFFSUP(M),
      &CTMHK(M),CDSUP(M),VMINCUT(M),VMAXCUT(M),DENMHK(M)
-		    CTMHK(M)=CTMHK(M)*DENMHK(M)
+              CTMHK(M)=CTMHK(M)*DENMHK(M)
 		    CDSUP(M)=CDSUP(M)*DENMHK(M)
 		    DO L=2,LA
 		      IF(M+90==MVEGL(L))THEN      ! Can have number of different MHK types (dimensions etc.) here we have 5 MHK devices but all are equivalent, so only need to scan across cells containing MHK devices with the same MHK parameters
@@ -4591,42 +4843,44 @@ C
 		        ZMAXMHK(M,L)=BELV(L)+TOFFMHK(M)
 		        ZMINSUP(M,L)=BELV(L)+BOFFSUP(M)
 		        ZMAXSUP(M,L)=BELV(L)+TOFFSUP(M)
-	          DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
-                IF(DIAMMHK<0.0)THEN
+	            DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
+                  IF(DIAMMHK<0.0)THEN
 		          PRINT*,'MHK ZMIN > ZMAX'
-	            STOP
+	              STOP
+	            ENDIF
 	          ENDIF
-	        ENDIF
 		    ENDDO
-          ENDDO
-          READ(1,*) !skip the header line
-          READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
-        ELSEIF(NFLAGPWR==2)THEN
-          PRINT*,'Not available yet'
-        ELSEIF(NFLAGPWR==3)THEN
-          READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
+            ENDDO
+            READ(1,*) !skip the header line
+            READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
+          ELSEIF(NFLAGPWR==2)THEN
+            PRINT*,'Not available yet'
+          ELSEIF(NFLAGPWR==3)THEN
+            DO M=1,MHKTYP
+              READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
      &BOFFMHK(M),HEIGHTMHK(M),HEIGHTSUP(M),REFELEV(M),
      &CTMHK(M),CDSUP(M),VMINCUT(M),VMAXCUT(M),DENMHK(M)
-		  CTMHK(M)=CTMHK(M)*DENMHK(M)
-		  CDSUP(M)=CDSUP(M)*DENMHK(M)
-		  DO L=2,LA
-		    IF(M+90==MVEGL(L))THEN
-		      ZMINMHK(M,L)=BELV(L)+REFELEV(M)
-		      ZMAXMHK(M,L)=BELV(L)+REFELEV(M)+HEIGHTMHK(M)
-		      ZMINSUP(M,L)=BELV(L)
-		      ZMAXSUP(M,L)=BELV(L)+REFELEV(M)+HEIGHTSUP(M)
-	        DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
-              IF(DIAMMHK<0.0)THEN
-		        PRINT*,'MHK ZMIN > ZMAX'
-	          STOP
-	        ENDIF
-	      ENDIF
-		  ENDDO
-          READ(1,*) !skip the header line
-          READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
-        ENDIF
-        CLOSE(1)    
- 	    DO L=2,LA
+		    CTMHK(M)=CTMHK(M)*DENMHK(M)
+		    CDSUP(M)=CDSUP(M)*DENMHK(M)
+		    DO L=2,LA
+		      IF(M+90==MVEGL(L))THEN 
+		        ZMINMHK(M,L)=BELV(L)+REFELEV(M)
+		        ZMAXMHK(M,L)=BELV(L)+REFELEV(M)+HEIGHTMHK(M)
+		        ZMINSUP(M,L)=BELV(L)
+		        ZMAXSUP(M,L)=BELV(L)+REFELEV(M)+HEIGHTSUP(M)
+	            DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
+                  IF(DIAMMHK<0.0)THEN
+		          PRINT*,'MHK ZMIN > ZMAX'
+	              STOP
+	            ENDIF
+	          ENDIF
+		    ENDDO
+              READ(1,*) !skip the header line
+              READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
+            ENDDO
+          ENDIF
+          CLOSE(1)    
+          DO L=2,LA
 	      IF(MVEGL(L)>90)THEN
 		    IF((DIAMMHK>DXP(L).OR.DIAMMHK>DYP(L))
      &.AND.DENMHK(MVEGL(L)-90)>1.0)THEN
@@ -4635,8 +4889,8 @@ C
 	          STOP
 	        ENDIF
 	      ENDIF
-	    ENDDO
-      ENDIF
+          ENDDO 
+        ENDIF
 	!!!END SCJ BLOCK
       ENDIF  
       GOTO 3124  
@@ -4647,7 +4901,6 @@ C
  3123 FORMAT('  READ ERROR FOR FILE MHK.INP ')  
       STOP 
  3124 CONTINUE  
-
 C_____________________________________________________________________
 C BEGIN FEARGHAL O DONNCHA AQUACULTURE COMPONENT
 C READ DATA RELATED TO aquaculture installations
@@ -4664,7 +4917,7 @@ C______________________________________________________________________
             read(100,*) ! skip header lines
          end do
          read(100,*) Aquaturb,BETADRP_P,BETADRP_D,CE4DRP ! turbulence characteristics
-
+         close(100)
 ! aquaincl = flag for the inclusion of aquacultur
 ! thetapar = area reduction coefficient (=1-DropperArea*DropperDensity)
 ! aquadrag = aquaculture instl. cylinder drag coefficent (0.8 - 2.0)
