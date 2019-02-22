@@ -93,11 +93,11 @@ C
           KM=K-1  
           VATUUU=0.25*(V(L,K)+V(LWEST(L),K)+V(LN,K)+V(LN-1,K))  
           TMPUUU=ABS(U(L,K)/DXU(L))+ABS(VATUUU/DYU(L))  
-          DTTMP=1./TMPUUU  
+          DTTMP=1./(TMPUUU + 1.0E-18)
           DTL1(L)=MIN(DTL1(L),DTTMP)  
           UATVVV=0.25*(U(L,K)+U(LS,K)+V(LEAST(L),K)+V(LS+1,K))  
           TMPVVV=ABS(V(L,K)/DYV(L))+ABS(UATVVV/DXV(L))  
-          DTTMP=1./TMPVVV  
+          DTTMP=1./(TMPVVV + 1.0E-18)  
           DTL1(L)=MIN(DTL1(L),DTTMP)  
           UEAST=ABS(U(L,K))  
           UWEST=ABS(U(LEAST(L),K))  
@@ -106,7 +106,7 @@ C
           TMPVVV=MAX(VSOUTH,VNORTH)  
           TMPUUU=MAX(UEAST,UWEST)  
           TMPVAL=TMPUUU/DXP(L)+TMPVVV/DYP(L)  
-          DTTMP=1./TMPVAL  
+          DTTMP=1./(TMPVAL + 1.0E-18)  
           DTL1(L)=MIN(DTL1(L),DTTMP)  
         ENDDO  
       ENDDO  
