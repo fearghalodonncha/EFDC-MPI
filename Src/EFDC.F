@@ -106,10 +106,10 @@ C *** EE BEGIN BLOCK
 
 !$      USE OMP_LIB
 #ifdef key_mpi
-      USE parallel_mpi
+       USE parallel_mpi
 #endif
 #ifdef XLF
-      use xlfutility
+       use xlfutility
        real(4) elapsed_1
        type(tb_type) etime_struct_1
 #endif
@@ -130,7 +130,7 @@ C
       REAL*8 T1,T2,DELSNAP
       INTEGER COUNT
       LOGICAL PAUSEIT
-	  CHARACTER*20 BUFFER
+	CHARACTER*20 BUFFER
 C
 
 C      INTERFACE TO INTEGER FUNCTION ATEXIT  
@@ -912,6 +912,7 @@ C
         CALL AREA_CENTRD
         CALL DRIFTERINP
       END IF
+
 C            
 C **  READ SPATIAL AVERAGING MAP FOR FOOD CHAIN MODEL OUTPUT
 C
@@ -1805,21 +1806,23 @@ C
 C  
 C **  INITIALIZE UNSTRETCHING PROCEDURE  
 C  
-      
-      DZPC=(SELVMAX-BELVMIN)/FLOAT(KPC)  
-      IF(DZPC.NE.0.)THEN
-        ZP(0)=BELVMIN  
-        DO KP=1,KPC  
-          ZP(KP)=ZP(KP-1)+DZPC  
-        ENDDO  
-        DO KP=1,KPC  
-          ZZP(KP)=0.5*(ZP(KP)+ZP(KP-1))  
-        ENDDO  
-        DO L=2,LA  
-          TMP=(BELV(L)-BELVMIN)/DZPC  
-          KPB(L)=NINT(0.5+TMP)  
-        ENDDO  
+      IF(ISR3DO.GT.0.OR.IS3DO.GT.0)THEN
+        DZPC=(SELVMAX-BELVMIN)/FLOAT(KPC)  
+        IF(DZPC.NE.0.)THEN
+          ZP(0)=BELVMIN  
+          DO KP=1,KPC  
+            ZP(KP)=ZP(KP-1)+DZPC  
+          ENDDO  
+          DO KP=1,KPC  
+            ZZP(KP)=0.5*(ZP(KP)+ZP(KP-1))  
+          ENDDO  
+          DO L=2,LA  
+            TMP=(BELV(L)-BELVMIN)/DZPC  
+            KPB(L)=NINT(0.5+TMP)  
+          ENDDO  
+        ENDIF
       ENDIF
+
 C  
 C **  CALCULATE CONSTANT HORIZONTAL SPATIAL ARRAYS  
 C  
@@ -2061,6 +2064,79 @@ C
           FTEMASM(I,J)=0.0  
         ENDDO  
       ENDDO  
+C
+CGR **  Initialization of ISWSEDA Created by Greg Rocheleau, 5/31/2011
+C
+!      IF(ISWSEDA.GT.1)THEN
+!      N=1
+!C
+!      DO LL=1,NCBS
+!       IF(ISPBS(LL).EQ.2)THEN
+!          L=LCBS(LL)
+!          DO NSPNG=1,ISWSEDA      
+!            IF(K.GE.KGVCP(L))THEN
+!            ICWSEDA(N)=IL(L)
+!            JCWSEDA(N)=JL(L)
+!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(LL)
+!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
+!            N=N+1
+!            L=LNC(L)
+!             ENDIF
+!           ENDDO
+!        ENDIF
+!      ENDDO      
+!C
+!      DO LL=1,NCBW
+!        IF(ISPBW(LL).EQ.2)THEN
+!          L=LCBW(LL)
+!          DO NSPNG=1,ISWSEDA 
+!            IF(K.GE.KGVCP(L))THEN
+!            ICWSEDA(N)=IL(L)
+!            JCWSEDA(N)=JL(L)
+!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+LL)
+!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
+!            N=N+1
+!            L=L+1
+!            ENDIF
+!            ENDDO
+!          ENDIF
+!      ENDDO
+!C      
+!      DO LL=1,NCBE
+!        IF(ISPBE(LL).EQ.2)THEN
+!          L=LCBE(LL)
+!          DO NSPNG=1,ISWSEDA 
+!            IF(K.GE.KGVCP(L))THEN
+!            ICWSEDA(N)=IL(L)
+!            JCWSEDA(N)=JL(L)
+!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+NCBW+LL)
+!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
+!            N=N+1
+!            L=L-1
+!            ENDIF
+!            ENDDO
+!          ENDIF
+!      ENDDO
+!C
+!      DO LL=1,NCBN
+!        IF(ISPBN(LL).EQ.2)THEN
+!          L=LCBN(LL)
+!          DO NSPNG=1,ISWSEDA
+!            IF(K.GE.KGVCP(L))THEN
+!            ICWSEDA(N)=IL(L)
+!            JCWSEDA(N)=JL(L)
+!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+NCBW+NCBE+LL)
+!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
+!            N=N+1
+!            L=LSC(L)
+!            ENDIF
+!            ENDDO
+!          ENDIF
+!      ENDDO
+!C     MUST REDIFNE NLSWEDA=N IN ORDER TO RUN ASSIMILATION IN PUVDASM.FOR, ETC.      
+!      NLWSEDA=N
+!      ENDIF
+CGR      
 C  
 C **  INITIALIZE WATER QUALITY MODEL AND READ INPUT  
 C  
@@ -2099,11 +2175,11 @@ C
        CPUTIME(1) = etime_struct_1%usrtime
        CPUTIME(2) = etime_struct_1%systime
 #else
+      TCPU=TIME_END-TIME_START !DTIME(CPUTIME) !SCJ added this line
       TCPU=TCPU/3600  
       CPUTIME(1)=CPUTIME(1)/3600.  !TCPU
       CPUTIME(2)=CPUTIME(2)/3600.
 #endif
-c        TCPU=DTIME(CPUTIME)
         
       TCONG=TCONG/3600.
       THDMT=THDMT/3600.
@@ -2123,11 +2199,11 @@ c        TCPU=DTIME(CPUTIME)
       TWQKIN=TWQKIN/3600.
       TWQSED=TWQSED/3600.
       IF(PARTID==0) THEN
-        IF(MAXVAL(MVEGL(:))>90)THEN
+        IF(LMHK)THEN
           ETMP=SUM(ESUP(1:TCOUNT,2:LA))
           WRITE(6,'("SUPPORT ENERGY LOSS    ",F10.4," MW-HR")')ETMP
           ETMP=SUM(EMHK(1:TCOUNT,2:LA))
-          WRITE(6,'("MHK ENERGY OUTPUT      ",F10.4," MW-HR")')ETMP
+          WRITE(6,'("MHK ENERGY REMOVED      ",F10.4," MW-HR")')ETMP
         ENDIF
         WRITE(6,1995)THDMT,TCONG  
         IF( NSEDFLUME==0 ) THEN
@@ -2217,7 +2293,7 @@ C
       
       IF (PARTID == MASTER_TASK) THEN
         NSNAPSHOTS = NPVPH * NTC
-        CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
+!        CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
       END IF
 C
 
