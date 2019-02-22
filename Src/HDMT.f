@@ -498,6 +498,17 @@ C
         CALL CALQVS (ISTL)  
         PSERT(0)=0.  
         IF(NPSER.GE.1) CALL CALPSER (ISTL)  
+C
+C**********************************************************************C
+C
+C **  WATER SURFACE ELEVATION AND VELOCITY DATA ASSIMILATION
+C     SETUP CALL
+C
+C----------------------------------------------------------------------C
+C
+      IF(ISWSEDA.GT.0.OR.ISUVDA.GT.0) CALL PUVDASM(ISTL,1)
+C
+C**********************************************************************C
 C  
 C**********************************************************************C  
 C  
@@ -682,6 +693,14 @@ C
           CALL CALUVW (ISTL,IS2TL)  
         ENDIF  
         TUVW=TUVW+SECNDS(T1TMP)  
+C**********************************************************************C
+C
+C **  WATER SURFACE ELEVATION AND VELOCITY DATA ASSIMILATION
+C     DIAGNOSTIC CALL
+C
+C----------------------------------------------------------------------C
+C
+      IF(ISWSEDA.GT.0.OR.ISUVDA.GT.0) CALL PUVDASM(ISTL,2)
 C  
 C**********************************************************************C  
 C  
