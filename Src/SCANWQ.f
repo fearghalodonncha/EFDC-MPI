@@ -46,7 +46,7 @@
 
 C  *** C29
       CALL SEEK('C29')  
-      DO M=1,9
+      DO M=1,19
         READ(1,9)LINE
       ENDDO  
       READ(1,*) (NWQCSR(NW),NW=1,NWQV) 

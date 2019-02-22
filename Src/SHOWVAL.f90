@@ -129,15 +129,15 @@ SUBROUTINE SHOWVAL
         WRITE(*,'(A)')'    DAYS      SEC   CM  CM/S CM/S  '//UNITS//' CM/S  CM/S   CM/S  CM/S  '//UNITS//'  CM/S CM/S'
       ENDIF
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
     ENDIF
   ENDIF
-
   ! *** INCREMENT THE SCREEN COUNTER
   JSHPRT=JSHPRT+1
   IF(JSHPRT.LT.ISHPRT)RETURN
+  if(IDNOTRVA/=0)call tecplot !Macroalgae output
   IF(OUTPUTFLAG.GE.4) THEN ! IFREMER flume
     call tecplot !User defined output subroutine for Tecplot SCJ
   ENDIF
