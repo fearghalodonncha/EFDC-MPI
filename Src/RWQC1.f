@@ -32,7 +32,10 @@ C
       REAL      XPSQ,XDSQ,XMUD
       INTEGER   M,N1,II,JJ,KK,NT,ISSKIP,NW,ND,LF,LL,L
       INTEGER   IWQDT,IWQKIN,ITMP,IZ,IN,IJKC,IWQZX,IZMUD,IZSAND
-      INTEGER   I,J,K
+      INTEGER   I,J,K,MM
+
+      INTEGER   I_TEMP, J_TEMP
+      LOGICAL    CELL_INSIDE_DOMAIN
 C
       PARAMETER (CONV1=1.0,CONV2=8.64E4)  
 C
@@ -280,12 +283,17 @@ C *** C07
           WRITE(2,*) II,JJ,(ICWQTS(NW,M),NW=1,13)  
           READ(1,*) (ICWQTS(NW,M),NW=14,NTSWQV),ICWQTS(IDNOTRVA,M)  
           WRITE(2,*) (ICWQTS(NW,M),NW=14,NTSWQV),ICWQTS(IDNOTRVA,M)  
-          IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
-            WRITE(2,86)  II,JJ,M  
-            WRITE(2,80)'ERROR!! INVALID (I,J): TIME-SERIES LOCATION'  
-            STOP  
+          I = XLOC(II)
+          J = YLOC(JJ)
+          L = LIJ(I,J)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+            IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
+              WRITE(2,86)  II,JJ,I,J,M  
+              WRITE(2,80)'ERROR!! INVALID (I,J): TIME-SERIES LOCATION'  
+              STOP  
+            END IF
           ENDIF  
-          LWQTS(M)=LIJ(II,JJ)  
+          LWQTS(M)=LIJ(I,J)  
           WRITE(2,94) II,JJ,(ICWQTS(NW,M),NW=1,NTSWQV+1)  
         ENDDO  
       ENDIF  
@@ -782,13 +790,13 @@ C        WTEMP =0.25*REAL(M)-30.25
         IF(WTEMP.GT.WQTMG2)THEN  
           WQTDGG(M) = EXP(-WQKG2G*(WTEMP-WQTMG2)*(WTEMP-WQTMG2) )  
         ENDIF  
-        WQTDGM(M)=1.  
         IF(IDNOTRVA.GT.0)THEN  
           IF(WTEMP.LT.WQTMM1)THEN  
             WQTDGM(M) = EXP(-WQKG1M*(WTEMP-WQTMM1)*(WTEMP-WQTMM1) )  
-          ENDIF  
-          IF(WTEMP.GT.WQTMM2)THEN  
+          ELSEIF(WTEMP.GT.WQTMM2)THEN  
             WQTDGM(M) = EXP(-WQKG2M*(WTEMP-WQTMM2)*(WTEMP-WQTMM2) )  
+          ELSE
+            WQTDGM(M)=1.  
           ENDIF  
           WQTDRM(M) = EXP( WQKTBM*(WTEMP-WQTRM) )  
         ENDIF  
@@ -859,16 +867,16 @@ C
       WRITE(2,90) TITLE(1)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) NWQOBS,NWQOBW,NWQOBE,NWQOBN  
-      WRITE(2,*) NWQOBS,NWQOBW,NWQOBE,NWQOBN  
-      WRITE(2,23)'* # OF OPEN BDRY CELLS ON SOUTH BDRY       = ',NWQOBS  
-      WRITE(2,23)'* # OF OPEN BDRY CELLS ON WEST BDRY        = ',NWQOBW  
-      WRITE(2,23)'* # OF OPEN BDRY CELLS ON EAST BDRY        = ',NWQOBE  
-      WRITE(2,23)'* # OF OPEN BDRY CELLS ON NORTH BDRY       = ',NWQOBN  
-      IF(NWQOBS.GT.NBBSM) STOP 'ERROR!! NWQOBS SHOULD <= NBBSM'  
-      IF(NWQOBW.GT.NBBWM) STOP 'ERROR!! NWQOBW SHOULD <= NBBWM'  
-      IF(NWQOBE.GT.NBBEM) STOP 'ERROR!! NWQOBE SHOULD <= NBBEM'  
-      IF(NWQOBN.GT.NBBNM) STOP 'ERROR!! NWQOBN SHOULD <= NBBNM'  
+      READ(1,*) NWQOBS_GL,NWQOBW_GL,NWQOBE_GL,NWQOBN_GL  
+      WRITE(2,*) NWQOBS_GL,NWQOBW_GL,NWQOBE_GL,NWQOBN_GL  
+      WRITE(2,23)'* # OF OPEN BDRY CELLS ON SOUTH BDRY       = ',NWQOBS_GL  
+      WRITE(2,23)'* # OF OPEN BDRY CELLS ON WEST BDRY        = ',NWQOBW_GL
+      WRITE(2,23)'* # OF OPEN BDRY CELLS ON EAST BDRY        = ',NWQOBE_GL
+      WRITE(2,23)'* # OF OPEN BDRY CELLS ON NORTH BDRY       = ',NWQOBN_GL
+      IF(NWQOBS_GL.GT.NBBSM) STOP 'ERROR!! NWQOBS SHOULD <= NBBSM'  
+      IF(NWQOBW_GL.GT.NBBWM) STOP 'ERROR!! NWQOBW SHOULD <= NBBWM'  
+      IF(NWQOBE_GL.GT.NBBEM) STOP 'ERROR!! NWQOBE SHOULD <= NBBEM'  
+      IF(NWQOBN_GL.GT.NBBNM) STOP 'ERROR!! NWQOBN SHOULD <= NBBNM'  
       WRITE(2,999)  
       WRITE(2,80)'* CONSTANT OBC AT (ICBX(M),JCBX(M)) IF IWQOBX(M)=0'  
       WRITE(2,80)': READ TIME-SERIES OBCS IWQOBX TIMES IF IWQOBX > 0'  
@@ -884,21 +892,31 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBS.GT.0)THEN  
-        DO M=1,NWQOBS  
-          READ(1,*) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
-          ! *** CONCENTRATION ASSIGNMENTS
-          IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              NCSERS(M,NT)=IWQOBS(M,NW)
-            ENDDO
-          ELSE
-            STOP '  WQ: SOUTH OBC: MISS MATCH BETWEEN NCBS & NWQOBS'
-          ENDIF
-          WRITE(2,*) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBS=0
+      M=0
+      IF(NWQOBS_GL.GT.0)THEN  
+        DO MM=1,NWQOBS_GL
+          READ(1,*) I_TEMP,J_TEMP,(IWQOBS_GL(MM,NW),NW=1,NWQV)  
+          L = LIJ(I_TEMP, J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN     
+            NWQOBS=NWQOBS+1
+            M=M+1
+            IWQCBS(M) = XLOC(I_TEMP)
+            JWQCBS(M) = YLOC(J_TEMP)
+            IWQOBS(M,1:NWQV)=IWQOBS_GL(MM,1:NWQV)
+            ! *** CONCENTRATION ASSIGNMENTS
+            IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                NCSERS(M,NT)=IWQOBS(M,NW)
+              ENDDO
+            ELSE
+              STOP '  WQ: SOUTH OBC: MISS MATCH BETWEEN NCBS & NWQOBS'
+            ENDIF
+            WRITE(2,*) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
+            WRITE(2,969) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
+          END IF
         ENDDO  
       ENDIF  
 C  
@@ -910,19 +928,29 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBS.GT.0)THEN  
-        DO M=1,NWQOBS  
-          READ(1,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,1,NW),NW=1,NWQV)  
-          ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
-          IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBS(M,1,NT)=WQOBCS(M,1,NW)
-            ENDDO
-          ENDIF
-          WRITE(2,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBS(M),JWQCBS(M),(WQOBCS(M,1,NW),NW=1,NWQV)  
+      ENDDO
+      M=0
+      NWQOBS=0
+      IF(NWQOBS_GL.GT.0)THEN  
+        DO MM=1,NWQOBS_GL
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCS_GL(MM,1,NW),NW=1,NWQV)  
+          L = LIJ(I_TEMP, J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+            NWQOBS=NWQOBS+1
+            M=M+1
+            IWQCBS(M) = XLOC(I_TEMP)
+            JWQCBS(M) = YLOC(J_TEMP)
+            WQOBCS(M,1,1:NWQV)=WQOBCS_GL(MM,1,1:NWQV)
+            ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
+            IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBS(M,1,NT)=WQOBCS(M,1,NW)
+              ENDDO
+            ENDIF
+            WRITE(2,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,1,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBS(M),JWQCBS(M),(WQOBCS(M,1,NW),NW=1,NWQV)
+          END IF  
         ENDDO  
       ENDIF  
 C  *** C34
@@ -931,10 +959,19 @@ C  *** C34
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBS.GT.0)THEN  
-        DO M=1,NWQOBS  
-          READ(1,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
+      ENDDO
+      M=0
+      NWQOBS=0
+      IF(NWQOBS_GL.GT.0)THEN  
+        DO MM=1,NWQOBS_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCS_GL(MM,2,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBS=NWQOBS+1
+          M=M+1
+          IWQCBS(M) = XLOC(I_TEMP)
+          JWQCBS(M) = YLOC(J_TEMP)
+          WQOBCS(M,2,1:NWQV)=WQOBCS_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
           IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
             DO NW=1,NWQV
@@ -944,6 +981,7 @@ C  *** C34
           ENDIF
           WRITE(2,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
           WRITE(2,97) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -958,10 +996,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBW.GT.0)THEN  
-        DO M=1,NWQOBW  
-          READ(1,*) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV)  
+      ENDDO
+      M=0
+      NWQOBS=0
+      IF(NWQOBW_GL.GT.0)THEN  
+        DO MM=1,NWQOBW_GL  
+          READ(1,*) I_TEMP,J_TEMP,(IWQOBW_GL(MM,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBW=NWQOBW+1
+          M=M+1
+          IWQCBW(M) = XLOC(I_TEMP)
+          JWQCBW(M) = YLOC(J_TEMP)
+          IWQOBW(M,1:NWQV)=IWQOBW_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
           IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
             DO NW=1,NWQV
@@ -972,7 +1019,8 @@ C
             STOP '  WQ: WST OBC: MISS MATCH BETWEEN NCBW & NWQOBW'
           ENDIF
           WRITE(2,*) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV)  
+          WRITE(2,969) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV) 
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -984,10 +1032,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBW.GT.0)THEN  
-        DO M=1,NWQOBW  
-          READ(1,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBW=0
+      M=0
+      IF(NWQOBW_GL.GT.0)THEN  
+        DO MM=1,NWQOBW_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCW_GL(MM,1,NW),NW=1,NWQV)  
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBW=NWQOBW+1
+          M=M+1
+          IWQCBW(M) = XLOC(I_TEMP)
+          JWQCBW(M) = YLOC(J_TEMP)
+          WQOBCW(M,1,1:NWQV)=WQOBCW_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
           IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
             DO NW=1,NWQV
@@ -997,6 +1054,7 @@ C
           ENDIF
           WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
           WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
+          ENDIF
         ENDDO  
       ENDIF  
 C  *** C37
@@ -1005,10 +1063,19 @@ C  *** C37
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBW.GT.0)THEN  
-        DO M=1,NWQOBW  
-          READ(1,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)  
+      ENDDO
+      M=0
+      NWQOBW=0
+      IF(NWQOBW_GL.GT.0)THEN  
+        DO MM=1,NWQOBW_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCW_GL(MM,2,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBW=NWQOBW+1
+          M=M+1
+          IWQCBW(M) = XLOC(I_TEMP)
+          JWQCBW(M) = YLOC(J_TEMP)
+          WQOBCW(M,2,1:NWQV)=WQOBCW_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
           IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
             DO NW=1,NWQV
@@ -1017,7 +1084,8 @@ C  *** C37
             ENDDO
           ENDIF  
           WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)  
+          WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -1032,10 +1100,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBE.GT.0)THEN  
-        DO M=1,NWQOBE  
-          READ(1,*) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBE=0
+      M=0
+      IF(NWQOBE_GL.GT.0)THEN  
+        DO MM=1,NWQOBE_GL  
+          READ(1,*) I_TEMP,J_TEMP,(IWQOBE_GL(MM,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBE=NWQOBE+1
+          M=M+1
+          IWQCBE(M) = XLOC(I_TEMP)
+          JWQCBE(M) = YLOC(J_TEMP)
+          IWQOBE(M,1:NWQV)=IWQOBE_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
           IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
             DO NW=1,NWQV
@@ -1047,6 +1124,7 @@ C
           ENDIF  
           WRITE(2,*) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
           WRITE(2,969) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -1058,10 +1136,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBE.GT.0)THEN  
-        DO M=1,NWQOBE  
-          READ(1,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)
+      ENDDO
+      NWQOBE=0
+      M=0
+      IF(NWQOBE_GL.GT.0)THEN  
+        DO MM=1,NWQOBE_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCE_GL(MM,1,NW),NW=1,NWQV)  
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBE=NWQOBE+1
+          M=M+1
+          IWQCBE(M) = XLOC(I_TEMP)
+          JWQCBE(M) = YLOC(J_TEMP)
+          WQOBCE(M,1,1:NWQV)=WQOBCE_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
           IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
             DO NW=1,NWQV
@@ -1070,7 +1157,8 @@ C
             ENDDO
           ENDIF  
           WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)  
+          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
       WRITE(2,999)  
@@ -1079,10 +1167,19 @@ C  *** C40
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBE.GT.0)THEN  
-        DO M=1,NWQOBE  
-          READ(1,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBE=0
+      M=0
+      IF(NWQOBE_GL.GT.0)THEN  
+        DO MM=1,NWQOBE_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCE_GL(MM,2,NW),NW=1,NWQV)  
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBE=NWQOBE+1
+          M=M+1
+          IWQCBE(M) = XLOC(I_TEMP)
+          JWQCBE(M) = YLOC(J_TEMP)
+          WQOBCE(M,2,1:NWQV)=WQOBCE_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
           IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
             DO NW=1,NWQV
@@ -1091,7 +1188,8 @@ C  *** C40
             ENDDO
           ENDIF  
           WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)  
+          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -1106,10 +1204,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBN.GT.0)THEN  
-        DO M=1,NWQOBN  
-          READ(1,*) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBN=0
+      M=0
+      IF(NWQOBN_GL.GT.0)THEN  
+        DO MM=1,NWQOBN_GL  
+          READ(1,*) I_TEMP,J_TEMP,(IWQOBN_GL(MM,NW),NW=1,NWQV)  
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBN=NWQOBN+1
+          M=M+1
+          IWQCBN(M) = XLOC(I_TEMP)
+          JWQCBN(M) = YLOC(J_TEMP)
+          IWQOBN(M,1:NWQV)=IWQOBN_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
           IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
             DO NW=1,NWQV
@@ -1120,7 +1227,8 @@ C
             STOP '  WQ: NORTH OBC: MISS MATCH BETWEEN NCBN & NWQOBN'
           ENDIF  
           WRITE(2,*) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)  
+          WRITE(2,969) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -1132,10 +1240,19 @@ C
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBN.GT.0)THEN  
-        DO M=1,NWQOBN  
-          READ(1,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)  
+      ENDDO
+      M=0
+      NWQOBN=0
+      IF(NWQOBN_GL.GT.0)THEN  
+        DO MM=1,NWQOBN_GL
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCN_GL(MM,1,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBN=NWQOBN+1
+          M=M+1
+          IWQCBN(M) = XLOC(I_TEMP)
+          JWQCBN(M) = YLOC(J_TEMP)
+          WQOBCN(M,1,1:NWQV)=WQOBCN_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
           IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
             DO NW=1,NWQV
@@ -1144,7 +1261,8 @@ C
             ENDDO
           ENDIF  
           WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)  
+          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
       WRITE(2,999)  
@@ -1153,10 +1271,19 @@ C  *** C43
       DO M=1,5  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      IF(NWQOBN.GT.0)THEN  
-        DO M=1,NWQOBN  
-          READ(1,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)  
+      ENDDO
+      NWQOBN=0
+      M=0
+      IF(NWQOBN_GL.GT.0)THEN  
+        DO MM=1,NWQOBN_GL  
+          READ(1,*) I_TEMP,J_TEMP,(WQOBCN_GL(MM,2,NW),NW=1,NWQV)
+          L=LIJ(I_TEMP,J_TEMP)
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NWQOBN=NWQOBN+1
+          M=M+1
+          IWQCBN(M) = XLOC(I_TEMP)
+          JWQCBN(M) = YLOC(J_TEMP)
+          WQOBCN(M,2,1:NWQV)=WQOBCN_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
           IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
             DO NW=1,NWQV
@@ -1165,7 +1292,8 @@ C  *** C43
             ENDDO
           ENDIF  
           WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)  
+          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)
+          ENDIF
         ENDDO  
       ENDIF  
 C  
@@ -1186,7 +1314,7 @@ C
       WRITE(2,*) (WQV(1,1,NW), NW=1,6)  
       READ(1,*) (WQV(1,1,NW), NW=7,13)  
       WRITE(2,*) (WQV(1,1,NW), NW=7,13)
-      IF(ISTRWQ(23)==1)THEN
+      IF(IDNOTRVA/=0)THEN
         READ(1,*) (WQV(1,1,NW), NW=14,NWQV),WQV(1,1,IDNOTRVA),WQMCMIN  
         WRITE(2,*) (WQV(1,1,NW), NW=14,NWQV),WQV(1,1,IDNOTRVA),WQMCMIN  
       ELSE
@@ -1230,7 +1358,7 @@ C
           ENDDO  
         ENDDO  
         DO NW=1,NWQV  
-          TVARWQ=WQV(1,1,NW)  
+          TVARWQ=WQV(1,1,NW)
           DO ND=1,NDMWQ  
             LF=2+(ND-1)*LDMWQ  
             LL=LF+LDM-1  
@@ -1240,7 +1368,28 @@ C
               ENDDO  
             ENDDO  
           ENDDO  
-        ENDDO  
+        ENDDO
+        DO NW=1,NWQV
+          M=4+NTOX+NSED+NSND+NW
+          DO K=1,KC  
+            DO LL=1,NWQOBS  
+              CLOS(LL,K,M)=WQV(1,1,NW)  
+              NLOS(LL,K,M)=N  
+            ENDDO
+            DO LL=1,NWQOBW
+              CLOW(LL,K,M)=WQV(1,1,NW)  
+              NLOW(LL,K,M)=N  
+            ENDDO
+            DO LL=1,NWQOBE
+              CLOE(LL,K,M)=WQV(1,1,NW)  
+              NLOE(LL,K,M)=N  
+            ENDDO
+            DO LL=1,NWQOBN
+              CLON(LL,K,M)=WQV(1,1,NW)  
+              NLON(LL,K,M)=N  
+            ENDDO
+          ENDDO
+        ENDDO
         XWQCHL = WQCHL(1,1)  
         XWQTAMP = WQTAMP(1,1)  
         XWQPO4D = WQPO4D(1,1)  
@@ -1266,7 +1415,7 @@ C
               WQSAD(L,K) = XWQSAD  
             ENDDO  
           ENDDO  
-        ENDDO  
+        ENDDO
       ENDIF  
 C  
 C READ CELL MAPPING FILE 'MACALGMP.INP' AND SET INITIAL CONDITION.  
@@ -1274,21 +1423,38 @@ C MACROALGAE WILL RESIDE ONLY IN THE BOTTOM LAYER.
 C 09/02/99 M.MORTON: ADDED KMV VELOCITY HALF-SATURATION, KBP DENSITY  
 C   HALF SATURATION, AND PSHADE FACTOR TO BETTER CONTROL MACROALGAE  
 C   GROWTH.  
+C SCJ - Macroalgae allowed in all layers now. MACALGMP.INP only read if there is growth-limitation due to velocities or biomass.
 C  
-      IF(IDNOTRVA.GT.0)THEN  
-        DO L=1,LCM  
-          SMAC(L)=0.0  
-          PSHADE(L)=1.0  
-          WQKMV(L)=0.25  
-          WQKMVMIN(L)=0.15  
-          WQKBP(L)=6.5  
-          WQKMVA(L)=1.0  
-          WQKMVB(L)=12.0  
-          WQKMVC(L)=0.3  
-          WQKMVD(L)=0.25  
-          WQKMVE(L)=2.0  
-        ENDDO  
-        WRITE(2,9003)  
+      
+      IF(IDNOTRVA.GT.0)THEN
+        DO ND=1,NDMWQ
+          LF=2+(ND-1)*LDMWQ
+          LL=LF+LDM-1
+          DO K=1,KC !Make sure it is in more than the bottom layer
+            DO L=LF,LL
+              IF((MVEGL(L)>0.AND.MVEGL(L)<90).AND. !From DXDY.INP macroalgae here
+     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !Skip if no macroalgae in this layer
+                WQV(L,K,IDNOTRVA)=WQV(1,1,IDNOTRVA)  
+                WQVO(L,K,IDNOTRVA)=WQV(1,1,IDNOTRVA)
+                SMAC(L)=1.0
+              ENDIF
+            ENDDO
+          ENDDO
+        ENDDO
+        IF(IWQVLIM>0)THEN  
+          DO L=1,LCM  
+            SMAC(L)=0.0  
+            PSHADE(L)=1.0  
+            WQKMV(L)=0.25  
+            WQKMVMIN(L)=0.15  
+            WQKBP(L)=6.5  
+            WQKMVA(L)=1.0  
+            WQKMVB(L)=12.0  
+            WQKMVC(L)=0.3  
+            WQKMVD(L)=0.25  
+            WQKMVE(L)=2.0  
+          ENDDO  
+          WRITE(2,9003)  
  9003 FORMAT(/,' MACALGMP.INP - MACROALGAE MAP FILE',/,  
      &    ' PSHADE = SHADE FACTOR FOR TREE CANOPY (1.0=NO CANOPY)',/,  
      &    ' KMV    = MACROALGAE HALF-SATURATION VELOCITY (M/SEC)',/,  
@@ -1301,37 +1467,40 @@ C
      &    ' KMVE   = MACROALGAE VEL. LIMIT LOGISTIC FUNC. PARAM. E',/,  
      &    '   I   J   L PSHADE    KMV KMVMIN    KBP   KMVA   KMVB',  
      &    '   KMVC   KMVD   KMVE')  
-        PRINT *,'WQ: MACALGMP.INP'
-        OPEN(3,FILE='MACALGMP.INP',STATUS='UNKNOWN')  
-        CALL SKIPCOMM(3, CCMRM)  
- 9001   READ(3,*,END=9002) II, JJ, XMRM1, XMRM2, XMRM3, XMRM4,  
+          PRINT *,'WQ: MACALGMP.INP'
+          OPEN(3,FILE='MACALGMP.INP',STATUS='UNKNOWN')  
+          CALL SKIPCOMM(3, CCMRM)  
+ 9001     READ(3,*,END=9002) I, J, XMRM1, XMRM2, XMRM3, XMRM4,  
      &      XMRMA, XMRMB, XMRMC, XMRMD, XMRME  
-        IF(II .LE. 0) GOTO 9002  
-        IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
-          PRINT*, 'I, J, IJCT(I,J) = ', II,JJ,IJCT(II,JJ)  
-          STOP 'ERROR!! INVALID (I,J) IN FILE MACALGMP.INP'  
-        ENDIF  
-        LL=LIJ(II,JJ)  
-        SMAC(LL)=1.0  
-        PSHADE(LL)=XMRM1    ! *** PMC-This overwrites the Heat Module Shading 
-        WQKMV(LL)=XMRM2  
-        WQKMVMIN(LL)=XMRM3  
-        WQKBP(LL)=XMRM4  
-        WQKMVA(LL)=XMRMA  
-        WQKMVB(LL)=XMRMB  
-        WQKMVC(LL)=XMRMC  
-        WQKMVD(LL)=XMRMD  
-        WQKMVE(LL)=XMRME  
-        WQV(LL,1,IDNOTRVA)=WQV(1,1,IDNOTRVA)  
-        WQVO(LL,1,IDNOTRVA)=WQV(1,1,IDNOTRVA)  
-        WRITE(2,9004) II, JJ, LL, PSHADE(LL), WQKMV(LL), WQKMVMIN(LL),  
+          II = XLOC(I)
+          JJ = YLOC(J)
+          LL=LIJ(II,JJ)  
+          IF(II .LE. 0) GOTO 9002
+          IF (CELL_INSIDE_DOMAIN(LL)) THEN
+            IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
+              PRINT*, 'I, J, IJCT(I,J) = ', II,JJ,IJCT(II,JJ)  
+              STOP 'ERROR!! INVALID (I,J) IN FILE MACALGMP.INP' 
+            ENDIF
+          ENDIF  
+          SMAC(LL)=1.0  
+          PSHADE(LL)=XMRM1    ! *** PMC-This overwrites the Heat Module Shading 
+          WQKMV(LL)=XMRM2  
+          WQKMVMIN(LL)=XMRM3  
+          WQKBP(LL)=XMRM4  
+          WQKMVA(LL)=XMRMA  
+          WQKMVB(LL)=XMRMB  
+          WQKMVC(LL)=XMRMC  
+          WQKMVD(LL)=XMRMD  
+          WQKMVE(LL)=XMRME
+          WRITE(2,9004) II, JJ, LL, PSHADE(LL), WQKMV(LL), WQKMVMIN(LL),  
      &      WQKBP(LL), WQKMVA(LL), WQKMVB(LL), WQKMVC(LL), WQKMVD(LL),  
      &      WQKMVE(LL)  
- 9004 FORMAT(' ',I3,' ',I3,' ',I3, 9F7.3)  
-        GOTO 9001  
- 9002   CLOSE(3)  
-        WQV(1,1,IDNOTRVA)=0.0  
-      ENDIF  
+ 9004 FORMAT(' ',I3,' ',I3,' ',I5, 9F7.3)  
+          GOTO 9001  
+ 9002     CLOSE(3)  
+        ENDIF 
+      ENDIF
+      WQV(1,1,IDNOTRVA)=0.0  
 C  
 C  *** C45
 C SPATIALLY/TEMPORALLY CONSTANT ALGAL GROWTH, RESPIRATION & PREDATION RA  
@@ -1459,8 +1628,9 @@ C *** C48
       DO M=1,3  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
-      ENDDO  
-      DO M=1,IWQPS  
+      ENDDO
+      M=0
+      DO MM=1,IWQPS  
         READ(1,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  
         WRITE(2,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  
         READ(1,*) (XPSL(NW),NW=7,13)  
@@ -1468,15 +1638,17 @@ C *** C48
         READ(1,*) (XPSL(NW),NW=14,NWQV)  
         WRITE(2,*) (XPSL(NW),NW=14,NWQV)  
         WRITE(2,294) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,NWQV)  
-        IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
-          WRITE(*,911) I,J  
-          STOP 'ERROR!! INVALID (I,J) IN FILE WQ3DWC.INP FOR PSL'  
-        ENDIF  
-        L = LIJ(I,J)
-
+        II = XLOC(I); JJ=YLOC(J)
+        L = LIJ(II,JJ)
+        IF (CELL_INSIDE_DOMAIN(L)) THEN
+          M=M+1
+          IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
+            WRITE(*,911) I,J  
+            STOP 'ERROR!! INVALID (I,J) IN FILE WQ3DWC.INP FOR PSL'  
+          ENDIF  
         ! *** HANDLE CONCENTRATION BASED POINT SOURCE
         IF(IWQPSL.EQ.2)THEN
-          IF(LIJ(I,J).NE.LQS(M))THEN
+          IF(L.NE.LQS(M))THEN
             STOP ' MISMATCH NQSIJ BETWEEN EFDC.INP & WQ3DWC.INP'
           ENDIF
           
@@ -1501,8 +1673,8 @@ C
           IWQPSC(L,KK)=M  
           IWQPSV(L,KK)=ITMP  
         ENDDO  
-        ICPSL(M)=I  
-        JCPSL(M)=J  
+        ICPSL(M)=II 
+        JCPSL(M)=JJ 
         KCPSL(M)=K  
         MVPSL(M)=ITMP  
 C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
@@ -1518,7 +1690,8 @@ C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
         ! *** CONVERT FROM MPN/L TO MPN/DAY
         WQWPSLC(M,21:NWQV) = XPSL(21:NWQV) * WQTT * CONV1
 	  IF(IWQPSL==0)FORALL(K=1:KC)WQWPSL(L,K,1:NWQV)
-     &         =WQWPSL(L,K,1:NWQV)+WQWPSLC(M,1:NWQV)/FLOAT(KC) !SCJ changed to have constant point source loads added correctly  
+     &         =WQWPSL(L,K,1:NWQV)+WQWPSLC(M,1:NWQV)*DZC(K)/HP(L) !SCJ changed to have constant point source loads added correctly  
+        ENDIF
       ENDDO  
   911 FORMAT(/,' I,J = ', 2I5)  
 C  
@@ -1710,12 +1883,12 @@ C ***     MG/L FOR 1-19, TAM-MOLES/L, AND FCB-MPN/L
         IF(NCOFN(1:4).NE.'NONE'.AND.NCOFN(1:4).NE.'none')
      &     STOP 'ERROR!! INVALID IWQNC/NCOFN'  
       ENDIF  
-  294 FORMAT(2I4,2I3, 7F8.3, /, 14X, 7F8.3, /, 14X, 8F8.3)  
+  294 FORMAT(2I4,2I3, 7F8.3, /, 14X, 7F8.3, /, 14X, 9F8.3)  
   295 FORMAT(44X, A50)  
    96 FORMAT(2I5, 13I5, /, 10X, 8I5)  
   969 FORMAT(2I4,1X,21I3)  
   970 FORMAT(1X,21I3)  
-   97 FORMAT(2I4, 6F8.3, /, 8X, 7F8.3, /, 8X, 8F8.3)  
+   97 FORMAT(2I4, 6F8.3, /, 8X, 7F8.3, /, 8X, 9F8.3)  
    98 FORMAT(6F8.4, /, 7F8.4, /, 8F8.4)  
    99 FORMAT(7F8.4, /, 7F8.4, /, 8F8.4)  
    21 FORMAT(A27, 1P, 4E11.3)  
@@ -1793,15 +1966,19 @@ C
         IN=0  
         IJKC=IC*JC*KC  
         DO M=1,IJKC  
-          READ(1,*,END=1111) I,J,K,IWQZX  
-          IN=IN+1  
-          IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
-            PRINT*, 'I, J, K, IJCT(I,J) = ', I,J,K,IJCT(I,J)  
-            STOP 'ERROR!! INVALID (I,J) IN FILE WQWCMAP.INP'  
-          ENDIF  
+          READ(1,*,END=1111) I,J,K,IWQZX
+          I=XLOC(I)
+          J=YLOC(J)
           L = LIJ(I,J)  
-          IWQZMAP(L,K)=IWQZX  
-          WRITE(2,31) L,I,J,K,IWQZMAP(L,K)  
+          IN=IN+1
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+            IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
+              PRINT*, 'I, J, K, IJCT(I,J) = ', I,J,K,IJCT(I,J)  
+              STOP 'ERROR!! INVALID (I,J) IN FILE WQWCMAP.INP'  
+            ENDIF  
+            IWQZMAP(L,K)=IWQZX  
+            WRITE(2,31) L,I,J,K,IWQZMAP(L,K)  
+          ENDIF
         ENDDO  
  1111   CONTINUE  
         IF(IN.NE.(LA-1)*KC)THEN  
@@ -1844,17 +2021,21 @@ C
         IN=0  
         IJKC=IC*JC  
         DO M=1,IJKC  
-          READ(1,*,END=1112) I, J, XMUD, IZMUD, IZSAND  
-          IN=IN+1  
-          IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
-            PRINT*, 'I, J, K, IJCT(I,J) = ', I,J,IJCT(I,J)  
-            STOP 'ERROR!! INVALID (I,J) IN FILE WQBENMAP.INP'  
-          ENDIF  
+          READ(1,*,END=1112) I, J, XMUD, IZMUD, IZSAND
+          I=XLOC(I)
+          J=YLOC(J)
           L = LIJ(I,J)  
-          IBENMAP(L,1) = IZMUD  
-          IBENMAP(L,2) = IZSAND  
-          XBENMUD(L) = XMUD / 100.0  
-          WRITE(2,34) L, I, J, XBENMUD(L), IBENMAP(L,1), IBENMAP(L,2)  
+          IN=IN+1
+          IF (CELL_INSIDE_DOMAIN(L)) THEN
+            IF(IJCT(I,J).LT.1 .OR. IJCT(I,J).GT.8)THEN  
+              PRINT*, 'I, J, K, IJCT(I,J) = ', I,J,IJCT(I,J)  
+              STOP 'ERROR!! INVALID (I,J) IN FILE WQBENMAP.INP'  
+            ENDIF  
+            IBENMAP(L,1) = IZMUD  
+            IBENMAP(L,2) = IZSAND  
+            XBENMUD(L) = XMUD / 100.0  
+            WRITE(2,34) L, I, J, XBENMUD(L), IBENMAP(L,1), IBENMAP(L,2)  
+          ENDIF
         ENDDO  
  1112   CONTINUE  
         IF(IN .NE. (LA-1))THEN  
@@ -1873,4 +2054,22 @@ C
    34 FORMAT(' ',3I5, F6.2, 2I6)  
       RETURN  
       END  
+
+
+      FUNCTION CELL_INSIDE_DOMAIN(L) RESULT(INSIDE)   ! **********************************************
+        USE GLOBAL
+        LOGICAL::INSIDE
+        INTEGER,INTENT(IN)::L
+        INTEGER:: ILOCATION, JLOCATION
+        ILOCATION = IL(L)
+        JLOCATION = JL(L)
+        INSIDE=.FALSE.
+        IF (ILOCATION >0 .AND. ILOCATION <= IC) THEN
+           IF (JLOCATION >0 .AND. JLOCATION <= JC) THEN
+              INSIDE=.TRUE.
+           ENDIF
+        ENDIF
+        RETURN
+      END FUNCTION
+
 
