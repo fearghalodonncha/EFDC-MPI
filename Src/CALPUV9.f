@@ -144,10 +144,10 @@ C
 C  
 C **  SET IMPLICIT BOTTOM AND VEGETATION DRAG AS APPROPRIATE  
 C  
-      DO L=2,LA  
-        RCX(L)=1.  
-        RCY(L)=1.  
-      ENDDO  
+!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
+      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) !SCJ how is this ever used
+      RCY(2:LA)=1./(1.+FBODYFYI(2:LA)) !This is never considered in FUHDYE/FVHDXE if there is no vegetation and there are multiple layers
+!$OMP END PARALLEL 
       RCX(1)=0.  
       RCY(1)=0.  
       RCX(LC)=0.  
@@ -157,9 +157,9 @@ C * SINGLE LAYER NO VEGETATION
 C  
       IF(KC.EQ.1.AND.ISVEG.EQ.0.AND.RITB.GT.0.)THEN  
         DO L=2,LA  
-          RCX(L)=1./( 1.  
+          RCX(L)=1./( 1.+FBODYFXI(L) 
      &        +RITB*DELT*HUI(L)*STBX(L)*SQRT(VU(L)*VU(L)+U(L,1)*U(L,1)))  
-          RCY(L)=1./( 1.  
+          RCY(L)=1./( 1.+FBODYFYI(L)
      &        +RITB*DELT*HVI(L)*STBY(L)*SQRT(UV(L)*UV(L)+V(L,1)*V(L,1)))  
           FUHDYE(L)=FUHDYE(L)*RCX(L)  
           FVHDXE(L)=FVHDXE(L)*RCY(L)  
@@ -170,10 +170,10 @@ C * SINGLE LAYER WITH VEGETATION
 C  
       IF(KC.EQ.1.AND.ISVEG.GE.1)THEN  
         DO L=2,LA  
-          RCX(L)=1./( 1.  
+          RCX(L)=1./( 1.+FBODYFXI(L)
      &        +RITB*DELT*HUI(L)*STBX(L)*SQRT(VU(L)*VU(L)+U(L,1)*U(L,1))  
      &        +DELT*FXVEGE(L) )  
-          RCY(L)=1./( 1.  
+          RCY(L)=1./( 1.+FBODYFYI(L)
      &        +RITB*DELT*HVI(L)*STBY(L)*SQRT(UV(L)*UV(L)+V(L,1)*V(L,1))  
      &        +DELT*FYVEGE(L) )  
           FUHDYE(L)=FUHDYE(L)*RCX(L)  
@@ -185,8 +185,8 @@ C * MULTIPLE LAYERS WITH VEGETATION
 C  
       IF(KC.GT.1.AND.ISVEG.GE.1)THEN  
         DO L=2,LA  
-          RCX(L)=1./( 1.+DELT*FXVEGE(L) )  
-          RCY(L)=1./( 1.+DELT*FYVEGE(L) )  
+          RCX(L)=1./( 1.+FBODYFXI(L)+DELT*FXVEGE(L) )  
+          RCY(L)=1./( 1.+FBODYFYI(L)+DELT*FYVEGE(L) )  
           FUHDYE(L)=FUHDYE(L)*RCX(L)  
           FVHDXE(L)=FVHDXE(L)*RCY(L)  
         ENDDO  
