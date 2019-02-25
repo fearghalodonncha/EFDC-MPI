@@ -407,7 +407,7 @@ C ** to child partition
 
       SUBROUTINE MAPTS
       USE GLOBAL
-        
+      LOGICAL::CELL_INSIDE_DOMAIN
       MLTMSR_GL = MLTMSR
       MLTMSR = 0
       II = 0
@@ -434,17 +434,47 @@ C ** to child partition
           END IF
         END IF
       END DO
- 
+      NN=0
+      DO N=1,NLUVDA   
+        I_TEMP=XLOC(ICUVDA_GL(N))
+        J_TEMP=YLOC(JCUVDA_GL(N))
+        L=LIJ(I_TEMP,J_TEMP)
+        IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NN=NN+1
+          ICUVDA(NN)=I_TEMP
+          JCUVDA(NN)=J_TEMP
+          NUVSERA(NN)=NUVSERA_GL(N)
+          TSUUDA(NN)=TSUUDA_GL(N)
+          TSVVDA(NN)=TSVVDA_GL(N)
+          NORMDIR(NN)=NORMDIR_GL(N)
+          FSUVDA(NN)=FSUVDA_GL(N)
+          IWUVDA(NN)=IWUVDA_GL(N)
+          IRVUDA(NN)=IRVUDA_GL(N)
+          RRUVDA(NN)=RRUVDA_GL(N)
+        ENDIF
+      ENDDO
+      NN=0
+      DO N=1,NLWSEDA
+        I_TEMP=XLOC(ICWSEDA_GL(N))
+        J_TEMP=YLOC(JCWSEDA_GL(N))
+        L=LIJ(I_TEMP,J_TEMP)
+        IF (CELL_INSIDE_DOMAIN(L)) THEN
+          NN=NN+1
+          ICWSEDA(NN)=I_TEMP
+          JCWSEDA(NN)=J_TEMP
+          NWSESERA(NN)=NWSESERA_GL(N)
+          TSWSEDA(NN)=TSWSEDA_GL(N)
+        ENDIF
+      ENDDO
       RETURN
       END
 
       SUBROUTINE MAPASSIMPOINTS
 #ifdef key_mpi
-
       USE mpi
       USE GLOBAL
 
-      INTEGER IPOINT(GNX*GNY),JPOINT(GNX*GNY)  ! FOR CONVENINECE SIMPLY OVERSUBSCRIBE
+      INTEGER IPOINT(GNX*GNY),JPOINT(GNX*GNY)  ! FOR CONVENIENCE SIMPLY OVERSUBSCRIBE
       NPTS_TOT = 0
       ! BASED ON THE CONFIGURATION OF THE CHESAPEAKE BAY HFR SETUP
       ! THEN ASSIMILATION IS WITHIN A RECTANGULAR GRID BETWEEN
@@ -483,6 +513,7 @@ C ** to child partition
       WRITE(333,*) I,J,LBLUE(L),XPAR(I),YPAR(J),ASSIMPOINTS,ASSIMTOTAL
       END DO
       CLOSE(333)
-# endif
+      
+#endif
       END SUBROUTINE MAPASSIMPOINTS
 

@@ -491,12 +491,19 @@ C
       ELSE  
         NLOOP=NLOOP+1  
         IF(NLOOP.GT.ITRMADJ)THEN
+          NLOOP=0
           ISEDDT=ISAVESEDDT ! *** PMC-ALLOW FOR SEDIMENT RAMPUP ALSO
           IF(IDRYTBP.EQ.0)THEN  
             CALL CALSTEP  
           ELSE  
             CALL CALSTEPD  
           ENDIF  
+          !! UPDATE THE DYNAMCIALLY COMPUTED TIMESTEP FROM EACH PROCESSOR
+          !! CALL A REDUCE ACROSS PROCESSORS, IF MPI PARALLEL
+#ifdef key_mpi
+          CALL MPI_ALLREDUCE(DTDYN,DTDYN_REDUCE,1,MPI_REAL8,MPI_MIN,EFDC_COMM,IERR1)
+          DTDYN = DTDYN_REDUCE  ! Set dynamic timestep equal to minimum
+#endif
         ELSE
           DTDYN=DT
           NINCRMT=1
@@ -1571,6 +1578,7 @@ C
         IF(ISTRAN(5).EQ.1)  CALL COMMUNICATE_3D(TVAR1S)
         IF(ISTRAN(6).EQ.1)  CALL COMMUNICATE_3D(SEDT)
         IF(ISTRAN(7).EQ.1)  CALL COMMUNICATE_3D(SNDT)
+        IF(ISTRAN(8).EQ.1)  CALL COMMUNICATE_4D_WQ(WQV)
 #endif
 C**************************************************************
 

@@ -8,7 +8,7 @@
 !     communicate_p      exchange two_dimensional P array across ghost zones after congrad computations
 !     communicate_w      exchange uhdy and vhdx prior to computation of vertic velocity, W   
 !
-         MODULE PARALLEL_MPI
+MODULE PARALLEL_MPI
 
 #ifdef key_mpi
        USE GLOBAL      
@@ -60,7 +60,7 @@
       EFDCRUNTIME = (ENDTIME-STARTTIME)/3600.
      
       IF (PARTID ==0) THEN
-          ! Write to log file run time
+  ! Write to log file run time
           OPEN(607,FILE='CouplingOutput.log',STATUS='UNKNOWN',  &
                   POSITION='APPEND')
           WRITE(607,1117) 
@@ -1164,9 +1164,6 @@
          END DO
        END DO  
        END IF  
-
-
-
      
       IF (PART_NORTH.NE.-1)THEN
       II = 0 
@@ -1421,6 +1418,188 @@
        
        END SUBROUTINE COMMUNICATE_3d
 
+
+
+      SUBROUTINE COMMUNICATE_4D_WQ(partem)
+
+      INTEGER(4) IERR
+!      DIMENSION  PARTEM(0:LCM,KCM)
+      REAL,intent(inout) ::PARTEM(LCMWQ,KCM, 0:NWQVM)   ! (NCELLS, NLAYERS, NUM_WQ_VARS=23)
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DSENDW_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DSENDE_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DRECVE_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DRECVW_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DSENDN_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DSENDS_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DRECVN_4D
+      REAL(wp),SAVE,ALLOCATABLE,DIMENSION(:)::DRECVS_4D
+
+      IF(.NOT.ALLOCATED(DSENDW_4D))THEN
+         ALLOCATE(DSENDW_4D((JC-4)*KC*2*NWQVM))
+         ALLOCATE(DSENDE_4D((JC-4)*KC*2*NWQVM))
+         ALLOCATE(DRECVE_4D((JC-4)*KC*2*NWQVM))
+         ALLOCATE(DRECVW_4D((JC-4)*KC*2*NWQVM))
+         ALLOCATE(DSENDN_4D(IC*KC*2*NWQVM))
+         ALLOCATE(DSENDS_4D(IC*KC*2*NWQVM))
+         ALLOCATE(DRECVN_4D(IC*KC*2*NWQVM))
+         ALLOCATE(DRECVS_4D(IC*KC*2*NWQVM))
+      END IF
+         DSENDW_4D = 0.0
+         DSENDE_4D = 0.0
+         DRECVE_4D = 0.0
+         DRECVW_4D = 0.0
+         DSENDN_4D = 0.0
+         DSENDS_4D = 0.0
+         DRECVN_4D = 0.0
+         DRECVS_4D = 0.0
+      LENGARR=(JC-4)*2*KC*NWQVM  !LENGTH OF VECTOR TO BE COMMUNICATED
+      IF (PART_WEST.NE.-1)THEN
+         II = 0
+         DO J = 3,JC-2
+            DO K = 1,KC
+               DO I = 3,4
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    DSENDW_4D(II) = PARTEM(L,K,NW)
+                  END DO
+               END DO
+            END DO
+         END DO
+         IERR = 0
+
+      CALL MPI_SEND(DSENDW_4D,LENGARR,MPI_REAL8,PART_WEST,NODEID, &
+             EFDC_COMM, IERR)
+      END IF
+
+
+      IF (PART_EAST.NE.-1)THEN
+         CALL MPI_RECV(DRECVE_4D,LENGARR,MPI_REAL8,PART_EAST,PART_EAST, &
+              EFDC_COMM,ISTATUS,IERR)
+         II = 0
+         DO J = 3,JC-2
+            DO K = 1,KC
+               DO I = IC-1,IC
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    PARTEM(L,K,NW) = DRECVE_4D(II)
+                  END DO
+               END DO
+            END DO
+         END DO
+         II = 0
+         DO J = 3,JC-2
+            DO K = 1,KC
+               DO I = IC-3,IC-2
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    DSENDE_4D(II) = PARTEM(L,K,NW)
+                  END DO
+               END DO
+            END DO
+         END DO
+         IERR = 0
+         CALL MPI_SEND(DSENDE_4D,LENGARR,MPI_REAL8,PART_EAST,NODEID,  &
+             EFDC_COMM, IERR)
+      END IF
+
+      IF (PART_WEST.NE.-1)THEN
+         CALL MPI_RECV(DRECVW_4D,LENGARR,MPI_REAL8,PART_WEST,PART_WEST,  &
+              EFDC_COMM,ISTATUS,IERR)
+         II = 0
+         DO J = 3,JC-2
+            DO K = 1,KC
+               DO I = 1,2
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    PARTEM(L,K,NW) = DRECVW_4D(II)
+                  ENDDO
+               END DO
+            END DO
+         END DO
+      END IF
+
+
+     ! START ARRAY COMMUNICATION FROM NORTH TO SOUTH AND VICE VERSA
+      LENGARR=IC*2*KC*NWQV
+      IF (PART_NORTH.NE.-1)THEN  ! NEIGHBOUR TO THE NORTH
+         II = 0
+         DO I = 1,IC
+            DO K = 1,KC
+               DO J = JC-3,JC-2
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    DSENDN_4D(II) = PARTEM(L,K,NW)
+                  ENDDO
+               END DO
+            END DO
+         END DO
+         IERR = 0
+         ! SEND
+         CALL MPI_SEND(DSENDN_4D,LENGARR,MPI_REAL8,PART_NORTH,NODEID, &
+            EFDC_COMM, IERR)
+         ! ARRAY PACKED AND SENT TO
+      END IF
+
+      IF (PART_SOUTH.NE.-1)THEN
+         CALL MPI_RECV(DRECVS_4D,LENGARR,MPI_REAL8,PART_SOUTH,PART_SOUTH, &
+             EFDC_COMM,ISTATUS,IERR)
+         II = 0
+         DO I = 1,IC
+            DO K = 1,KC
+               DO J = 1,2
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    PARTEM(L,K,NW) = DRECVS_4D(II) ! unpack data from north
+                  END DO
+               END DO
+            END DO
+         END DO
+
+         II = 0
+         DO I = 1,IC
+            DO K = 1,KC
+               DO J = 3,4
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    DSENDS_4D(II) = PARTEM(L,K,NW)   ! pack data and send north
+                  ENDDO
+               END DO
+            END DO
+         END DO
+         IERR = 0
+
+         CALL MPI_SEND(DSENDS_4D,LENGARR,MPI_REAL8,PART_SOUTH,NODEID, &
+             EFDC_COMM, IERR)
+      END IF
+
+      IF (PART_NORTH.NE.-1)THEN
+         CALL MPI_RECV(DRECVN_4D,LENGARR,MPI_REAL8,PART_NORTH,PART_NORTH, &
+              EFDC_COMM,ISTATUS,IERR)
+         II = 0
+         DO I = 1,IC
+            DO K = 1,KC
+               DO J = JC-1,JC
+                  L = LIJ(I,J)
+                  DO NW=1,NWQV
+                    II =II + 1
+                    PARTEM(L,K,NW) = DRECVN_4D(II)
+                  END DO
+               END DO
+            END DO
+         END DO
+
+
+       END IF
+
+       END SUBROUTINE COMMUNICATE_4D_WQ
+
 #endif
 
-        END MODULE PARALLEL_MPI
+END MODULE PARALLEL_MPI
