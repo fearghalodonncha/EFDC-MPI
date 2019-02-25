@@ -1561,6 +1561,10 @@ SUBROUTINE VARZEROReal
       ZZ=0.0
       ZZP=0.0
 
+      UROTTMP=0.
+      VROTTMP=0.
+      RFBODYFXI=0.
+      RFBODYFYI=0.
 !Initialize aquaculture related variables
       DRPRDRG=0.0
       DRPRTURB=0.0

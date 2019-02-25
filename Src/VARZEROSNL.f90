@@ -40,7 +40,7 @@ SUBROUTINE VARZEROSNL
 	HT=0.0			!(LCM)
 	LAYER=0.0		!(KB,LCM)
 	KPART=0.0       !(NTXM)
-	MAXDEPLIMIT=0.0 !PT the maximum limit of mass from 1st layer deposited on active bed layer.
+	MAXDEPLIMIT=0.0 !Maximum limit of mass from 1st layer deposited on active bed layer.
 	PCBDISS=0.0     !(LCM,KCM)
 	PCONT=0.0       !(NSCM,KB,LCM)
 	PER=0.0         !(NSCM,KB,LCM)
@@ -53,7 +53,7 @@ SUBROUTINE VARZEROSNL
 	PX=0.0          !(NSCM)
 	PY=0.0          !(NSCM)
 	QBSED=0.0       !(LCM,NSCM)
-	RHO=1000.0      !PT Density of water in kg/m^3.
+	RHO=1000.0      !Density of water in kg/m^3.
 	SCD=0.0         !(2)
 	SCND=0.0        !(NSICM)
 	SEDDENS=0.0
@@ -138,5 +138,24 @@ SUBROUTINE VARZEROSNL
     ZMAXSUP=0.0
     ZMINMHK=0.0
     ZMINSUP=0.0
+    FXTEMP=0.0
+    FYTEMP=0.0
 ! End MHK variables SCJ
+    !Macroalgae variables
+    MACLIM=0.0
+    ZMAXMAC=0.0
+    ZMINMAC=0.0
+    MACAD=0.0
+    MACDIAM=0.0
+    MACHP=0.0
+!Makai DA variables
+    FBODYFXI=0.0
+    FBODYFYI=0.0
+    QWSEASM=0.0
+    WINDSXX=0.0
+    WINDSXY=0.0
+    WINDSYY=0.0
+    WINDSYX=0.0
+    USERT=0.0
+    VSERT=0.0
 END SUBROUTINE VARZEROSNL
