@@ -27,28 +27,29 @@ C
       END DO
       IF (PARTID .EQ. 1) THEN
         OPEN(37,FILE='CELLMAP1.DAT',status='unknown')
-      L=2
-      DO J =1,JC_GLOBAL
-        DO I =1,IC_GLOBAL
-          IF(IJCT_GLOBAL(i,j).EQ.5)THEN
-            IF(PARTID==1) write(37,*)I,J,L,JC_GLOBAL,IC_GLOBAL,LC_GLOBAL
-            L = L + 1
-          END IF
+        L=2
+        DO J =1,JC_GLOBAL
+          DO I =1,IC_GLOBAL
+            IF(IJCT_GLOBAL(i,j).EQ.5)THEN
+              IF(PARTID==1) write(37,*)I,J,L,JC_GLOBAL,IC_GLOBAL,LC_GLOBAL
+              L = L + 1
+            END IF
+          ENDDO
         ENDDO
-      ENDDO
       END IF
+      LIJ(:,:) = 0
 C **  SET 1D CELL INDEX SEQUENCE AND MAPPINGS  
       L=2
       DO J =1,JC
         DO I =1,IC
-          IF(IJCT(i,j).EQ.5)THEN         
+          IF(IJCT(I,J).EQ.5)THEN         
             IL_GL(L)=XPAR(I)
             JL_GL(L)=YPAR(J)
             IL(L) = I
             JL(L) = J
             LCT(L)=IJCT_GLOBAL(IL_GL(L),JL_GL(L))
             LIJ(I,J)=L
-!       IF(PARTID==1) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
+  !          IF(PARTID==1) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
             L = L + 1
           END IF
         ENDDO
@@ -205,14 +206,12 @@ C
       IF(IJCT(I-1,J).EQ.9)THEN
        LWEST(L)=LC
       ELSE
-       LWEST(L)=LIJ(I-1,J)
-       LWEST(L)=MAX(LWEST(L),1)
+       LWEST(L)=MAX(LIJ(I-1,J),1)
       ENDIF
       IF(IJCT(I+1,J).EQ.9)THEN
        LEAST(L)=LC
       ELSE
-       LEAST(L)=LIJ(I+1,J)
-       LEAST(L)=MAX(LEAST(L),1)
+       LEAST(L)=MAX(LIJ(I+1,J),1)
       ENDIF
       ENDDO  
 C  

@@ -80,9 +80,11 @@ C       Initialize arrays
       END DO   
       DO I=1,IC_GLOBAL
         XLOC(I) = (I + NGHOST ) - IC_POS
+        XLOC(I) = MIN( MAX(XLOC(I),0), ICM)
       END DO
       DO J = 1,JC_GLOBAL
         YLOC(J) = (J + NGHOST) - JC_POS
+        YLOC(J) = MIN( MAX(YLOC(J),0), JCM)
       END DO
         RETURN
         END 
