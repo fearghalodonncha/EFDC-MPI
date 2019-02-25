@@ -44,9 +44,10 @@ C
       INTEGER::ITURB=0,IPMC 
       INTEGER::RI_GLOBAL,RJ_GLOBAL
       INTEGER TINPUT,YBEG,MBEG,DBEG   ! TINPUT is used as YYYYMMDD format
-      INTEGER*8:: jd_out !SCJ added this
+      INTEGER*8:: jd_out
       REAL(8) TBEGIN_IN
-      LOGICAL EXIST, CELL_INSIDE_DOMAIN
+      LOGICAL EXIST
+      LOGICAL CELL_INSIDE_DOMAIN
       ALLOCATE(RMULADS(NSTM))  
       ALLOCATE(ADDADS(NSTM))  
       ALLOCATE(CONINIT(KCM))
@@ -575,17 +576,13 @@ C21B* WATER SURFACE ELEVATION DATA ASSIMILATION
 C 
       IF(ISWSEDA>0)THEN
         NCARD='21B'
-        CALL SEEK('C21B') 
+        CALL SEEK('C21B')
         DO N=1,NLWSEDA                                            
           READ(1,*,IOSTAT=ISO)ICWSEDA_GL(N),JCWSEDA_GL(N),NWSESERA_GL(N),TSWSEDA_GL(N)
-          ICWSEDA(N)=XLOC(ICWSEDA_GL(N))
-          JCWSEDA(N)=YLOC(JCWSEDA_GL(N))
-          NWSESERA(N)=NWSESERA_GL(N)
-          TSWSEDA(N)=TSWSEDA_GL(N)
         ENDDO
-          WRITE(7,1002)NCARD
-	    DO N=1,NLWSEDA                                            
-           WRITE(7,*)ICWSEDA_GL(N),JCWSEDA_GL(N),NWSESERA_GL(N),TSWSEDA_GL(N)
+        WRITE(7,1002)NCARD
+	  DO N=1,NLWSEDA                                            
+          WRITE(7,*)ICWSEDA_GL(N),JCWSEDA_GL(N),NWSESERA_GL(N),TSWSEDA_GL(N)
         ENDDO 
         IF(ISO.GT.0) GOTO 100
       ENDIF
@@ -596,14 +593,11 @@ CGR  4/7/10  CREATED SEPERATE ASSIMILATION FACTORS FOR U AND V COMPONENTS, TSUUD
         NCARD='21C'
         CALL SEEK('C21C')
         NSPNG=10 !Hard wired for 10 sponge layers. Never an input from Makai.
-	  IF(NLUVDA.GT.0.AND.NUVSER.GT.0)THEN 
+	  IF(NLUVDA.GT.0.AND.NUVSER.GT.0)THEN
 	    DO N=1,NLUVDA                                            
             READ(1,*,IOSTAT=ISO)ICUVDA_GL(N),JCUVDA_GL(N),NUVSERA_GL(N),
-     &        TSUUDA(N),TSVVDA(N),NORMDIR(N),FSUVDA(N),IWUVDA(N),
-     &        IRVUDA(N),RRUVDA(N)
-            ICUVDA(N)=XLOC(ICUVDA_GL(N))
-            JCUVDA(N)=YLOC(JCUVDA_GL(N))
-            NUVSERA(N)=NUVSERA_GL(N)
+     &        TSUUDA_GL(N),TSVVDA_GL(N),NORMDIR_GL(N),FSUVDA_GL(N),
+     &        IWUVDA_GL(N), IRVUDA_GL(N),RRUVDA_GL(N)
           ENDDO
           WRITE(7,1002)NCARD
 	    DO N=1,NLUVDA                                            
@@ -2236,7 +2230,7 @@ C
  
  
 C     DHC
-      IF(ISWAVE.EQ.3)THEN
+      IF(ISWAVE.EQ.3.OR.ISPD.GE.2)THEN
         ! *** COMPUTE CELL AREAS AND CENTROIDS, REQUIRES CORNERS.INP FILE
         CALL AREA_CENTRD
       ENDIF

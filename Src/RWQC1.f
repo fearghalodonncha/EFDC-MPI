@@ -1,4 +1,4 @@
-      SUBROUTINE RWQC1 
+      SUBROUTINE RWQC1
 C  
 C CHANGE RECORD  
 C   Merged SNL and DSINTL codes
@@ -8,7 +8,7 @@ C: SPATIALLY AND TEMPORALLY CONSTANT REAL PARAMETERS
 C  
       USE GLOBAL
 C  
- 	IMPLICIT NONE
+      IMPLICIT NONE
 
       CHARACTER TITLE(5)*79, CCMRM*1  
       CHARACTER LINE*255
@@ -277,7 +277,8 @@ C *** C07
         WRITE(2,999)  
         DO M=1,2  
           WRITE(2,90) TITLE(M)  
-        ENDDO  
+        ENDDO
+        MM=0
         DO M=1,IWQTS  
           READ(1,*) II,JJ,(ICWQTS(NW,M),NW=1,13)  
           WRITE(2,*) II,JJ,(ICWQTS(NW,M),NW=1,13)  
@@ -292,9 +293,10 @@ C *** C07
               WRITE(2,80)'ERROR!! INVALID (I,J): TIME-SERIES LOCATION'  
               STOP  
             END IF
+            MM=MM+1
+            LWQTS(MM)=LIJ(I,J)  
+            WRITE(2,94) II,JJ,(ICWQTS(NW,M),NW=1,NTSWQV+1)  
           ENDIF  
-          LWQTS(M)=LIJ(I,J)  
-          WRITE(2,94) II,JJ,(ICWQTS(NW,M),NW=1,NTSWQV+1)  
         ENDDO  
       ENDIF  
       IWQTSB = NINT(TWQTSB/DTD)  
@@ -898,12 +900,14 @@ C
       IF(NWQOBS_GL.GT.0)THEN  
         DO MM=1,NWQOBS_GL
           READ(1,*) I_TEMP,J_TEMP,(IWQOBS_GL(MM,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L = LIJ(I_TEMP, J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN     
             NWQOBS=NWQOBS+1
             M=M+1
-            IWQCBS(M) = XLOC(I_TEMP)
-            JWQCBS(M) = YLOC(J_TEMP)
+            IWQCBS(M) = I_TEMP
+            JWQCBS(M) = J_TEMP
             IWQOBS(M,1:NWQV)=IWQOBS_GL(MM,1:NWQV)
             ! *** CONCENTRATION ASSIGNMENTS
             IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
@@ -912,7 +916,7 @@ C
                 NCSERS(M,NT)=IWQOBS(M,NW)
               ENDDO
             ELSE
-              STOP '  WQ: SOUTH OBC: MISS MATCH BETWEEN NCBS & NWQOBS'
+              STOP '  WQ: SOUTH OBC: MISMATCH BETWEEN NCBS & NWQOBS'
             ENDIF
             WRITE(2,*) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
             WRITE(2,969) IWQCBS(M),JWQCBS(M),(IWQOBS(M,NW),NW=1,NWQV)  
@@ -929,17 +933,19 @@ C
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
-      M=0
       NWQOBS=0
+      M=0
       IF(NWQOBS_GL.GT.0)THEN  
         DO MM=1,NWQOBS_GL
           READ(1,*) I_TEMP,J_TEMP,(WQOBCS_GL(MM,1,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L = LIJ(I_TEMP, J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
             NWQOBS=NWQOBS+1
             M=M+1
-            IWQCBS(M) = XLOC(I_TEMP)
-            JWQCBS(M) = YLOC(J_TEMP)
+            IWQCBS(M) = I_TEMP
+            JWQCBS(M) = J_TEMP
             WQOBCS(M,1,1:NWQV)=WQOBCS_GL(MM,1,1:NWQV)
             ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
             IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
@@ -960,27 +966,29 @@ C  *** C34
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
-      M=0
       NWQOBS=0
+      M=0
       IF(NWQOBS_GL.GT.0)THEN  
         DO MM=1,NWQOBS_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCS_GL(MM,2,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBS=NWQOBS+1
-          M=M+1
-          IWQCBS(M) = XLOC(I_TEMP)
-          JWQCBS(M) = YLOC(J_TEMP)
-          WQOBCS(M,2,1:NWQV)=WQOBCS_GL(MM,2,1:NWQV)
+            NWQOBS=NWQOBS+1
+            M=M+1
+            IWQCBS(M) = I_TEMP
+            JWQCBS(M) = J_TEMP
+            WQOBCS(M,2,1:NWQV)=WQOBCS_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
-          IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBS(M,2,NT)=WQOBCS(M,2,NW)
-            ENDDO
-          ENDIF
-          WRITE(2,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
+            IF(IWQCBS(M).EQ.ICBS(M).AND.JWQCBS(M).EQ.JCBS(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBS(M,2,NT)=WQOBCS(M,2,NW)
+              ENDDO
+            ENDIF
+            WRITE(2,*) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBS(M),JWQCBS(M),(WQOBCS(M,2,NW),NW=1,NWQV)  
           ENDIF
         ENDDO  
       ENDIF  
@@ -997,29 +1005,31 @@ C
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
-      M=0
       NWQOBS=0
+      M=0
       IF(NWQOBW_GL.GT.0)THEN  
         DO MM=1,NWQOBW_GL  
           READ(1,*) I_TEMP,J_TEMP,(IWQOBW_GL(MM,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBW=NWQOBW+1
-          M=M+1
-          IWQCBW(M) = XLOC(I_TEMP)
-          JWQCBW(M) = YLOC(J_TEMP)
-          IWQOBW(M,1:NWQV)=IWQOBW_GL(MM,1:NWQV)
+            NWQOBW=NWQOBW+1
+            M=M+1
+            IWQCBW(M) = I_TEMP
+            JWQCBW(M) = J_TEMP
+            IWQOBW(M,1:NWQV)=IWQOBW_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
-          IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              NCSERW(M,NT)=IWQOBW(M,NW)
-            ENDDO
-          ELSE
-            STOP '  WQ: WST OBC: MISS MATCH BETWEEN NCBW & NWQOBW'
-          ENDIF
-          WRITE(2,*) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV) 
+            IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                NCSERW(M,NT)=IWQOBW(M,NW)
+              ENDDO
+            ELSE
+              STOP '  WQ: WST OBC: MISMATCH BETWEEN NCBW & NWQOBW'
+            ENDIF
+            WRITE(2,*) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV)  
+            WRITE(2,969) IWQCBW(M),JWQCBW(M),(IWQOBW(M,NW),NW=1,NWQV) 
           ENDIF
         ENDDO  
       ENDIF  
@@ -1038,22 +1048,24 @@ C
       IF(NWQOBW_GL.GT.0)THEN  
         DO MM=1,NWQOBW_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCW_GL(MM,1,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBW=NWQOBW+1
-          M=M+1
-          IWQCBW(M) = XLOC(I_TEMP)
-          JWQCBW(M) = YLOC(J_TEMP)
-          WQOBCW(M,1,1:NWQV)=WQOBCW_GL(MM,1,1:NWQV)
+            NWQOBW=NWQOBW+1
+            M=M+1
+            IWQCBW(M) = I_TEMP
+            JWQCBW(M) = J_TEMP
+            WQOBCW(M,1,1:NWQV)=WQOBCW_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
-          IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBW(M,1,NT)=WQOBCW(M,1,NW)
-            ENDDO
-          ENDIF
-          WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
+            IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBW(M,1,NT)=WQOBCW(M,1,NW)
+              ENDDO
+            ENDIF
+            WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,1,NW),NW=1,NWQV)  
           ENDIF
         ENDDO  
       ENDIF  
@@ -1064,27 +1076,29 @@ C  *** C37
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
-      M=0
       NWQOBW=0
+      M=0
       IF(NWQOBW_GL.GT.0)THEN  
         DO MM=1,NWQOBW_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCW_GL(MM,2,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBW=NWQOBW+1
-          M=M+1
-          IWQCBW(M) = XLOC(I_TEMP)
-          JWQCBW(M) = YLOC(J_TEMP)
-          WQOBCW(M,2,1:NWQV)=WQOBCW_GL(MM,2,1:NWQV)
+            NWQOBW=NWQOBW+1
+            M=M+1
+            IWQCBW(M) = I_TEMP
+            JWQCBW(M) = J_TEMP
+            WQOBCW(M,2,1:NWQV)=WQOBCW_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
-          IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBW(M,2,NT)=WQOBCW(M,2,NW)
-            ENDDO
-          ENDIF  
-          WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)
+            IF(IWQCBW(M).EQ.ICBW(M).AND.JWQCBW(M).EQ.JCBW(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBW(M,2,NT)=WQOBCW(M,2,NW)
+              ENDDO
+            ENDIF  
+            WRITE(2,*) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBW(M),JWQCBW(M),(WQOBCW(M,2,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1106,24 +1120,26 @@ C
       IF(NWQOBE_GL.GT.0)THEN  
         DO MM=1,NWQOBE_GL  
           READ(1,*) I_TEMP,J_TEMP,(IWQOBE_GL(MM,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBE=NWQOBE+1
-          M=M+1
-          IWQCBE(M) = XLOC(I_TEMP)
-          JWQCBE(M) = YLOC(J_TEMP)
-          IWQOBE(M,1:NWQV)=IWQOBE_GL(MM,1:NWQV)
+            NWQOBE=NWQOBE+1
+            M=M+1
+            IWQCBE(M) = I_TEMP
+            JWQCBE(M) = J_TEMP
+            IWQOBE(M,1:NWQV)=IWQOBE_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
-          IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              NCSERE(M,NT)=IWQOBE(M,NW)
-            ENDDO
-          ELSE
-            STOP '  WQ: EAST OBC: MISS MATCH BETWEEN NCBE & NWQOBE'
-          ENDIF  
-          WRITE(2,*) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
+            IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                NCSERE(M,NT)=IWQOBE(M,NW)
+              ENDDO
+            ELSE
+              STOP '  WQ: EAST OBC: MISMATCH BETWEEN NCBE & NWQOBE'
+            ENDIF  
+            WRITE(2,*) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
+            WRITE(2,969) IWQCBE(M),JWQCBE(M),(IWQOBE(M,NW),NW=1,NWQV)  
           ENDIF
         ENDDO  
       ENDIF  
@@ -1142,22 +1158,24 @@ C
       IF(NWQOBE_GL.GT.0)THEN  
         DO MM=1,NWQOBE_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCE_GL(MM,1,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBE=NWQOBE+1
-          M=M+1
-          IWQCBE(M) = XLOC(I_TEMP)
-          JWQCBE(M) = YLOC(J_TEMP)
-          WQOBCE(M,1,1:NWQV)=WQOBCE_GL(MM,1,1:NWQV)
+            NWQOBE=NWQOBE+1
+            M=M+1
+            IWQCBE(M) = I_TEMP
+            JWQCBE(M) = J_TEMP
+            WQOBCE(M,1,1:NWQV)=WQOBCE_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
-          IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBE(M,1,NT)=WQOBCE(M,1,NW)
-            ENDDO
-          ENDIF  
-          WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)
+            IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBE(M,1,NT)=WQOBCE(M,1,NW)
+              ENDDO
+            ENDIF  
+            WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,1,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1173,22 +1191,24 @@ C  *** C40
       IF(NWQOBE_GL.GT.0)THEN  
         DO MM=1,NWQOBE_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCE_GL(MM,2,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBE=NWQOBE+1
-          M=M+1
-          IWQCBE(M) = XLOC(I_TEMP)
-          JWQCBE(M) = YLOC(J_TEMP)
-          WQOBCE(M,2,1:NWQV)=WQOBCE_GL(MM,2,1:NWQV)
+            NWQOBE=NWQOBE+1
+            M=M+1
+            IWQCBE(M) = I_TEMP
+            JWQCBE(M) = J_TEMP
+            WQOBCE(M,2,1:NWQV)=WQOBCE_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
-          IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBE(M,2,NT)=WQOBCE(M,2,NW)
-            ENDDO
-          ENDIF  
-          WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)
+            IF(IWQCBE(M).EQ.ICBE(M).AND.JWQCBE(M).EQ.JCBE(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBE(M,2,NT)=WQOBCE(M,2,NW)
+              ENDDO
+            ENDIF  
+            WRITE(2,*) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBE(M),JWQCBE(M),(WQOBCE(M,2,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1210,24 +1230,26 @@ C
       IF(NWQOBN_GL.GT.0)THEN  
         DO MM=1,NWQOBN_GL  
           READ(1,*) I_TEMP,J_TEMP,(IWQOBN_GL(MM,NW),NW=1,NWQV)  
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBN=NWQOBN+1
-          M=M+1
-          IWQCBN(M) = XLOC(I_TEMP)
-          JWQCBN(M) = YLOC(J_TEMP)
-          IWQOBN(M,1:NWQV)=IWQOBN_GL(MM,1:NWQV)
+            NWQOBN=NWQOBN+1
+            M=M+1
+            IWQCBN(M) = I_TEMP
+            JWQCBN(M) = J_TEMP
+            IWQOBN(M,1:NWQV)=IWQOBN_GL(MM,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS
-          IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              NCSERN(M,NT)=IWQOBN(M,NW)
-            ENDDO
-          ELSE
-            STOP '  WQ: NORTH OBC: MISS MATCH BETWEEN NCBN & NWQOBN'
-          ENDIF  
-          WRITE(2,*) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)  
-          WRITE(2,969) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)
+            IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                NCSERN(M,NT)=IWQOBN(M,NW)
+              ENDDO
+            ELSE
+              STOP '  WQ: NORTH OBC: MISMATCH BETWEEN NCBN & NWQOBN'
+            ENDIF  
+            WRITE(2,*) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)  
+            WRITE(2,969) IWQCBN(M),JWQCBN(M),(IWQOBN(M,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1241,27 +1263,29 @@ C
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
-      M=0
       NWQOBN=0
+      M=0
       IF(NWQOBN_GL.GT.0)THEN  
         DO MM=1,NWQOBN_GL
           READ(1,*) I_TEMP,J_TEMP,(WQOBCN_GL(MM,1,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBN=NWQOBN+1
-          M=M+1
-          IWQCBN(M) = XLOC(I_TEMP)
-          JWQCBN(M) = YLOC(J_TEMP)
-          WQOBCN(M,1,1:NWQV)=WQOBCN_GL(MM,1,1:NWQV)
+            NWQOBN=NWQOBN+1
+            M=M+1
+            IWQCBN(M) = I_TEMP
+            JWQCBN(M) = J_TEMP
+            WQOBCN(M,1,1:NWQV)=WQOBCN_GL(MM,1,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, BOTTOM
-          IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBN(M,1,NT)=WQOBCN(M,1,NW)
-            ENDDO
-          ENDIF  
-          WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)
+            IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBN(M,1,NT)=WQOBCN(M,1,NW)
+              ENDDO
+            ENDIF  
+            WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,1,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1277,22 +1301,24 @@ C  *** C43
       IF(NWQOBN_GL.GT.0)THEN  
         DO MM=1,NWQOBN_GL  
           READ(1,*) I_TEMP,J_TEMP,(WQOBCN_GL(MM,2,NW),NW=1,NWQV)
+          I_TEMP=XLOC(I_TEMP)
+          J_TEMP=YLOC(J_TEMP)
           L=LIJ(I_TEMP,J_TEMP)
           IF (CELL_INSIDE_DOMAIN(L)) THEN
-          NWQOBN=NWQOBN+1
-          M=M+1
-          IWQCBN(M) = XLOC(I_TEMP)
-          JWQCBN(M) = YLOC(J_TEMP)
-          WQOBCN(M,2,1:NWQV)=WQOBCN_GL(MM,2,1:NWQV)
+            NWQOBN=NWQOBN+1
+            M=M+1
+            IWQCBN(M) = I_TEMP
+            JWQCBN(M) = J_TEMP
+            WQOBCN(M,2,1:NWQV)=WQOBCN_GL(MM,2,1:NWQV)
           ! *** CONCENTRATION ASSIGNMENTS, TOP
-          IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
-            DO NW=1,NWQV
-              NT=4+NTOX+NSED+NSND+NW
-              CBN(M,2,NT)=WQOBCN(M,2,NW)
-            ENDDO
-          ENDIF  
-          WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)  
-          WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)
+            IF(IWQCBN(M).EQ.ICBN(M).AND.JWQCBN(M).EQ.JCBN(M))THEN
+              DO NW=1,NWQV
+                NT=4+NTOX+NSED+NSND+NW
+                CBN(M,2,NT)=WQOBCN(M,2,NW)
+              ENDDO
+            ENDIF  
+            WRITE(2,*) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)  
+            WRITE(2,97) IWQCBN(M),JWQCBN(M),(WQOBCN(M,2,NW),NW=1,NWQV)
           ENDIF
         ENDDO  
       ENDIF  
@@ -1481,7 +1507,6 @@ C
               PRINT*, 'I, J, IJCT(I,J) = ', II,JJ,IJCT(II,JJ)  
               STOP 'ERROR!! INVALID (I,J) IN FILE MACALGMP.INP' 
             ENDIF
-          ENDIF  
           SMAC(LL)=1.0  
           PSHADE(LL)=XMRM1    ! *** PMC-This overwrites the Heat Module Shading 
           WQKMV(LL)=XMRM2  
@@ -1497,6 +1522,7 @@ C
      &      WQKMVE(LL)  
  9004 FORMAT(' ',I3,' ',I3,' ',I5, 9F7.3)  
           GOTO 9001  
+          ENDIF  
  9002     CLOSE(3)  
         ENDIF 
       ENDIF
@@ -1647,49 +1673,50 @@ C *** C48
             STOP 'ERROR!! INVALID (I,J) IN FILE WQ3DWC.INP FOR PSL'  
           ENDIF  
         ! *** HANDLE CONCENTRATION BASED POINT SOURCE
-        IF(IWQPSL.EQ.2)THEN
-          IF(L.NE.LQS(M))THEN
-            STOP ' MISMATCH NQSIJ BETWEEN EFDC.INP & WQ3DWC.INP'
-          ENDIF
+          IF(IWQPSL.EQ.2)THEN
+            IF(L.NE.LQS(M))THEN
+              STOP ' MISMATCH NQSIJ BETWEEN EFDC.INP & WQ3DWC.INP'
+            ENDIF
           
           ! *** ASSIGN GLOBAL CONCENTRATION TIME SERIES INDEX
-          DO NW=1,NWQV
-            N1=4+NTOX+NSED+NSND+NW
-            NCSERQ(M,N1)=ITMP  ! *** ALL WQ VARIABLES USE SAME TIME SERIES
+            DO NW=1,NWQV
+              N1=4+NTOX+NSED+NSND+NW
+              NCSERQ(M,N1)=ITMP  ! *** ALL WQ VARIABLES USE SAME TIME SERIES
             ! *** CONVERT FROM Kmol TO moles  
             !WQWPSLC(M,20) = XPSL(20) * CONV1   PMC?     
             ! *** CONVERT FROM MPN/L TO MPN/DAY
             !WQWPSLC(M,NWQV) = XPSL(NWQV) * WQTT * CONV1   PMC?
-            DO K =1,KC
-              CQS(K,M,N1)=XPSL(NW)
+              DO K =1,KC
+                CQS(K,M,N1)=XPSL(NW)
+              ENDDO
             ENDDO
-          ENDDO
-        ENDIF
+          ENDIF
 C  
 C JMH MODIFIED 5/18/00 TO ALLOW KCPSL(M) TO BE SET TO ZERO FOR UNIFORM D  
 C OF LOAD IN HORIZONTAL CELL STACK OVER ALL LAYERS  
 C  
-        DO KK=1,KC  
-          IWQPSC(L,KK)=M  
-          IWQPSV(L,KK)=ITMP  
-        ENDDO  
-        ICPSL(M)=II 
-        JCPSL(M)=JJ 
-        KCPSL(M)=K  
-        MVPSL(M)=ITMP  
+          DO KK=1,KC  
+            IWQPSC(L,KK)=M  
+            IWQPSV(L,KK)=ITMP  
+          ENDDO  
+          ICPSL(M)=II 
+          JCPSL(M)=JJ 
+          KCPSL(M)=K  
+          MVPSL(M)=ITMP  
 C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
 
         ! *** CONVERT FROM CONC (mg/l) AND Q (m3/s) TO MASS (G/DAY)
         ! *** CONV1=1.0  AND   CONV2=8.64E4.  
-        WQTT = XPSQ*CONV2  
-        DO NW=1,19  
-          WQWPSLC(M,NW) = XPSL(NW) * CONV1 * WQTT
-        ENDDO  
+          WQTT = XPSQ*CONV2  
+          DO NW=1,19  
+            WQWPSLC(M,NW) = XPSL(NW) * CONV1 * WQTT
+          ENDDO  
         ! *** CONVERT FROM Kmol TO moles
-        WQWPSLC(M,20) = XPSL(20) * CONV1      
+          WQWPSLC(M,20) = XPSL(20) * CONV1      
         ! *** CONVERT FROM MPN/L TO MPN/DAY
-        WQWPSLC(M,21:NWQV) = XPSL(21:NWQV) * WQTT * CONV1
-	  IF(IWQPSL==0)FORALL(K=1:KC)WQWPSL(L,K,1:NWQV)
+          WQWPSLC(M,21:NWQV) = XPSL(21:NWQV) * WQTT * CONV1
+	    IF(IWQPSL==0)
+     &FORALL(K=1:KC)WQWPSL(L,K,1:NWQV)
      &         =WQWPSL(L,K,1:NWQV)+WQWPSLC(M,1:NWQV)*DZC(K)/HP(L) !SCJ changed to have constant point source loads added correctly  
         ENDIF
       ENDDO  

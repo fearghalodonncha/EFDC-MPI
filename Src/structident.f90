@@ -41,8 +41,10 @@ ISTRUCT =0; JSTRUCT=0;
 
       can_ad = aquaden*aquadiam*aquadiam
       drgtmp = AQUADRAG
-      drg_ad = drgtmp/1.16*(1.16 - (9.31 * can_ad) + (38.6 *can_ad**2) - (59.8 * can_ad **3))  
-! define aquculture drag coefficient for areas containing cells (zero otherwise)    
+!      drg_ad = drgtmp/1.16*(1.16 - (9.31 * can_ad) + (38.6 *can_ad**2) - (59.8 * can_ad **3))  
+      drg_ad = MAX(0.5,AQUADRAG*(2.0-67*can_ad)) !James and O'Donncha (2018) in press
+    
+      ! define aquculture drag coefficient for areas containing cells (zero otherwise)    
       DO LL = 1,LSTRUCT
          I = ISTRUCT(LL)
          J = JSTRUCT(LL)
@@ -99,7 +101,7 @@ DO  K=1,KC
      UTMPATV=0.25*(U(L,K)+U(LE,K) + U(LS,K)+U(LSE,K))
      UMAGTMP=SQRT( U(L,K)*U(L,K) +VTMPATU*VTMPATU )
      VMAGTMP=SQRT( UTMPATV*UTMPATV + V(L,K)*V(L,K))
-! FDRAG=1/2*Cd*D*n*H*U*¦U¦
+! FDRAG=1/2*Cd*D*n*H*U*|A|
      FXDRPR(L,K)=0.5*AQUADIAM*DRPRDRG(L,k)*aquaden*HAQUA*UMAGTMP !*DXYU(L)
      FYDRPR(L,K)=0.5*AQUADIAM*DRPRDRG(L,k)*aquaden*HAQUA*VMAGTMP !*DXYV(L)
   END DO
@@ -118,7 +120,7 @@ DO K = 1,KC
    END DO
 END DO   
 
-FXDRPRE(:) = FXDRPRE(:)*HUI(:) ! add aquaculture installation to dissipation in
-FYDRPRE(:) = FYDRPRE(:)*HVI(:) ! FUHDYE for momentum conservation in CALPV
+FXDRPRE(2:LA) = FXDRPRE(2:LA)*HUI(2:LA) ! add aquaculture installation to dissipation in
+FYDRPRE(2:LA) = FYDRPRE(2:LA)*HVI(2:LA) ! FUHDYE for momentum conservation in CALPV
 
 END SUBROUTINE AQUAEXTR

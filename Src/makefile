@@ -154,9 +154,13 @@ OBJS3 = ACON.o AINIT.o \
 	CSEDVIS.o RESTOUT.o SMINIT.o ZBRENT.o \
 	CALPUV9C.o CSNDEQC.o RESTRAN.o SMMBE.o \
         SCANLORP.o mpi_util.o CALAVBOLD.o CALEXP.o CALPGCORR.o \
-	CALPUVTT.o CALQQ2TOLD.o CALQVS.o CONGRAD.o \
+	CALQQ2TOLD.o CALQVS.o CONGRAD.o \
 	SCANWQ.o SETBCS.o SETOPENBC2.o SETOPENBC.o \
-	mapboundary.o SECNDS.o VARALLOC.o
+	mapboundary.o SECNDS.o VARALLOC.o puvdasm.o
+
+
+#Files with .for extension
+OBJS4 = PUVDASM.o
 
 #Link all objects
 $(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)
@@ -181,6 +185,9 @@ $(OBJS2): %.o: %.F $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
 $(OBJS3): %.o: %.f $(MODULESF90) $(MODULESFOR) $(MODULESF902)
+	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
+
+$(OBJS4): %.o: %.for $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
 #Clean up after yourself
