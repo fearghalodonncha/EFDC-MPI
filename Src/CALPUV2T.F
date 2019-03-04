@@ -138,7 +138,7 @@ C
 C **  SET IMPLICIT BOTTOM AND VEGETATION DRAG AS APPROPRIATE  
 C  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) 
+      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) !Multiple layers no vegetation
       RCY(2:LA)=1./(1.+FBODYFYI(2:LA))
 !$OMP END PARALLEL
       RCX(1)=0.  
@@ -180,8 +180,8 @@ C * MULTIPLE LAYERS WITH VEGETATION
 C  
       IF(KC.GT.1.AND.ISVEG.GE.1)THEN  
         DO L=2,LA  
-          RCX(L)=1./( 1.+FBODYFXI(L)+DELT*FXVEGE(L) )  !SCJ why does FUHDYE not get FBODYFXI included in it if there is no vegetation?
-          RCY(L)=1./( 1.+FBODYFYI(L)+DELT*FYVEGE(L) )  !SCJ why does FVHDXE not get FBODYFYI included in it if there is no vegetation?
+          RCX(L)=1./( 1.+FBODYFXI(L)+DELT*FXVEGE(L) )
+          RCY(L)=1./( 1.+FBODYFYI(L)+DELT*FYVEGE(L) )
           FUHDYE(L)=FUHDYE(L)*RCX(L)  
           FVHDXE(L)=FVHDXE(L)*RCY(L)  
         ENDDO  
@@ -605,9 +605,10 @@ C
         DIVEXMN=1000000.  
         DO L=2,LA  
           IF(SPB(L).NE.0)THEN  
-            LN=LNC(L)  
+            LN=LNC(L)
+            LE=LEAST(L)
             DIVEX=SPB(L)*(DXYP(L)*(HP(L)-H1P(L))*DELTI  
-     &          +0.5*(UHDYE(LEAST(L))+UHDY1E(LEAST(L))-UHDYE(L)-UHDY1E(L)  
+     &          +0.5*(UHDYE(LE)+UHDY1E(LE)-UHDYE(L)-UHDY1E(L)  
      &          +VHDXE(LN)+VHDX1E(LN)-VHDXE(L)-VHDX1E(L))-QSUME(L)  
      &          +RIFTR(L)+EVAPSW(L))  
             IF(DIVEX.GT.DIVEXMX)THEN  

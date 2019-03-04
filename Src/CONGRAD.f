@@ -26,12 +26,15 @@ C
 C  
       TTMP=SECNDS(SECNDS_ZERO)  
       DO L=2,LA  
-        PNORTH(L)=P(LNC(L))  
-        PSOUTH(L)=P(LSC(L))  
+        LN=LNC(L)
+        LS=LSC(L)
+        PNORTH(L)=P(LN)  
+        PSOUTH(L)=P(LS)  
       ENDDO  
-      DO L=2,LA  
+      DO L=2,LA
+        LE=LEAST(L)
         RCG(L)=FPTMP(L)-CCC(L)*P(L)-CCN(L)*PNORTH(L)-CCS(L)*PSOUTH(L)  
-     &      -CCW(L)*P(LWEST(L))-CCE(L)*P(LEAST(L))  
+     &      -CCW(L)*P(LWEST(L))-CCE(L)*P(LE)  
       ENDDO  
       DO L=2,LA  
         PCG(L)=RCG(L)*CCCI(L)  
@@ -44,13 +47,16 @@ C
       ITER=0  
   100 CONTINUE  
       ITER=ITER+1  
-      DO L=2,LA  
-        PNORTH(L)=PCG(LNC(L))  
-        PSOUTH(L)=PCG(LSC(L))  
+      DO L=2,LA
+        LN=LNC(L)
+        LS=LSC(L)
+        PNORTH(L)=PCG(LN)  
+        PSOUTH(L)=PCG(LS)  
       ENDDO  
-      DO L=2,LA  
+      DO L=2,LA
+        LE=LEAST(L)
         APCG(L)=CCC(L)*PCG(L)+CCS(L)*PSOUTH(L)+CCN(L)*PNORTH(L)  
-     &      +CCW(L)*PCG(LWEST(L))+CCE(L)*PCG(LEAST(L))  
+     &      +CCW(L)*PCG(LWEST(L))+CCE(L)*PCG(LE)  
       ENDDO  
       PAPCG=0.  
       DO L=2,LA
@@ -110,14 +116,18 @@ C
   200 CONTINUE
       ! *** DSLLC BEGIN BLOCK
       IF(ISLOG.GE.1)THEN  
-        DO L=2,LA  
-          PNORTH(L)=P(LNC(L))  
-          PSOUTH(L)=P(LSC(L))  
+        DO L=2,LA
+          LN=LNC(L)
+          LS=LSC(L)
+          PNORTH(L)=P(LN)  
+          PSOUTH(L)=P(LS)  
         ENDDO  
         RSQ=0.  
-        DO L=2,LA  
+        DO L=2,LA 
+          LE=LEAST(L)
+          LW=LWEST(L)
           RCG(L)=CCC(L)*P(L)+CCS(L)*PSOUTH(L)+CCN(L)*PNORTH(L)  
-     &      +CCW(L)*P(LWEST(L))+CCE(L)*P(LEAST(L))-FPTMP(L)  
+     &      +CCW(L)*P(LW)+CCE(L)*P(LE)-FPTMP(L)  
         ENDDO  
         DO L=2,LA  
           RCG(L)=RCG(L)*CCCI(L)  
