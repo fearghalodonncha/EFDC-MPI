@@ -17,19 +17,17 @@
 
 
 function jd_out(yyyy, mm, dd) result(ival)
-
- integer, intent(in)  :: yyyy
- integer, intent(in)  :: mm
- integer, intent(in)  :: dd
- integer*8            :: ival
-
+  integer, intent(in)  :: yyyy
+  integer, intent(in)  :: mm
+  integer, intent(in)  :: dd
+  integer*8            :: ival
 !              DATE ROUTINE JD(YYYY, MM, DD) CONVERTS CALENDER DATE TO
 !              JULIAN DATE.  SEE CACM 1968 11(10):657, LETTER TO THE
 !              EDITOR BY HENRY F. FLIEGEL AND THOMAS C. VAN FLANDERN.
 !    EXAMPLE JD(1970, 1, 1) = 2440588
- ival = dd - 32075 + 1461*(yyyy+4800+(mm-14)/12)/4 +  &
+  ival = dd - 32075 + 1461*(yyyy+4800+(mm-14)/12)/4 +  &
         367*(mm-2-((mm-14)/12)*12)/12 - 3*((yyyy+4900+(mm-14)/12)/100)/4
- return
+  return
  end function jd_out
 
  subroutine cdate(jd,yyyy,mm,dd)

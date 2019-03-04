@@ -25,7 +25,7 @@ CONTAINS
     INTEGER(KIND=4) ncid,dimlocs(NDIMS),ITMP
     INTEGER(KIND=4), INTENT(OUT) :: NX(NDIMS)
     CHARACTER(LEN=1084), INTENT(IN) :: rofile
-    CHARACTER(LEN=50) :: xname, yname
+    CHARACTER(LEN=50) :: xname
     !Open netCDF file
     !:-------:-------:-------:-------:-------:-------:-------:
     CALL check_nf90(nf90_open(trim(rofile), nf90_nowrite, ncid))
@@ -123,21 +123,22 @@ CONTAINS
     END SUBROUTINE readgrid_3D
 
 
-  SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
-                         !NLONS,NLATS,KCM,FLIU,YEAR_REF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
+SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
+                         !NLONS,NLATS,KCM,FLIU,YREF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
   USE GLOBAL
+  LOGICAL::FOPEN
   integer, parameter :: NDIMS = 4
   INTEGER NLONS,NLATS
-  INTEGER VAR1, II,NPRY,NPRX,NACTIVE,NLVLS,TIMEFILE,NFILES, &
+  INTEGER VAR1, NPRY,NPRX,NACTIVE,TIMEFILE,NFILES, &
           I,J,TIMESTEP,NVARS, ILOC,JLOC, IMAP, JMAP
-  real ::  var2,TEMP_SURF,temp_air
-  REAL*8 time_write_jd,time_write,twrite_day
+  real ::  var2,TEMP_SURF
+  REAL*8 time_write_jd,time_write
   INTEGER*8 timesec_out,jul_day,ndays,twrite_sec
   CHARACTER(len=4) :: year,year_out
   character(len=2) :: month,day,hour,minute,month_out,day_out
-  CHARACTER(len=128) :: dstamp,timeorigin,outpath
+  CHARACTER(len=128) :: dstamp,timeorigin
+  INTEGER*8::jd_out
   INTEGER:: delx_east,dely_north, & 
-  jd_out,&
   yyyy,mm,dd,hh,minu
   INTEGER DOMAINID(10000)
   CHARACTER(8) :: date
@@ -176,15 +177,14 @@ CONTAINS
  ! an ID for each one.
   integer :: ncid, LVL_DIMID, LON_DIMID, LAT_DIMID, &
              lon_varid, lat_varid, lvl_varid,time_dimid, &
-             time_varid,tranme_varid,char_lenId,IIB, &
+             time_varid,tranme_varid,IIB, &
              uvel_varid, temp_varid, vvel_varid, &   ! netcdf
              dye_varid,elev_varid, salinity_varid, &
-             wx_varid,wy_varid,dimids_2d(3), &                  ! variables
-             wx_coordid,wy_coordid,airtemp_varid, &
-             wvel_varid, & 
+             dimids_2d(3), &                  ! variables
              fileloop,  &
-             unitname,unitname2,unitname3,unitname4,unitname5, &  ! file id idents
+             unitname, &  ! file id idents
              fileid_begin, fileid_end
+  INTEGER :: II
   REAL:: dimlocs(4)
 
   ! acFILEEXT for allocatable arrays based on
@@ -199,6 +199,7 @@ CONTAINS
   REAL,ALLOCATABLE,DIMENSION(:,:,:)::map_u_vel,map_v_vel,map_temperature,map_dye, &
                                      MAP_VV, map_salinity
   REAL,ALLOCATABLE,DIMENSION(:,:):: map_surfel
+  REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::MAP_WQ !WQ variables
   NFILES = NSNAPSHOTS + 1
   NVARS = KC
   NLONS = IC_GLOBAL
@@ -221,96 +222,92 @@ CONTAINS
   ALLOCATE(LONS (NLONS) )
   ALLOCATE(LATS (NLATS) )
   ALLOCATE(DIMIDS (NDIMS) )
+  ALLOCATE(MAP_WQ(IC_GLOBAL,JC_GLOBAL,KC,NWQVM)) !WQ map
+  UNITNAME=0;FILEID_BEGIN=0;FILEID_END=0
 
   OPEN(123,FILE='SANITY_CHECK.dat',STATUS='UNKNOWN')
   CLOSE(123,status='DELETE')
   open(124,file='raw_ts.dat',status='unknown')
   close(124,status='delete')
-  do ii =1,NFILES
-   write(INTCHAR4(ii),'(I4.4)') ii
-end do
+  do II =1,NFILES
+    write(INTCHAR4(ii),'(I4.4)') ii
+  end do
 
-
-
- EASTING(:) = 0.; NORTHING(:) = 0.
- OPEN(123,file="LXLY.INP",status="unknown")
- do ii = 1,4
-   read(123,*)
- end do
- do ii = 1,LC_GLOBAL-2
-   read(123,*)I,J,EASTING(I),NORTHING(J)
- end do
- close(123)
+  EASTING(:) = 0.; NORTHING(:) = 0.
+  OPEN(123,file="LXLY.INP",status="unknown")
+  do ii = 1,4
+    read(123,*)
+  end do
+  do ii = 1,LC_GLOBAL-2
+    read(123,*)I,J,EASTING(I),NORTHING(J)
+  end do
+  close(123)
 ! assume a Cartesian grid for now
- delx_east = easting(10) - easting(9)
- dely_north = northing(10) - northing(9)
- DO i =2,NLONS
-   if (easting(i) < 1000) easting(i) = easting(i-1) + delx_east 
- end do
+  delx_east = easting(10) - easting(9)
+  dely_north = northing(10) - northing(9)
+  DO i =2,NLONS
+    if (easting(i) < 1000) easting(i) = easting(i-1) + delx_east 
+  end do
 
- DO i =2,NLATS
-   if (northing(i) < 1000) northing(i) = northing(i-1) + dely_north
- end do
+  DO i =2,NLATS
+    if (northing(i) < 1000) northing(i) = northing(i-1) + dely_north
+  end do
 
- DO I = NLONS-1,1,-1
-   if (easting(i) < 1000) easting(i) = easting(i+1) - delx_east
- end do
+  DO I = NLONS-1,1,-1
+    if (easting(i) < 1000) easting(i) = easting(i+1) - delx_east
+  end do
 
- DO I = NLATS-1,1,-1
-   if (northing(i) < 1000) northing(i) = northing(i+1) - dely_north
- end do
+  DO I = NLATS-1,1,-1
+    if (northing(i) < 1000) northing(i) = northing(i+1) - dely_north
+  end do
 ! Easting northing obtained and stored
 
 ! Information on mesh for netcdf grid spacing attribute
- if (delx_east < 100) then
-   format_string = "(I2)"
- elseif (delx_east < 1000) then
-   format_string  = "(I3)"
- else
-   format_string  = "(I4)"
- end if
+  if (delx_east < 100) then
+    format_string = "(I2)"
+  elseif (delx_east < 1000) then
+    format_string  = "(I3)"
+  else
+    format_string  = "(I4)"
+  end if
 
- write(grid_x,format_string) delx_east
- if (dely_north < 100) then
-   format_string = "(I2)"
- elseif (dely_north < 1000) then
-   format_string  = "(I3)"
- else
-   format_string  = "(I4)"
- end if
- write(grid_y,format_string) dely_north
-
- write(*,*) 'grid size=',delx_east,dely_north,trim(grid_x),trim(grid_y)
- 
-
- 
+  write(grid_x,format_string) delx_east
+  if (dely_north < 100) then
+    format_string = "(I2)"
+  elseif (dely_north < 1000) then
+    format_string  = "(I3)"
+  else
+    format_string  = "(I4)"
+  end if
+  write(grid_y,format_string) dely_north
+  write(*,*) 'grid size=',delx_east,dely_north,trim(grid_x),trim(grid_y)
 ! use LORP file to obtain domain decompostion information for reconstruction
   open(1,File='LORP.INP',status='old')
   do ii =1,3
-  READ(1,*)
+    READ(1,*)
   END DO  
- read(1,*) NPRX,NPRY,NACTIVE
- write(*,*) NPRX,NPRY,NACTIVE
- READ(1,*)
+  read(1,*) NPRX,NPRY,NACTIVE
+  write(*,*) NPRX,NPRY,NACTIVE
+  READ(1,*)
  
-do ii =1,NPRX
- read(1,*) 
-end do
-read(1,*)
-
-do ii = 1,NPRY
-   read(1,*)
-end do
-read(1,*)
-
-do ii= 1,NACTIVE
+  do ii =1,NPRX
+    read(1,*) 
+  end do
   read(1,*)
-END DO
 
-READ(1,*)
-DO ii=1,NPRX*NPRY  
-  READ(1,*) DOMAINID(ii) 
-END DO
+  do ii = 1,NPRY
+    read(1,*)
+  end do
+  read(1,*)
+
+  do ii= 1,NACTIVE
+    read(1,*)
+  END DO
+
+  READ(1,*)
+  DO ii=1,NPRX*NPRY  
+    READ(1,*) DOMAINID(ii) 
+  END DO
   ALLOCATE(FILEEXT(NPRX*NPRY))
   IF (MPI_PAR_FLAG == 1) THEN
     DO ii =1, NPRX*NPRY
@@ -319,7 +316,7 @@ END DO
   ELSE
     FILEEXT(:) = ''
   END IF
-TIMEFILE= 0  
+  TIMEFILE= 0  
   map_u_vel(:,:,:) =-9999.
   map_v_vel(:,:,:) =-9999.
   map_salinity(:,:,:) =-9999.
@@ -327,9 +324,9 @@ TIMEFILE= 0
   map_dye(:,:,:) =-9999.
   MAP_VV(:,:,:) =-9999.
   map_surfel(:,:) =-9999.
- DO TIMESTEP = 1,NSNAPSHOTS
-  unitname = 300
-  fileid_begin = unitname
+  DO TIMESTEP = 1,NSNAPSHOTS
+    unitname = 300
+    fileid_begin = unitname
     iib =0
     write(*,*) 'write file number ', Timestep,'of ', NSNAPSHOTS
     DO FILELOOP = 1, NPRX*NPRY
@@ -355,7 +352,7 @@ TIMEFILE= 0
         END DO
       END IF
       IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
-       unitname = unitname  + 1
+        unitname = unitname  + 1
         FILE_IN(fileloop)= 'TEMCONH'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA 
@@ -375,7 +372,7 @@ TIMEFILE= 0
         END DO
       END IF
       IF (ISPPH == 1 ) THEN
-         unitname = unitname  + 1
+        unitname = unitname  + 1
         FILE_IN(fileloop)= 'SURFCON'//trim(FILEEXT(iib))//'.OUT'
         OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
         READ(unitname,*) var1,var2,partid,LA
@@ -385,234 +382,207 @@ TIMEFILE= 0
         END DO
       END IF
 
-333 continue
+333   continue
     END DO  ! END loop on files (i.e. across all partitions 
     IIB = 0
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
-
 !  sanity check
-    
-
 ! Begin write to netcdf
-
-  TIMEFILE = TIMEFILE +1
-   write(*,*) 'FILE_OUT =',INTCHAR4(1)
-  write(*,*) 'TIMEFIL=',TIMEFILE 
+    TIMEFILE = TIMEFILE +1
+    write(*,*) 'FILE_OUT =',INTCHAR4(1)
+    write(*,*) 'TIMEFIL=',TIMEFILE 
 ! Use information from time_write to create filename using similar structure to
 ! Deep Thunder: i.e. wrfout_d03_YYYY-MM-hh:mm:sc.nc
 ! time_write at present is time in days since 01-01-2000
- time_write = timesec_out/86400.   ! convert from time in days to time in seconds
- jul_day = jd_out(year_ref,1,1)    ! YEAR_REF defined at init with default=2000 
- time_write_jd = time_write + jul_day
- write(*,*) 'before time2year',time_write_jd,jul_day,time_Write
- CALL time2year(yyyy,mm,dd,hh,minu,timesec_out,year_ref)
- write(*,*) 'year out =', yyyy,mm,dd,hh,minu,time_write_jd,time_write,jul_day
- write(year,'(I4.4)') yyyy
- write(month, '(I2.2)') mm
- write(day, '(I2.2)') dd
- write(hour, '(I2.2)') hh
- write(minute, '(I2.2)') minu
- dstamp = year//'-'//month//'-'//day//'-'//hour//minute 
- timeorigin = 'seconds since '//year//'-01-01 00:00:00 -0:00'
+    time_write = timesec_out/86400.   ! convert from time in days to time in seconds
+    jul_day = jd_out(yref,1,1)    ! YREF defined at init with default=2000 
+    time_write_jd = time_write + jul_day
+    write(*,*) 'before time2year',time_write_jd,jul_day,time_Write
+    CALL time2year(yyyy,mm,dd,hh,minu,timesec_out,yref)
+    write(*,*) 'year out =', yyyy,mm,dd,hh,minu,time_write_jd,time_write,jul_day
+    write(year,'(I4.4)') yyyy
+    write(month, '(I2.2)') mm
+    write(day, '(I2.2)') dd
+    write(hour, '(I2.2)') hh
+    write(minute, '(I2.2)') minu
+    dstamp = year//'-'//month//'-'//day//'-'//hour//minute 
+    timeorigin = 'seconds since '//year//'-01-01 00:00:00 -0:00'
 ! Possibly datestamp of output files doesn't exactly correspond (e.g. for 36
 ! hour forecast. Hence for output folders write to folder date stamped with
-! beginning date of simulations [YEAR_REF,MREF,DREF]
- write(YEAR_OUT,'(I4.4)') YEAR_REF 
- write(month_out, '(I2.2)') MREF
- write(day_out, '(I2.2)') DREF
+! beginning date of simulations [YREF,MREF,DREF]
+    write(YEAR_OUT,'(I4.4)') YREF 
+    write(month_out, '(I2.2)') MREF
+    write(day_out, '(I2.2)') DREF
 
- FILE_OUT(TIMEFILE) = 'efdcout_'//trim(dstamp)//'00.nc'
+    FILE_OUT(TIMEFILE) = 'efdcout_'//trim(dstamp)//'00.nc'
 ! This implementation causes round off issues
 ! Introduce simpler time conversion that maintains a base of 2000-01-01
 ! and convert this to base of relevant year (2015 in this case)
-  ndays = jd_out(yyyy,1,1) - jd_out(year_ref,1,1)
- twrite_sec = timesec_out - (ndays * 86400)
-  write(*,*) 'twrite_Sec = ',twrite_sec,timesec_out,ndays
+    ndays = jd_out(yyyy,1,1) - jd_out(yref,1,1)
+    twrite_sec = timesec_out - (ndays * 86400)
+    write(*,*) 'twrite_Sec = ',twrite_sec,timesec_out,ndays
 
-
-  DO ii=1, NLATS
-    LATS(ii) =ii
-  END DO
-  DO ii = 1, NLONS
-    lons(ii) = ii
-  end do
-  do ii = 1,NVARS
-   LVLS(ii)= 100 - int( (100/NVARS) * ii)
-  end do
-  ! lways check the return code of every netCDF function call. In
+    DO ii=1, NLATS
+      LATS(ii) =ii
+    END DO
+    DO ii = 1, NLONS
+      lons(ii) = ii
+    end do
+    do ii = 1,NVARS
+      LVLS(ii)= 100 - int( (100/NVARS) * ii)
+    end do
+  ! Always check the return code of every netCDF function call. In
   ! this example program, wrapping netCDF calls with "call check()"
   ! makes sure that any return which is not equal to nf90_noerr (0)
   ! will print a netCDF error message and exit.
 
   ! Create the netCDF file. The nf90_clobber parameter tells netCDF to
   ! overwrite this file, if it already exists
- !
-  write(*,*) 'begin netcdf',FILE_OUT(TIMEFILE),NCID
-  call check_nf90(nf90_create(trim(FILE_OUT(TIMEFILE)), NF90_CLOBBER, ncid) )
+    write(*,*) 'begin netcdf',FILE_OUT(TIMEFILE)
+    call check_nf90(nf90_create(trim(FILE_OUT(TIMEFILE)), NF90_CLOBBER, ncid) )
     write(*,*) 'fname',FILE_OUT(TIMEFILE),'done'
   ! Define the dimensions. NetCDF will hand back an ID for each. 
-  call check_nf90( nf90_def_dim(ncid, LVL_NAME, NVARS, lvl_dimid) )
-  call check_nf90( nf90_def_dim(ncid, LON_NAME, NLONS, lon_dimid) )
-  call check_nf90( nf90_def_dim(ncid, LAT_NAME, NLATS, lat_dimid) )
-  call check_nf90( nf90_def_dim(ncid, REC_NAME, NF90_UNLIMITED, time_dimid) )
- 
+    call check_nf90( nf90_def_dim(ncid, LVL_NAME, NVARS, lvl_dimid) )
+    call check_nf90( nf90_def_dim(ncid, LON_NAME, NLONS, lon_dimid) )
+    call check_nf90( nf90_def_dim(ncid, LAT_NAME, NLATS, lat_dimid) )
+    call check_nf90( nf90_def_dim(ncid, REC_NAME, NF90_UNLIMITED, time_dimid) )
   ! Assign units attributes to coordinate variables.
-  call check_nf90( nf90_def_var(ncid, LVL_NAME, NF90_INT, lvl_dimid, lvl_varid) )
-  call check_nf90( nf90_def_var(ncid, LON_NAME, NF90_REAL8, lon_dimid, lon_varid) ) 
-  call check_nf90( nf90_def_var(ncid, LAT_NAME, NF90_REAL8, lat_dimid, lat_varid) )
-  call check_nf90( nf90_def_var(ncid, REC_NAME, NF90_INT, time_dimid, time_varid) )
+    call check_nf90( nf90_def_var(ncid, LVL_NAME, NF90_INT, lvl_dimid, lvl_varid) )
+    call check_nf90( nf90_def_var(ncid, LON_NAME, NF90_REAL8, lon_dimid, lon_varid) ) 
+    call check_nf90( nf90_def_var(ncid, LAT_NAME, NF90_REAL8, lat_dimid, lat_varid) )
+    call check_nf90( nf90_def_var(ncid, REC_NAME, NF90_INT, time_dimid, time_varid) )
 
-  call check_nf90( nf90_put_att(ncid, lvl_varid, UNITS, LVL_UNITS) )
-  call check_nf90( nf90_put_att(ncid, lon_varid, UNITS, LON_UNITS) )
-  call check_nf90( nf90_put_att(ncid, lat_varid, UNITS, LAT_UNITS) )
-
+    call check_nf90( nf90_put_att(ncid, lvl_varid, UNITS, LVL_UNITS) )
+    call check_nf90( nf90_put_att(ncid, lon_varid, UNITS, LON_UNITS) )
+    call check_nf90( nf90_put_att(ncid, lat_varid, UNITS, LAT_UNITS) )
   ! The dimids array is used to pass the dimids of the dimensions of
   ! the netCDF variables. Both of the netCDF variables we are creating
   ! share the same four dimensions. In Fortran, the unlimited
   ! dimension must come last on the list of dimids.
-  dimids =  (/ lon_dimid, lat_dimid, lvl_dimid, time_dimid/)
-  dimids_2d =  (/ lon_dimid, lat_dimid, time_dimid/)
-  ! Define the netCDF variables for the pressure and temperature data.
+    dimids =  (/ lon_dimid, lat_dimid, lvl_dimid, time_dimid/)
+    dimids_2d =  (/ lon_dimid, lat_dimid, time_dimid/)
+! Define the netCDF variables for the pressure and temperature data.
 ! call check( nf90_put_att(ncid, nf90_global, "HISTORY"))  
 ! add details to file on variables
 ! 1) u velocity details
-  call check_nf90( nf90_def_var(ncid, uvel_name, NF90_REAL, dimids, uvel_varid) )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, "_FillValue", FillValue_real) )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, "coordinates", "X Y Depth time") )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, "grid_mapping", "transverse_mercator") )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, "long_name", "u_velocity") )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, "standard_name", "eastward_water_velocity") )
-  call check_nf90( nf90_put_att(ncid, uvel_varid, UNITS, uvel_units) )
+    call check_nf90( nf90_def_var(ncid, uvel_name, NF90_REAL, dimids, uvel_varid) )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, "_FillValue", FillValue_real) )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, "long_name", "u_velocity") )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, "standard_name", "eastward_water_velocity") )
+    call check_nf90( nf90_put_att(ncid, uvel_varid, UNITS, uvel_units) )
 
-  call check_nf90( nf90_def_var(ncid, VVEL_NAME, NF90_REAL, dimids, vvel_varid) )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, "_FillValue", FillValue_real) )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, "coordinates", "X Y Depth time") )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, "grid_mapping", "transverse_mercator") )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, "long_name", "v_velocity") )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
-  call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
+    call check_nf90( nf90_def_var(ncid, VVEL_NAME, NF90_REAL, dimids, vvel_varid) )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, "_FillValue", FillValue_real) )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, "long_name", "v_velocity") )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
+    call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
 
-  IF (ISTRAN(1) == 1 .AND. ISSPH(1) ==1) THEN
-    call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, "long_name","salinity") )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, "standard_name", "salinity") )
-    call check_nf90( nf90_put_att(ncid, salinity_varid, UNITS, "PSU") )
-  END IF
-  IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
-    call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature_degree_celsius") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
-    call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
-  END IF
-  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
-    call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
-    call check_nf90( nf90_put_att(ncid, dye_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, dye_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, dye_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, dye_varid, "long_name","Solute_concentration") )
-    call check_nf90( nf90_put_att(ncid, dye_varid, "standard_name", "Solute_concentration") )
-    call check_nf90( nf90_put_att(ncid, dye_varid, UNITS, dye_units) )
-  END IF 
-  IF (ISPPH == 1 ) THEN
-    call check_nf90( nf90_def_var(ncid, elev_name, nf90_real, dimids_2d, elev_varid) )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "coordinates", "X Y time") )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "long_name","surface_elevation_relative_to_NGVD_1929_datum") )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "offset","Lake_height_datum_is_97.235m_above_navd88_datum") )
-    call check_nf90( nf90_put_att(ncid, elev_varid, "standard_name", "surface_elevations") )
-    call check_nf90( nf90_put_att(ncid, elev_varid, UNITS, elev_units) )
-  END IF
+    IF (ISTRAN(1) == 1 .AND. ISSPH(1) ==1) THEN
+      call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, "coordinates", "X Y Depth time") )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, "grid_mapping", "transverse_mercator") )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, "long_name","salinity") )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, "standard_name", "salinity") )
+      call check_nf90( nf90_put_att(ncid, salinity_varid, UNITS, "PSU") )
+    END IF
+    IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+      call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
+      call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
+      call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
+      call check_nf90( nf90_put_att(ncid, temp_varid, "grid_mapping", "transverse_mercator") )
+      call check_nf90( nf90_put_att(ncid, temp_varid, "long_name","water_temperature_degree_celsius") )
+      call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
+      call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
+    END IF
+    IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
+      call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
+      call check_nf90( nf90_put_att(ncid, dye_varid, "_FillValue", FillValue_real) )
+      call check_nf90( nf90_put_att(ncid, dye_varid, "coordinates", "X Y Depth time") )
+      call check_nf90( nf90_put_att(ncid, dye_varid, "grid_mapping", "transverse_mercator") )
+      call check_nf90( nf90_put_att(ncid, dye_varid, "long_name","Solute_concentration") )
+      call check_nf90( nf90_put_att(ncid, dye_varid, "standard_name", "Solute_concentration") )
+      call check_nf90( nf90_put_att(ncid, dye_varid, UNITS, dye_units) )
+    END IF 
+    IF (ISPPH == 1 ) THEN
+      call check_nf90( nf90_def_var(ncid, elev_name, nf90_real, dimids_2d, elev_varid) )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "_FillValue", FillValue_real) )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "coordinates", "X Y time") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "grid_mapping", "transverse_mercator") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "long_name","surface_elevation_relative_to_NGVD_1929_datum") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "offset","Lake_height_datum_is_97.235m_above_navd88_datum") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "standard_name", "surface_elevations") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, UNITS, elev_units) )
+    END IF
 
-  call check_nf90( nf90_put_att(ncid, lon_varid, "axis", "X") )
-  call check_nf90( nf90_put_att(ncid, lon_varid, "grid_spacing", trim(grid_x)))
-  call check_nf90( nf90_put_att(ncid, lon_varid, "long_name", "x_projection_of_coordinate") )
-  call check_nf90( nf90_put_att(ncid, lon_varid, "standard_name", "projection_x_coordinate") )
+    call check_nf90( nf90_put_att(ncid, lon_varid, "axis", "X") )
+    call check_nf90( nf90_put_att(ncid, lon_varid, "grid_spacing", trim(grid_x)))
+    call check_nf90( nf90_put_att(ncid, lon_varid, "long_name", "x_projection_of_coordinate") )
+    call check_nf90( nf90_put_att(ncid, lon_varid, "standard_name", "projection_x_coordinate") )
 
+    call check_nf90( nf90_put_att(ncid, lat_varid, "axis", "Y") )
+    call check_nf90( nf90_put_att(ncid, lat_varid, "grid_spacing", trim(grid_y)) )
+    call check_nf90( nf90_put_att(ncid, lat_varid, "long_name", "y_projection_of_coordinate") )
+    call check_nf90( nf90_put_att(ncid, lat_varid, "standard_name", "projection_y_coordinate") )
 
-  call check_nf90( nf90_put_att(ncid, lat_varid, "axis", "Y") )
-  call check_nf90( nf90_put_att(ncid, lat_varid, "grid_spacing", trim(grid_y)) )
-  call check_nf90( nf90_put_att(ncid, lat_varid, "long_name", "y_projection_of_coordinate") )
-  call check_nf90( nf90_put_att(ncid, lat_varid, "standard_name", "projection_y_coordinate") )
+    call check_nf90( nf90_put_att(ncid, lvl_varid, "axis", "Z") ) 
+    call check_nf90( nf90_put_att(ncid, lvl_varid, "grid_spacing", "1") )
+    call check_nf90( nf90_put_att(ncid, lvl_varid, "long_name", "depth") )
+    call check_nf90( nf90_put_att(ncid, lvl_varid, "positive", "up") )
+    call check_nf90( nf90_put_att(ncid, lvl_varid, "standard_name", "depth") )
 
+    call check_nf90( nf90_put_att(ncid, time_varid, "axis", "T") )
+    call check_nf90( nf90_put_att(ncid, time_varid, "calendar", "standard" ))
+    call check_nf90( nf90_put_att(ncid, time_varid, "long_name", "time") )
+    call check_nf90( nf90_put_att(ncid, time_varid, UNITS, trim(timeorigin)) )
 
-  call check_nf90( nf90_put_att(ncid, lvl_varid, "axis", "Z") )
-  call check_nf90( nf90_put_att(ncid, lvl_varid, "grid_spacing", "1") )
-  call check_nf90( nf90_put_att(ncid, lvl_varid, "long_name", "depth") )
-  call check_nf90( nf90_put_att(ncid, lvl_varid, "positive", "up") )
-  call check_nf90( nf90_put_att(ncid, lvl_varid, "standard_name", "depth") )
+    merid = 0.9996
+    false_easting = 500000.
+    false_northing =0. 
+    inv_flattening = 298.257223563
+    lat_proj = 0.
+    long_cen_mer = -75.
+    long_pri_mer = 0.
+    sma = 6378137
+    call check_nf90( nf90_def_var(ncid, "transverse_mercator", nf90_char, tranme_varid) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "false_easting",false_easting) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "false_northing",false_northing) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "grid_mapping_name",  "transverse_mercator") )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "inverse_flattening", inv_flattening) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "latitude_of_projection_origin",lat_proj) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "longitude_of_central_meridian",long_cen_mer) )
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "longitude_of_prime_meridian",long_pri_mer ))
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "scale_factor_at_central_meridian",merid ))
+    call check_nf90( nf90_put_att(ncid, tranme_varid, "semi_major_axis",sma) )
 
-
-
-  call check_nf90( nf90_put_att(ncid, time_varid, "axis", "T") )
-  call check_nf90( nf90_put_att(ncid, time_varid, "calendar", "standard" ))
-  call check_nf90( nf90_put_att(ncid, time_varid, "long_name", "time") )
-  call check_nf90( nf90_put_att(ncid, time_varid, UNITS, trim(timeorigin)) )
-
-
-
-
- merid = 0.9996
- false_easting = 500000.
- false_northing =0. 
- inv_flattening = 298.257223563
- lat_proj = 0.
- long_cen_mer = -75.
- long_pri_mer = 0.
- sma = 6378137
-!   call check_nf90( nf90_def_dim(ncid, "transverse_mercator",  char_length, char_lenId) )
-  call check_nf90( nf90_def_var(ncid, "transverse_mercator", nf90_char, tranme_varid) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "false_easting",false_easting) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "false_northing",false_northing) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "grid_mapping_name",  "transverse_mercator") )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "inverse_flattening", inv_flattening) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "latitude_of_projection_origin",lat_proj) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "longitude_of_central_meridian",long_cen_mer) )
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "longitude_of_prime_meridian",long_pri_mer ))
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "scale_factor_at_central_meridian",merid ))
-  call check_nf90( nf90_put_att(ncid, tranme_varid, "semi_major_axis",sma) )
-
-  CALL date_and_time(date,time,zone)
- call check_nf90( nf90_put_att(ncid, nf90_global, "date_created", &
-                       date))  
- call check_nf90( nf90_put_att(ncid, nf90_global, "time_created", &
-                       time))  
- call check_nf90( nf90_put_att(ncid, nf90_global, "Conventions", &
-                       "CF-1.0"))  
-
-
-!
-
+    CALL date_and_time(date,time,zone)
+    call check_nf90( nf90_put_att(ncid, nf90_global, "date_created", date))  
+    call check_nf90( nf90_put_att(ncid, nf90_global, "time_created", time))  
+    call check_nf90( nf90_put_att(ncid, nf90_global, "Conventions", "CF-1.0"))  
 ! End define mode.
-  call check_nf90( nf90_enddef(ncid) )
-
+    call check_nf90( nf90_enddef(ncid) )
 
 ! Beging put variables mode
-  call check_nf90( nf90_put_var(ncid, lvl_varid, lvls) )       ! Sigma levels 
-  call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! EASTING
-  call check_nf90( nf90_put_var(ncid, lat_varid, Northing) )   ! Northing
-  call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
-  call check_nf90( nf90_put_var(ncid, uvel_varid, map_u_vel))    ! u velocity
-  call check_nf90( nf90_put_var(ncid, vvel_varid, map_v_vel))    ! v velocity
-  IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
-  IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
-  IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
-  IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
+    call check_nf90( nf90_put_var(ncid, lvl_varid, lvls) )       ! Sigma levels 
+    call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! EASTING
+    call check_nf90( nf90_put_var(ncid, lat_varid, Northing) )   ! Northing
+    call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
+    call check_nf90( nf90_put_var(ncid, uvel_varid, map_u_vel))    ! u velocity
+    call check_nf90( nf90_put_var(ncid, vvel_varid, map_v_vel))    ! v velocity
+    IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
+    IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
+    IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
+    IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
 
-
-
-  dimlocs(1)=1; dimlocs(2)=2; dimlocs(3) = 3; dimlocs(4) = 4
-
-  ! tClose the file. This causes netCDF to flush all buffers and make
-  ! sure your data are really written to disk.
-  call check_nf90( nf90_close(ncid) )
-  ! column-major format.
+    dimlocs(1)=1; dimlocs(2)=2; dimlocs(3) = 3; dimlocs(4) = 4
+! Close the file. This causes netCDF to flush all buffers and make
+! sure your data are really written to disk.
+    call check_nf90( nf90_close(ncid) )
+! column-major format.
 
   ! Define the variable. The type of the variable in this case is
   ! NF90_INT (4-byte integer).
@@ -625,34 +595,726 @@ TIMEFILE= 0
 
   ! Close the file. This frees up any internal netCDF resources
   ! associated with the file, and flushes any buffers.
-
- end do
-  print *, "*** SUCCESS writing example file netcdf__n! "
-
-  
+  end do
+  print *, "*** SUCCESS writing NetCDF file__n! "
 ! Loop through all output files and delete
 ! This gets rid of all original EFDC files VELVECH##.OUT, TEMCONH##.OUT, etc
-    DO FILELOOP = fileid_begin, fileid_end
-       CLOSE(FILELOOP,STATUS='DELETE')
-    END DO    
-
-
-
+  DO FILELOOP = fileid_begin, fileid_end
+    INQUIRE(UNIT=FILELOOP,OPENED=FOPEN)
+    IF(FOPEN)CLOSE(FILELOOP,STATUS='DELETE')
+  END DO    
 END SUBROUTINE ASCII2NCF
+ 
+subroutine check_nf90(status)
+  USE netcdf
+  integer, intent ( in) :: status  
+  if(status /= nf90_noerr) then 
+    print *, 'netcdf file read error =', trim(nf90_strerror(status))
+    stop 2
+  end if
+end subroutine check_nf90
 
-  subroutine check_nf90(status)
-    USE netcdf
-    integer, intent ( in) :: status
-    
-    if(status /= nf90_noerr) then 
-      print *, 'netcdf file read error =', trim(nf90_strerror(status))
-      stop 2
-    end if
-  end subroutine check_nf90
+SUBROUTINE WQ_NC_WRITE
+   USE GLOBAL
+#ifdef key_mpi
+   USE MPI
+   REAL,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+   REAL,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+   INTEGER,ALLOCATABLE,DIMENSION(:)  :: RECBUF,DISP    !(0:NPARTX*NPARTY)
+   REAL,ALLOCATABLE,DIMENSION(:) :: RBUFU,RBUFV    ! (PNX*PNY*NPARTX*NPARTY)
+   logical :: CELL_INSIDE_DOMAIN
+   INTEGER :: LOC_VECTOR_SIZE, II, JJ, GLOBAL_VECTOR_SIZE, IC_ARR_I, JC_ARR_I, &
+            IC_POS, JC_POS, IEXTENT, JEXTENT, ISKIP, JSKIP, XD, YD, III, ID, ERROR
+   INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STEP,RCOUNTS_PART, SIZE_ARR_ON_EACH_PARTITION
+#endif
+   INTEGER::I,J,K,L,NW
+   REAL,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
+   IF(.NOT.ALLOCATED(WQV_ARRAY_OUT))THEN
+      ALLOCATE(WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM))
+      WQV_ARRAY_OUT(:,:,:,:)=-9999.0
+   ENDIF
+#ifdef key_mpi
+   LOC_VECTOR_SIZE = (IC-4) * (JC-4) * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
+   GLOBAL_VECTOR_SIZE = IC_GLOBAL * JC_GLOBAL * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
+   IF(.NOT.ALLOCATED(WQV_LOC_VECTOR))THEN
+      ALLOCATE(WQV_LOC_VECTOR(LOC_VECTOR_SIZE))
+      ALLOCATE(SIZE_ARR_ON_EACH_PARTITION(NPARTS*2),STAT=ERROR)
+      ALLOCATE(DISPL_STEP(NPARTS),STAT=ERROR)
+      ALLOCATE(RCOUNTS_PART(NPARTS),STAT=ERROR)
+   ENDIF
+   IF(.NOT.ALLOCATED(WQV_GLOBAL_VECTOR) .AND. PARTID==MASTER_TASK)THEN
+      ALLOCATE(WQV_GLOBAL_VECTOR(GLOBAL_VECTOR_SIZE))
+   ENDIF
+   II = 0
+   ! Pack the 3D array WQV(LCM,KC,NWQVM) into 1D vector to implement MPI Gather
+   DO NW = 1, NWQVM
+     DO K = 1,KC
+       DO I = 3,IC-2
+         DO J = 3,JC-2
+           II = II + 1
+           L = LIJ(I,J)
+           WQV_LOC_VECTOR(II) = WQV(L,K,NW)  !
+         ENDDO
+       ENDDO
+     ENDDO
+   ENDDO
+   ! We need to compute the size of the strip that is received from each MPI process
+   ! We can do this based on information from LORP.INP on
+   ! IC_LORP(ID) = number of I cells in domain ID
+   ! JC_LORP(ID) = number of J cells in domain JD
+   RCOUNTS_PART=0
+   DISPL_STEP=0
+   I = 0
+   ID = 0
+   DO YD = 1,NPARTY
+     DO XD = 1,NPARTX
+       ID = ID + 1
+       IF(TILE2NODE(ID)/=-1)  THEN ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
+         I = I + 1
+         RCOUNTS_PART(I) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC *  NWQVM        ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION
+         DISPL_STEP(I) = DISPL_STEP(I-1) + RCOUNTS_PART(I-1)
+       ENDIF
+     ENDDO
+   ENDDO
+                   !Local data       Local data size            Global data        size on each proc Displacement for packing data
+   CALL MPI_GATHERv(WQV_LOC_VECTOR , LOC_VECTOR_SIZE, MPI_REAL, WQV_GLOBAL_VECTOR, RCOUNTS_PART,     DISPL_STEP, &
+                     MPI_REAL, 0, MPI_COMM_WORLD, ERROR)
+   III = 0
+   ID = 0
+   IF(PARTID==MASTER_TASK)THEN ! Unpack on MASTER Partition only
+     DO YD = 1,NPARTY   ! Number of subdomains in the vertical axis
+       DO XD = 1,NPARTX  ! Number of subdomains in the horizontal axis
+         ID = ID + 1
+         IF(TILE2NODE(ID)/=-1)THEN  ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
+           DO NW = 1,NWQVM
+             DO K = 1,KC
+               DO I = 1,IC_LORP(XD)-4    ! IC values for domain [XD, YD]
+                 DO J = 1,JC_LORP(YD)-4  ! JC values for domain [XD, YD]
+                   II = I +  IC_STRID(XD) ! Starting value of I cell in global coordinate \  map [I,J] = [1,1] in [XD,YD]
+                   JJ = J +  JC_STRID(YD) ! Starting value of J cell in global coordinate /  to [I+X,J+Y] based on [XD,YD] pos
+                   III = III + 1
+                   WQV_ARRAY_OUT(II, JJ, K, NW) = WQV_GLOBAL_VECTOR(III) ! Create 4D array from communicated vector for output
+                 ENDDO
+               ENDDO
+             ENDDO
+           ENDDO
+         ENDIF
+       ENDDO   !  \  End do loop through the partitions
+     ENDDO     !  /
+   ENDIF
+   CALL WRITE_WQ_NCDF(WQV_ARRAY_OUT)
+   RETURN
+#endif
+   DO NW = 1,NWQVM
+     DO K = 1,KC
+       DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
+         DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
+           L=LIJ(I,J)
+           IF(L/=0)WQV_ARRAY_OUT(I, J, K, NW) = WQV(L,K,NW) ! Create 4D array from communicated vector for output
+         ENDDO
+       ENDDO
+     ENDDO
+   ENDDO
+   CALL WRITE_WQ_NCDF(WQV_ARRAY_OUT)
+   RETURN
+END SUBROUTINE WQ_NC_WRITE
 
 
+SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
+  USE NETCDF
+  USE GLOBAL
+  CHARACTER (LEN = *), PARAMETER :: LVL_NAME = "Depth" !Z label
+  CHARACTER (LEN = *), PARAMETER :: LAT_NAME = "Y"     !Y label
+  CHARACTER (LEN = *), PARAMETER :: LON_NAME = "X"     !X label
+  CHARACTER (LEN = *), PARAMETER :: REC_NAME = "Time"  !Time label
+  CHARACTER (LEN = *), PARAMETER :: LVL_UNITS = "m"    !Z units
+  CHARACTER (LEN = *), PARAMETER :: LAT_UNITS = "m"    !Y units
+  CHARACTER (LEN = *), PARAMETER :: LON_UNITS = "m"    !X units
+  CHARACTER (LEN = *), PARAMETER :: UNITS = "units"    !Time units
+  !WQ variables
+  CHARACTER(LEN=*),PARAMETER::WQV1_NAME="Cyanobacteria"
+  CHARACTER(LEN=*),PARAMETER::WQV2_NAME="Diatoms"
+  CHARACTER(LEN=*),PARAMETER::WQV3_NAME="Green algae"
+  CHARACTER(LEN=*),PARAMETER::WQV4_NAME="Refractory particulate organic carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV5_NAME="Labile particulate organic carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV6_NAME="Dissolved organic carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV7_NAME="Refractory particulate organic phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV8_NAME="Labile particulate organic phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV9_NAME="Dissolved organic phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV10_NAME="Total phosphate"
+  CHARACTER(LEN=*),PARAMETER::WQV11_NAME="Refractory particulate organic nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV12_NAME="Labile particulate organic nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV13_NAME="Dissolved organic nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV14_NAME="Ammonia nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV15_NAME="Nitrate nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV16_NAME="Particulate biogenic silica"
+  CHARACTER(LEN=*),PARAMETER::WQV17_NAME="Dissolved available silica"
+  CHARACTER(LEN=*),PARAMETER::WQV18_NAME="Chemical oxygen demand"
+  CHARACTER(LEN=*),PARAMETER::WQV19_NAME="Dissolved oxygen"
+  CHARACTER(LEN=*),PARAMETER::WQV20_NAME="Total active metal"
+  CHARACTER(LEN=*),PARAMETER::WQV21_NAME="Fecal coliform bacteria"
+  CHARACTER(LEN=*),PARAMETER::WQV22_NAME="Dissolved carbon dioxide"
+  CHARACTER(LEN=*),PARAMETER::WQV23_NAME="Macroalgae"
+!WQ variable units
+  CHARACTER(LEN=*),PARAMETER::WQV1_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV2_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV3_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV4_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV5_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV6_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV7_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV8_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV9_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV10_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV11_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV12_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV13_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV14_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV15_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV16_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV17_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV18_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV19_UNITS="g/m3"
+  CHARACTER(LEN=*),PARAMETER::WQV20_UNITS="kmol"
+  CHARACTER(LEN=*),PARAMETER::WQV21_UNITS="MPN/100mL"
+  CHARACTER(LEN=*),PARAMETER::WQV22_UNITS="kg/m3"
+  CHARACTER(LEN=*),PARAMETER::WQV23_UNITS="mg/L"
+  INTEGER::WQV1_VARID, WQV2_VARID, WQV3_VARID, WQV4_VARID, WQV5_VARID, WQV6_VARID, & !WQ variable IDs for NetCDF
+           WQV7_VARID, WQV8_VARID, WQV9_VARID, WQV10_VARID,WQV11_VARID,WQV12_VARID,&
+           WQV13_VARID,WQV14_VARID,WQV15_VARID,WQV16_VARID,WQV17_VARID,WQV18_VARID,&
+           WQV19_VARID,WQV20_VARID,WQV21_VARID,WQV22_VARID,WQV23_VARID
+  REAL :: WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM),WQTMP(IC_GLOBAL,JC_GLOBAL,KC) !Full WQ array from WQ_NC_WRITE plus temporary array storing each WQV variable
+  CHARACTER(LEN=84):: WQFILE_OUT !NetCDF nc output file
+  INTEGER,DIMENSION(4) :: DIMIDS !Dimension of WQ variable IC,Jc,KC,NWQV
+!End WQ variables
+  CHARACTER(LEN=128) :: DSTAMP !YEAR//'-'//MONTH//'-'//DAY//'-'//HOUR//MINUTE
+  CHARACTER(LEN=128):: TIMEORIGIN !'seconds since '//YEAR//'-01-01 00:00:00 -0:00'
+  CHARACTER(LEN=4) :: YEAR !text year
+  INTEGER :: YYYY          !integer year
+  CHARACTER(LEN=2) :: MONTH,DAY,HOUR,MINUTE !text mo, da, hr, min
+  INTEGER :: MM,DD,HH,MINU                  !integer mo, da, hr, min
+  INTEGER :: NDAYS
+  INTEGER*8 :: jd_out
+  INTEGER :: JUL_DAY,TIME_WRITE_JD
+  INTEGER*8 :: ITSEC,TWRITE_SEC !Long integer to handle large numbers of seconds
+  REAL :: TIME_WRITE !Real number of days into simulation
+  CHARACTER(LEN=50) :: GRID_X,GRID_Y,FORMAT_STRING
+  INTEGER :: NCID,LVL_DIMID,LON_DIMID,LAT_DIMID,TIME_DIMID,TRANME_VARID
+  INTEGER :: LVL_VARID,LON_VARID,LAT_VARID,TIME_VARID
+  INTEGER :: II,I,J
+  REAL :: DELX_EAST,DELY_NORTH !Grid spacing for assumed uniform Cartesian grid
+  REAL,ALLOCATABLE,DIMENSION(:) :: EASTING,NORTHING !Cell centers for assumed uniform Cartesian grid
+  INTEGER,ALLOCATABLE,DIMENSION(:) :: LVLS !Number of sigma levels
+!Vaariables for writing global projections
+  INTEGER :: sma
+  REAL :: merid,false_easting,false_northing,inv_flattening,lat_proj,long_cen_meR,long_pri_mer
+  CHARACTER(8) :: date
+  CHARACTER(10) :: time
+  CHARACTER(5) :: zone
+!Integer seconds into the simulation
+  IF(ISDYNSTP==0)THEN  
+    ITSEC=NINT(DT*FLOAT(N)+TCON*TBEGIN)
+  ELSE  
+    ITSEC=NINT(TIMESEC)
+  ENDIF
+  TIME_WRITE = FLOAT(ITSEC)/86400.   ! convert from time in seconds to time in days
+  JUL_DAY = jd_out(YREF,1,1)    ! YREF defined at init with default=2019 
+  TIME_WRITE_JD = TIME_WRITE + JUL_DAY
+  WRITE(*,*) 'Before time2year',TIME_WRITE_JD,JUL_DAY,TIME_WRITE
+  CALL time2year(YYYY,MM,DD,HH,MINU,ITSEC,YREF)
+  WRITE(*,*)'Year out =', YYYY,MM,DD,HH,MINU,TIME_WRITE_JD,TIME_WRITE,JUL_DAY
+  WRITE(YEAR,  '(I4.4)')YYYY
+  WRITE(MONTH, '(I2.2)')MM
+  WRITE(DAY,   '(I2.2)')DD
+  WRITE(HOUR,  '(I2.2)')HH
+  WRITE(MINUTE,'(I2.2)')MINU
+  DSTAMP = YEAR//'-'//MONTH//'-'//DAY//'-'//HOUR//MINUTE 
+  TIMEORIGIN = 'Seconds since '//YEAR//'-01-01 00:00:00 -0:00'
+
+  WQFILE_OUT = 'wqvout_'//TRIM(DSTAMP)//'00.nc'
+  CALL check_nf90(nf90_create(TRIM(WQFILE_OUT), NF90_CLOBBER, NCID) )
+  NDAYS = jd_out(YYYY,1,1) - jd_out(YREF,1,1) !Number of days into the simulation
+  TWRITE_SEC = ITSEC - (NDAYS * 86400)
+  WRITE(*,*) 'twrite_sec = ',TWRITE_SEC,ITSEC,NDAYS
+!Calculate latitude/longitude
+  ALLOCATE(EASTING (IC_GLOBAL) )
+  ALLOCATE(NORTHING (JC_GLOBAL) )
+  ALLOCATE(LVLS(KC))
+  EASTING(:) = 0.; NORTHING(:) = 0.
+  OPEN(123,FILE="LXLY.INP",STATUS="OLD")
+  DO II = 1,4
+    READ(123,*)
+  ENDDO
+  DO II = 1,LC_GLOBAL-2
+    READ(123,*)I,J,EASTING(I),NORTHING(J)
+  ENDDO
+  CLOSE(123)
+! assume a Cartesian grid for now
+  delx_east = EASTING(10) - EASTING(9)
+  dely_north = NORTHING(10) - NORTHING(9)
+  DO I =2,IC_GLOBAL
+    IF(EASTING(i) < 1000) EASTING(i) = EASTING(i-1) + delx_east 
+  ENDDO
+
+  DO I =2,JC_GLOBAL
+    IF(NORTHING(i) < 1000) NORTHING(i) = NORTHING(i-1) + dely_north
+  ENDDO
+
+  DO I = IC_GLOBAL-1,1,-1
+    IF(EASTING(i) < 1000) EASTING(i) = EASTING(i+1) - delx_east
+  ENDDO
+
+  DO I = JC_GLOBAL-1,1,-1
+    IF(NORTHING(i) < 1000) NORTHING(i) = NORTHING(i+1) - dely_north
+  ENDDO
+! Easting northing obtained and stored
+! Grid information
+! Information on mesh for NetCDF grid spacing attribute
+  IF(delx_east < 100)THEN
+    format_string = "(I2)"
+  ELSEIF(delx_east < 1000)THEN
+    format_string  = "(I3)"
+  ELSE
+    format_string  = "(I4)"
+  ENDIF
+  WRITE(grid_x,format_string) int(delx_east)
+  IF(dely_north < 100)THEN
+    format_string = "(I2)"
+  ELSEIF(dely_north < 1000)THEN
+    format_string  = "(I3)"
+  ELSE
+    format_string  = "(I4)"
+  ENDIF
+  DO II = 1,KC
+    LVLS(II)= 100 - INT( (100/KC) * II)
+  ENDDO
+  write(grid_y,format_string) int(dely_north)
+  write(*,*) 'grid size=',delx_east,dely_north,TRIM(grid_x),TRIM(grid_y)
+! Define the dimensions. NetCDF will hand back an ID for each. 
+  call check_nf90( nf90_def_dim(NCID, LVL_NAME, KC, LVL_DIMID) )
+  call check_nf90( nf90_def_dim(NCID, LON_NAME, IC_GLOBAL, LON_DIMID) )
+  call check_nf90( nf90_def_dim(NCID, LAT_NAME, JC_GLOBAL, LAT_DIMID) )
+  call check_nf90( nf90_def_dim(NCID, REC_NAME, NF90_UNLIMITED, TIME_DIMID) )
+  DIMIDS =  (/ LON_DIMID, LAT_DIMID, LVL_DIMID, TIME_DIMID/)
+! Assign units attributes to coordinate variables.
+  call check_nf90( nf90_def_var(NCID, LVL_NAME, NF90_INT, LVL_DIMID, LVL_VARID) )
+  call check_nf90( nf90_def_var(NCID, LON_NAME, NF90_REAL8, LON_DIMID, LON_VARID) ) 
+  call check_nf90( nf90_def_var(NCID, LAT_NAME, NF90_REAL8, LAT_DIMID, LAT_VARID) )
+  call check_nf90( nf90_def_var(NCID, REC_NAME, NF90_INT, TIME_DIMID, TIME_VARID) )
+!Assign units
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, UNITS, LVL_UNITS) )
+  call check_nf90( nf90_put_att(NCID, LON_VARID, UNITS, LON_UNITS) )
+  call check_nf90( nf90_put_att(NCID, LAT_VARID, UNITS, LAT_UNITS) )
+!X definition
+  call check_nf90( nf90_put_att(NCID, LON_VARID, "axis", "X") )
+  call check_nf90( nf90_put_att(NCID, LON_VARID, "grid_spacing", TRIM(grid_x)))
+  call check_nf90( nf90_put_att(NCID, LON_VARID, "long_name", "x_projection_of_coordinate") )
+  call check_nf90( nf90_put_att(NCID, LON_VARID, "standard_name", "projection_x_coordinate") )
+!Y definition
+  call check_nf90( nf90_put_att(NCID, LAT_VARID, "axis", "Y") )
+  call check_nf90( nf90_put_att(NCID, LAT_VARID, "grid_spacing", TRIM(grid_y)) )
+  call check_nf90( nf90_put_att(NCID, LAT_VARID, "long_name", "y_projection_of_coordinate") )
+  call check_nf90( nf90_put_att(NCID, LAT_VARID, "standard_name", "projection_y_coordinate") )
+!Z definition
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, "axis", "Z") )
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, "grid_spacing", "1") )
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, "long_name", "depth") )
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, "positive", "up") )
+  call check_nf90( nf90_put_att(NCID, LVL_VARID, "standard_name", "depth") )
+!Time definition
+  call check_nf90( nf90_put_att(NCID, TIME_VARID, UNITS, TRIM(TIMEORIGIN)) )
+  call check_nf90( nf90_put_att(NCID, TIME_VARID, "axis", "T") )
+  call check_nf90( nf90_put_att(NCID, TIME_VARID, "calendar", "standard" ))
+  call check_nf90( nf90_put_att(NCID, TIME_VARID, "long_name", "time") )
+!lOCATION INFORMATION
+  merid = 0.9996
+  false_easting = 500000.
+  false_northing =0. 
+  inv_flattening = 298.257223563
+  lat_proj = 0.
+  long_cen_mer = -75.
+  long_pri_mer = 0.
+  sma = 6378137
+  call check_nf90( nf90_def_var(NCID, "transverse_mercator", NF90_CHAR, TRANME_VARID) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "false_easting",false_easting) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "false_northing",false_northing) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "grid_mapping_name",  "transverse_mercator") )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "inverse_flattening", inv_flattening) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "latitude_of_projection_origin",lat_proj) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "longitude_of_central_meridian",long_cen_mer) )
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "longitude_of_prime_meridian",long_pri_mer ))
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "scale_factor_at_central_meridian",merid ))
+  call check_nf90( nf90_put_att(NCID, TRANME_VARID, "semi_major_axis",sma) )
+  CALL date_and_time(date,time,zone)
+  call check_nf90( nf90_put_att(NCID, nf90_global, "date_created", date))  
+  call check_nf90( nf90_put_att(NCID, nf90_global, "time_created",  time))  
+  call check_nf90( nf90_put_att(NCID, nf90_global, "Conventions", "CF-1.0"))
+!WQV1 definition
+  IF(ISTRWQ(1).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV1_NAME, NF90_REAL, DIMIDS, WQV1_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "long_name", WQV1_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "standard_name", WQV1_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, UNITS, WQV1_UNITS) )
+  ENDIF
+! WQV2 definition
+  IF(ISTRWQ(2).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV2_NAME, NF90_REAL, DIMIDS, WQV2_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "long_name", WQV2_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "standard_name", WQV2_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, UNITS, WQV2_UNITS) )
+  ENDIF
+!WQV3 definition
+  IF(ISTRWQ(3).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV3_NAME, NF90_REAL, DIMIDS, WQV3_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "long_name", WQV3_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "standard_name", WQV3_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, UNITS, WQV3_UNITS) )
+  ENDIF
+! WQV4 definition
+  IF(ISTRWQ(4).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV4_NAME, NF90_REAL, DIMIDS, WQV4_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "long_name", WQV4_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "standard_name", WQV4_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, UNITS, WQV4_UNITS) )
+  ENDIF
+!WQV5 definition
+  IF(ISTRWQ(5).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV5_NAME, NF90_REAL, DIMIDS, WQV5_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "long_name", WQV5_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "standard_name", WQV5_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, UNITS, WQV5_UNITS) )
+  ENDIF
+! WQV6 definition
+  IF(ISTRWQ(6).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV6_NAME, NF90_REAL, DIMIDS, WQV6_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "long_name", WQV6_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "standard_name", WQV6_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, UNITS, WQV6_UNITS) )
+  ENDIF
+!WQV7 definition
+  IF(ISTRWQ(7).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV7_NAME, NF90_REAL, DIMIDS, WQV7_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "long_name", WQV7_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "standard_name", WQV7_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, UNITS, WQV7_UNITS) )
+  ENDIF
+! WQV8 definition
+  IF(ISTRWQ(8).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV8_NAME, NF90_REAL, DIMIDS, WQV8_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "long_name", WQV8_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "standard_name", WQV8_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, UNITS, WQV8_UNITS) )
+  ENDIF
+!WQV9 definition
+  IF(ISTRWQ(9).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV9_NAME, NF90_REAL, DIMIDS, WQV9_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "long_name", WQV9_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "standard_name", WQV9_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, UNITS, WQV9_UNITS) )
+  ENDIF
+! WQV10 definition
+  IF(ISTRWQ(10).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV10_NAME, NF90_REAL, DIMIDS, WQV10_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "long_name", WQV10_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "standard_name", WQV10_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, UNITS, WQV10_UNITS) )
+  ENDIF
+!WQV11 definition
+  IF(ISTRWQ(11).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV11_NAME, NF90_REAL, DIMIDS, WQV11_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "long_name", WQV11_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "standard_name", WQV11_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, UNITS, WQV11_UNITS) )
+  ENDIF
+! WQV12 definition
+  IF(ISTRWQ(12).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV12_NAME, NF90_REAL, DIMIDS, WQV12_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "long_name", WQV12_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "standard_name", WQV12_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, UNITS, WQV12_UNITS) )
+  ENDIF
+!WQV13 definition
+  IF(ISTRWQ(13).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV13_NAME, NF90_REAL, DIMIDS, WQV13_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "long_name", WQV13_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "standard_name", WQV13_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, UNITS, WQV13_UNITS) )
+  ENDIF
+! WQV14 definition
+  IF(ISTRWQ(14).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV14_NAME, NF90_REAL, DIMIDS, WQV14_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "long_name", WQV14_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "standard_name", WQV14_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, UNITS, WQV14_UNITS) )
+  ENDIF
+!WQV15 definition
+  IF(ISTRWQ(15).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV15_NAME, NF90_REAL, DIMIDS, WQV15_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "long_name", WQV15_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "standard_name", WQV15_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, UNITS, WQV15_UNITS) )
+  ENDIF
+! WQV16 definition
+  IF(ISTRWQ(16).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV16_NAME, NF90_REAL, DIMIDS, WQV16_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "long_name", WQV16_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "standard_name", WQV16_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, UNITS, WQV16_UNITS) )
+  ENDIF
+!WQV17 definition
+  IF(ISTRWQ(17).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV17_NAME, NF90_REAL, DIMIDS, WQV17_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "long_name", WQV17_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "standard_name", WQV17_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, UNITS, WQV17_UNITS) )
+    call check_nf90( nf90_put_var(NCID, WQV17_VARID, WQV_ARRAY_OUT))    ! WQ data
+  ENDIF
+! WQV18 definition
+  IF(ISTRWQ(18).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV18_NAME, NF90_REAL, DIMIDS, WQV18_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "long_name", WQV18_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "standard_name", WQV18_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, UNITS, WQV18_UNITS) )
+  ENDIF
+!WQV19 definition
+  IF(ISTRWQ(19).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV19_NAME, NF90_REAL, DIMIDS, WQV19_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "long_name", WQV19_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "standard_name", WQV19_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, UNITS, WQV19_UNITS) )
+    call check_nf90( nf90_put_var(NCID, WQV19_VARID, WQV_ARRAY_OUT))    ! WQ data
+  ENDIF
+! WQV20 definition
+  IF(ISTRWQ(20).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV20_NAME, NF90_REAL, DIMIDS, WQV20_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "long_name", WQV20_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "standard_name", WQV20_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, UNITS, WQV20_UNITS) )
+  ENDIF
+!WQV21 definition
+  IF(ISTRWQ(21).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV21_NAME, NF90_REAL, DIMIDS, WQV21_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "long_name", WQV21_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "standard_name", WQV21_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, UNITS, WQV21_UNITS) )
+  ENDIF
+! WQV22 definition
+  IF(ISTRWQ(22).EQ.1)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV22_NAME, NF90_REAL, DIMIDS, WQV22_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "long_name", WQV22_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "standard_name", WQV22_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, UNITS, WQV22_UNITS) )
+  ENDIF
+! WQV23 definition
+  IF(IDNOTRVA.EQ.23)THEN 
+    call check_nf90( nf90_def_var(NCID, WQV23_NAME, NF90_REAL, DIMIDS, WQV23_VARID) )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "coordinates", "X Y Depth time") )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "grid_mapping", "transverse_mercator") )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "long_name", WQV23_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "standard_name", WQV23_NAME) )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, UNITS, WQV23_UNITS) )
+  ENDIF
+! End define mode.
+  call check_nf90( nf90_enddef(NCID) )
+! Beging put variables mode
+!Basic outputs
+  call check_nf90( nf90_put_var(NCID, LVL_VARID, LVLS) )       ! Sigma levels 
+  call check_nf90( nf90_put_var(NCID, LON_VARID, EASTING) )    ! EASTING
+  call check_nf90( nf90_put_var(NCID, LAT_VARID, NORTHING) )   ! Northing
+  call check_nf90( nf90_put_var(NCID, TIME_VARID, TWRITE_SEC) )   ! Time
+! WQV1 details
+  IF(ISTRWQ(1).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,1)
+    call check_nf90( nf90_put_var(NCID, WQV1_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV2 details
+  IF(ISTRWQ(2).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,2)
+    call check_nf90( nf90_put_var(NCID, WQV2_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV3 details
+  IF(ISTRWQ(3).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,3)
+    call check_nf90( nf90_put_var(NCID, WQV3_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV4 details
+  IF(ISTRWQ(4).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,4)
+    call check_nf90( nf90_put_var(NCID, WQV4_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV5 details
+  IF(ISTRWQ(5).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,5)
+    call check_nf90( nf90_put_var(NCID, WQV5_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV6 details
+  IF(ISTRWQ(6).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,6)
+    call check_nf90( nf90_put_var(NCID, WQV6_VARID, WQTMP))    ! WQ data
+  ENDIF
+!WQV7 definition
+  IF(ISTRWQ(7).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,7)
+    call check_nf90( nf90_put_var(NCID, WQV7_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV8 details
+  IF(ISTRWQ(8).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,8)
+    call check_nf90( nf90_put_var(NCID, WQV8_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV9 details
+  IF(ISTRWQ(9).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,9)
+    call check_nf90( nf90_put_var(NCID, WQV9_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV10 details
+  IF(ISTRWQ(10).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,10)
+    call check_nf90( nf90_put_var(NCID, WQV10_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV4 details
+  IF(ISTRWQ(4).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,11)
+    call check_nf90( nf90_put_var(NCID, WQV4_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV11 details
+  IF(ISTRWQ(11).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,12)
+    call check_nf90( nf90_put_var(NCID, WQV11_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV12 details
+  IF(ISTRWQ(12).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,13)
+    call check_nf90( nf90_put_var(NCID, WQV12_VARID, WQTMP))    ! WQ data
+  ENDIF
+!WQV13 definition
+  IF(ISTRWQ(13).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,14)
+    call check_nf90( nf90_put_var(NCID, WQV13_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV14 details
+  IF(ISTRWQ(14).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,15)
+    call check_nf90( nf90_put_var(NCID, WQV14_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV15 details
+  IF(ISTRWQ(15).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,16)
+    call check_nf90( nf90_put_var(NCID, WQV15_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV16 details
+  IF(ISTRWQ(16).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,17)
+    call check_nf90( nf90_put_var(NCID, WQV16_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV17 details
+  IF(ISTRWQ(17).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,18)
+    call check_nf90( nf90_put_var(NCID, WQV17_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV18 details
+  IF(ISTRWQ(18).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,18)
+    call check_nf90( nf90_put_var(NCID, WQV18_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV19 details
+  IF(ISTRWQ(19).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,19)
+    call check_nf90( nf90_put_var(NCID, WQV19_VARID, WQTMP))    ! WQ data
+  ENDIF
+!WQV20 definition
+  IF(ISTRWQ(20).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,20)
+    call check_nf90( nf90_put_var(NCID, WQV20_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV21 details
+  IF(ISTRWQ(21).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,21)
+    call check_nf90( nf90_put_var(NCID, WQV21_VARID, WQTMP))    ! WQ data
+  ENDIF
+!WQV22 definition
+  IF(ISTRWQ(22).EQ.1)THEN 
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,22)
+    call check_nf90( nf90_put_var(NCID, WQV22_VARID, WQTMP))    ! WQ data
+  ENDIF
+! WQV23 details
+  IF(IDNOTRVA.EQ.23)THEN
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,23)
+    call check_nf90( nf90_put_var(NCID, WQV23_VARID, WQTMP))    ! WQ data
+  ENDIF
+! Close the file. This frees up any internal netCDF resources
+! associated with the file, and flushes any buffers.
+! Close the file. This causes netCDF to flush all buffers and make
+! sure your data are really written to disk.
+  call check_nf90( nf90_close(NCID) )
+END SUBROUTINE WRITE_WQ_NCDF
 
 #endif
-
-
 END MODULE iom

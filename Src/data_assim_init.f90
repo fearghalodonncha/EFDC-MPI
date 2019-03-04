@@ -50,7 +50,7 @@ SUBROUTINE DA_INI
     CODPRE = "observations_"    ! File prefix for the preprocessed HFR files
 
     ! Create date stamped file name to write EFDC temperatures to
-    JUL_DAY = JD_OUT(YEAR_REF,1,1)  ! YEAR_REF defined at initialization with default of year 2000
+    JUL_DAY = JD_OUT(YREF,1,1)  ! YREF defined at initialization with default of year 2000
     ! identify appropriate filename based on current simulation time
     ! store time as well to use for time interpolation
     ! We store time(t) and time(t+1) computed below
