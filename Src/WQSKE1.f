@@ -10,10 +10,10 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
 
       IMPLICIT NONE
       
-      INTEGER*4 NQ,NS,IZ,IMWQZ,NSTPTMP,M
-      INTEGER*4 K,L
+      INTEGER NQ,NS,IZ,IMWQZ,NSTPTMP,M
+      INTEGER K,L,LE,LN
       
-      REAL WQAVGIO,CNS1,RMULTMP,TIME,RLIGHT1,RLIGHT2
+      REAL WQAVGIO,RMULTMP,TIME,RLIGHT1,RLIGHT2
       REAL WQGNC,WQGND,WQGNG,WQGNM,WQGPM,WQF1NM,WQGPC,WQGPD,WQGPG
       REAL WQF1NC,WQF1ND,WQF1NG,WQKESS,XMRM,YMRM,WQTT1
       
@@ -40,12 +40,8 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
       REAL PPCDO,WQA22, WQA22C, WQA22D, WQA22G, WQCDDOC
       REAL WQCDREA, WQCDSUM
       REAL EXPA0,EXPA1 !VARIABLES FOR LIGHT EXTINCTION
-      
-      REAL WQGCO2M,WQGCO2C,WQGCO2G,WQGCO2D		!  CO2 Limitation Consts added by AA
-!      REAL WQHTCT, WQHTDT, WQHGT, WQLTHICK
-	    
-!      REAL CHL_ABOVE
-      
+      REAL WQGCO2M,WQGCO2C,WQGCO2G,WQGCO2D		!  CO2 Limitation Consts 
+     
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::DELKC  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::DZCHP
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISC
@@ -53,7 +49,6 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISG
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQISM
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WQI0TOP
-
 C
       ! ***  1) CHC - cyanobacteria
       ! ***  2) CHD - diatom algae
@@ -157,8 +152,8 @@ C
         DZCHP=0.0
       ENDIF
 C
-      CNS1=2.718  
       NS=1
+      WQKESS=0.0
 C    
 C COMPUTE WQCHL,WQTAMP,WQPO4D,WQSAD AT A NEW TIME STEP: WQCHLX=1/WQCHLX  
 C  
@@ -409,8 +404,10 @@ C
 !C TYPE OF EQUATION.  
             WQLVF=1.0 !Initialize velocity limitation (overwritten if it is considered)
             IF(IWQVLIM==1)THEN
-              UMRM = 0.5*( U(L,K) + U(LEAST(L),K) )  
-              VMRM = 0.5*( V(L,K) + V(LNC(L),  K) )  
+              LE=LEAST(L)
+              LN=LNC(L)
+              UMRM = 0.5*( U(L,K) + U(LE,K) )  
+              VMRM = 0.5*( V(L,K) + V(LN,  K) )  
               WQVEL=SQRT(UMRM*UMRM + VMRM*VMRM)  
               IF(WQVEL>WQKMVMIN(L))THEN  
                 WQLVF = WQVEL / (WQKMV(L) + WQVEL)  
@@ -458,6 +455,7 @@ C
 		IF(K==KC)THEN										!AA Initialize free surface intensity
 		  WQITOP(L,K) = WQI0TOP(L)
 	    ELSE												!AA Calculate surface intensity as a function of the layer above's surface intensity
+ !           if(wqkess<0)print*,wqkess,'wqkess',dzchp(L)
 		  WQITOP(L,K) = WQITOP(L,K+1)*EXP(-WQKESS*DZCHP(L))
           ENDIF !SEE DiTORO ET AL (1971, EQNS. (11)&(12)) 
           IF(WQI0>0.1.AND.(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1))THEN !If there is sunlight and microalgae 
@@ -669,20 +667,22 @@ C
             ! DO NOT ALLOW WIND SPEEDS ABOVE 11 M/SEC IN THE FOLLOWING EQUATION
             WQWREA=0.728*SQRT(WINDREA)+(0.0372*WINDREA-0.317)*WINDREA  
 C  
+            LE=LEAST(L)
+            LN=LNC(L)
             IF(IWQKA(IZ)==0)THEN  
               WQVREA = WQKRO(IZ)  
               WQWREA = 0.0  
             ELSEIF(IWQKA(IZ)==1)THEN  
               WQVREA = WQKRO(IZ)  
             ELSEIF(IWQKA(IZ)==2)THEN  
-              UMRM = 0.5*(U(L,K)+U(LEAST(L),K))  
-              VMRM = 0.5*(V(L,K)+V(LNC(L),K))  
+              UMRM = 0.5*(U(L,K)+U(LE,K))  
+              VMRM = 0.5*(V(L,K)+V(LN,K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 3.933 TYPICALLY  
               WQVREA = WQKRO(IZ) * XMRM**0.5 / HP(L)**0.5  
             ELSEIF(IWQKA(IZ)==3)THEN  
-              UMRM = MAX(U(L,K), U(LEAST(L),K))  
-              VMRM = MAX(V(L,K), V(LNC(L),K))  
+              UMRM = MAX(U(L,K), U(LE,K))  
+              VMRM = MAX(V(L,K), V(LN,K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 5.32 TYPICALLY  
               WQVREA = WQKRO(IZ) * XMRM**0.67 / HP(L)**1.85  
@@ -691,8 +691,8 @@ C
               ! *** NOTE: NORMALIZED TO A DEPTH OF 1.0 FT, I.E., THIS EQUATION GIVES THE  
               ! ***       SAME REAERATION AS OWENS & GIBBS AT 1.0 FT DEPTH; AT HIGHER  
               ! ***       DEPTHS IT GIVES LARGER REAERATION THAN OWENS & GIBBS.  
-              UMRM = MAX(U(L,K), U(LEAST(L),K))  
-              VMRM = MAX(V(L,K), V(LNC(L),K))  
+              UMRM = MAX(U(L,K), U(LE,K))  
+              VMRM = MAX(V(L,K), V(LN,K))  
               XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               YMRM = HP(L)*3.0*(1.0 - HP(L)/(HP(L)+0.1524))  
               ! *** WQKRO = 5.32 TYPICALLY  

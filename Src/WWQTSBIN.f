@@ -59,7 +59,7 @@ C
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::TOCWQMAX
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::TOCWQMIN
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::TOCWQSUM
-      REAL::P04DWQ_=0.
+      REAL::PO4DWQ_=0.0
 C
       IF(.NOT.ALLOCATED(TNWQMAX))THEN
         ALLOCATE(TNWQMAX(LCMWQ,KCM))  
@@ -91,6 +91,9 @@ C
       ENDIF
 C
 C      DO M=1,IWQTS
+      DO NW=1,NWQVM
+        IF(ISTRWQ(NW)/=0)WQVSUM(2:LA,1:KC,NW)=WQVSUM(2:LA,1:KC,NW)+WQVO(2:LA,1:KC,NW)
+      ENDDO
       DO LL=2,LA
         DO K=1,KC
 C          LL=LWQTS(M)
@@ -102,11 +105,10 @@ C          LL=LWQTS(M)
                 WQVO(LL,K,NW) = WQVO(LL,K,NW)*0.5
               ENDIF
             ENDIF
-            WQVSUM(LL,K,NW) = WQVSUM(LL,K,NW) + WQVO(LL,K,NW)
+!            WQVSUM(LL,K,NW) = WQVSUM(LL,K,NW) + WQVO(LL,K,NW)
             IF(WQVO(LL,K,NW) .LT. WQVMIN(LL,K,NW))THEN
               WQVMIN(LL,K,NW) = WQVO(LL,K,NW)
-            ENDIF
-            IF(WQVO(LL,K,NW) .GT. WQVMAX(LL,K,NW))THEN
+            ELSEIF(WQVO(LL,K,NW) .GT. WQVMAX(LL,K,NW))THEN
               WQVMAX(LL,K,NW) = WQVO(LL,K,NW)
             ENDIF
           ENDDO
