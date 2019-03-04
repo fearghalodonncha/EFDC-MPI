@@ -186,62 +186,27 @@ C
       IF(ISTRAN(5).EQ.1.AND.ISCDCA(5).LT.4)THEN  
        DO NT=1,NTOX  
           M=MSVTOX(NT)  
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    TVAR1S(L,K)=TOX1(L,K,NT)  
-          !    TVAR2S(L,K)=TOX(L,K,NT)  
-          !  ENDDO  
-          !ENDDO  
 C  
-          !CALL CALTRAN (ISTL_,IS2TL_,5,M,TVAR2S,TVAR1S)  
           CALL CALTRAN (ISTL_,IS2TL_,5,M,TOX(1,1,NT),TOX1(1,1,NT))  
 
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    TOX1(L,K,NT)=TVAR1S(L,K)  
-          !    TOX(L,K,NT)=TVAR2S(L,K)  
-          !  ENDDO  
-          !ENDDO  
         ENDDO  
       ENDIF  
       IF(ISTRAN(6).EQ.1.AND.ISCDCA(6).LT.4)THEN  
         DO NS=1,NSED  
           M=MSVSED(NS)  
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    TVAR1S(L,K)=SED1(L,K,NS)  
-          !    TVAR2S(L,K)=SED(L,K,NS)  
-          !  ENDDO  
-          !ENDDO  
+ 
 C  
-          !CALL CALTRAN (ISTL_,IS2TL_,6,M,TVAR2S,TVAR1S)  
           CALL CALTRAN (ISTL_,IS2TL_,6,M,SED(1,1,NS),SED1(1,1,NS))  
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    SED1(L,K,NS)=TVAR1S(L,K)  
-          !    SED(L,K,NS)=TVAR2S(L,K)  
-          !  ENDDO  
-          !ENDDO  
+ 
         ENDDO  
       ENDIF  
       IF(ISTRAN(7).EQ.1.AND.ISCDCA(7).LT.4)THEN  
         DO NS=1,NSND  
           M=MSVSND(NS)  
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    TVAR1S(L,K)=SND1(L,K,NS)  
-          !    TVAR2S(L,K)=SND(L,K,NS)  
-          !  ENDDO  
-          !ENDDO  
+  
 C  
-          !CALL CALTRAN (ISTL_,IS2TL_,7,M,TVAR2S,TVAR1S)  
           CALL CALTRAN (ISTL_,IS2TL_,6,M,SND(1,1,NS),SND1(1,1,NS))  
-          !DO K=1,KC  
-          !  DO L=1,LC  
-          !    SND1(L,K,NS)=TVAR1S(L,K)  
-          !    SND(L,K,NS)=TVAR2S(L,K)  
-          !  ENDDO  
-          !ENDDO  
+ 
         ENDDO  
       ENDIF  
       TSADV=TSADV+SECNDS(TTMP)  

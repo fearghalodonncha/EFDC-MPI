@@ -16,7 +16,6 @@
       USE GLOBAL  
       USE OMP_LIB
 	IMPLICIT NONE
-!      DOUBLE PRECISION LST,LEND,foo
 	INTEGER::ISTL_,IS2TL_,L,K,LS,M,LW,LE,LN,LNW,LSE,MW,MS
 	INTEGER::NMD,LHOST,LCHNU,LCHNV,MH,MU,MV,NTMP
 	INTEGER::LZBMIN,LCDMAX,LCDMIN,LZBMAX,JWCBLV,JWCBLU
@@ -35,11 +34,13 @@
 	REAL::BOTTMP,DWVDHR,DWUDHR,QWCTMPV,QWCTMPU
 	REAL::CDTMPV,CDTMPU,COSWC,CURANG,CDTMPUX
 	REAL::WVDELV,WVDELU,TAUTMP
-      REAL::FRACLAYKM1,FHLAYCKM1,FHLAYWKM1,FHLAYSKM1 !Fractional layer occupancy by vegetation (previously, if the vegetation penetrated a layer at all, the entire layer was considered filled
+!Fractional layer occupancy by vegetation (previously, if the vegetation penetrated a layer at all, the entire layer was considered filled
+      REAL::FRACLAYKM1,FHLAYCKM1,FHLAYWKM1,FHLAYSKM1
       REAL::LAYRATIO !Used to not consider vegetation in a layer unless it occupies more than 10% of the layer
       REAL::LAYTHRESH !Threshhold for when vegetation is considered to enter a layer
-      LAYTHRESH=0.01
-
+      REAL::BLOCKAGE_RATIO !Ensure flow acceleration below macroalgae
+      LAYTHRESH=0.01 !If less than 1% of a layer is occupied by macroalgae, it is considered absent in this layer
+      BLOCKAGE_RATIO=1.0 !initialization
       DELT=DT2  
       ISUD=1  
       IF(ISTL_.NE.3)THEN  
@@ -79,32 +80,32 @@
         RITB=0.0  
         CDLIMIT=0.5  
       ENDIF  
-      IF(ISVEG.GE.2)THEN  
+      IF(ISVEG.GE.2)THEN  !Diagnostic file if ISVEG>=2
         OPEN(1,FILE='CBOT.LOG',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')  
       ENDIF  
-      DO L=2,LA  
-        STBXO(L)=STBX(L)  
-        STBYO(L)=STBY(L)  
-      ENDDO  
-      DO L=1,LC  
-        STBX(L)=0.  
-        STBY(L)=0.  
-      ENDDO  
-      DO K=1,KC  
-        DO L=1,LC  
-          FXVEG(L,K)=0.  
-          FYVEG(L,K)=0.  
-        ENDDO  
-      ENDDO  
+!      DO L=2,LA  
+        STBXO(2:LA)=STBX(2:LA)  !initialization
+        STBYO(2:LA)=STBY(2:LA)  
+!      ENDDO  
+!      DO L=1,LC  
+        STBX(1:LC)=0.  
+        STBY(1:LC)=0.  
+!      ENDDO  
+!      DO K=1,KC  
+!        DO L=1,LC  
+!          FXVEG(L,K)=0.  
+!          FYVEG(L,K)=0.  
+!        ENDDO  
+!      ENDDO  
       N=-2  
       JSTBXY=1  
   100 CONTINUE  
       IF(ISITB.GE.1)THEN  
         IF(ISITB.EQ.1)THEN  
-          CDLIMIT=10.  
+          CDLIMIT=10.0
         ELSE  
-          CDLIMIT=100.  
+          CDLIMIT=100.0
         ENDIF  
       ELSE  
         CDLIMIT=0.5  
@@ -116,11 +117,11 @@
       IF(ISVEG.GE.2)THEN  
         OPEN(1,FILE='CBOT.LOG',POSITION='APPEND',STATUS='UNKNOWN')  
       ENDIF  
-      CDTOTUM=0.  
-      CDTOTVM=0.  
-      CDMAXUM=0.  
-      CDMAXVM=0.  
-      IF(ISVEG.EQ.0) UVEGSCL=1.E-12  
+      CDTOTUM=0.0
+      CDTOTVM=0.0
+      CDMAXUM=0.0
+      CDMAXVM=0.0
+      IF(ISVEG.EQ.0)UVEGSCL=1.0E-12  
       IF(KC.GT.1) GOTO 200  
 !  
 ! **  NORMAL ENTRY INTO STANDARD AND VEGE RESISTANCE CALCULATION  
@@ -142,30 +143,30 @@
           LW=LWEST(L)
           ZBRATU=0.5*(DXP(LW)*ZBR(LW)+DXP(L)*ZBR(L))*DXIU(L)  
           ZBRATV=0.5*(DYP(LS )*ZBR(LS )+DYP(L)*ZBR(L))*DYIV(L)  
-          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-12 )  
-          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-12 )  
+          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-18 )  
+          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-18 )  
           CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
           CDMAXV=CDLIMIT*STBYO(L)*H1V(L)/( DELT*VMAGTMP )  
           HURTMP=MAX(ZBRATU,H1U(L))  
           HVRTMP=MAX(ZBRATV,H1V(L))  
           HUDZBR=HURTMP/ZBRATU  
-          IF(HUDZBR.LT.7.5) HUDZBR=7.5  
+          HUDZBR=MAX(7.5,HUDZBR)  
           HVDZBR=HVRTMP/ZBRATV  
-          IF(HVDZBR.LT.7.5) HVDZBR=7.5  
-          STBX(L)=STBXO(L)*.16/( (LOG( HUDZBR ) -1.)**2)  
-          STBY(L)=STBYO(L)*.16/( (LOG( HVDZBR ) -1.)**2)  
+          HVDZBR=MAX(7.5,HVDZBR)
+          STBX(L)=STBXO(L)*0.16/( (LOG( HUDZBR ) -1.0)**2)  
+          STBY(L)=STBYO(L)*0.16/( (LOG( HVDZBR ) -1.0)**2)  
           STBX(L)=MIN(CDMAXU,STBX(L))  
           STBY(L)=MIN(CDMAXV,STBY(L))  
         ENDIF  
       ENDDO  
 !$OMP END PARALLEL
       IF(ISVEG.GE.1)THEN  
-        K=1  
+        K=1  !Sigle layer
         DO L=2,LA  
           IF(LMASKDRY(L))THEN  
             M=MVEGL(L)
-            FXVEG(L,K)=0.  
-            FYVEG(L,K)=0.  
+            FXVEG(L,K)=0.0
+            FYVEG(L,K)=0.0
 !  
 ! *** DSLLC BEGIN BLOCK  
 !  
@@ -180,8 +181,8 @@
               MS=MVEGL(LS)  
               VTMPATU=0.25*(V(L,K)+V(LW,K)+V(LN,K)+V(LNW,K))  
               UTMPATV=0.25*(U(L,K)+U(LE,K)+U(LS,K)+U(LSE,K))  
-              UMAGTMP=SQRT( U(L,K)*U(L,K)+VTMPATU*VTMPATU +1.E-12 )  
-              VMAGTMP=SQRT( UTMPATV*UTMPATV+V(L,K)*V(L,K) +1.E-12 )  
+              UMAGTMP=SQRT( U(L,K)*U(L,K)+VTMPATU*VTMPATU +1.0E-18 )  
+              VMAGTMP=SQRT( UTMPATV*UTMPATV+V(L,K)*V(L,K) +1.0E-18 )  
               UMAGTMP=MAX(UMAGTMP,UVEGSCL)  
               VMAGTMP=MAX(VMAGTMP,UVEGSCL)  
               CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
@@ -189,42 +190,32 @@
               IF(N.EQ.-2)THEN  
                 VTMPATU=0.25*(V1(L,K)+V1(LW,K)+V1(LN,K)+V1(LNW,K))  
                 UTMPATV=0.25*(U1(L,K)+U1(LE,K)+U1(LS,K)+U1(LSE,K))  
-                UMAGTMP=SQRT( U1(L,K)*U1(L,K)+VTMPATU*VTMPATU+1.E-12 )  
-                VMAGTMP=SQRT( UTMPATV*UTMPATV+V1(L,K)*V1(L,K)+1.E-12 )  
+                UMAGTMP=SQRT( U1(L,K)*U1(L,K)+VTMPATU*VTMPATU+1.0E-18 )  
+                VMAGTMP=SQRT( UTMPATV*UTMPATV+V1(L,K)*V1(L,K)+1.0E-18 )  
               ENDIF  
 CJH           CPVEGU=0.5 ! CHANGED DEFINITION
-              CPVEGU=1.0
-              IF(ISVEGL.EQ.1) CPVEGU=CPVEGU + 10.E-6/(  
-     &            (BPVEG(MW)+BPVEG(M))*UMAGTMP )  
-              IF(CPVEGU.GT.1.0)THEN  
-!  
-!            CALCULATE R FOR LAMINAR FLOW  
-!  
-                CPVEGU=CPVEGU-0.5  
-                RVEGUM=0.  
-              ENDIF  
-              CPVEGU=SCVEG(M)*CPVEGU  
 CHH           CPVEGV=0.5 ! CHANGED DEFINITION
+              CPVEGU=1.0
               CPVEGV=1.0
-              IF(ISVEGL.EQ.1) CPVEGV=CPVEGV + 10.E-6/(  
-     &            (BPVEG(MS)+BPVEG(M))*VMAGTMP )  
-              IF(CPVEGV.GT.1.0)THEN  
-!  
-!            CALCULATE R FOR LAMINAR FLOW  
-!  
-                CPVEGV=CPVEGV-0.5  
+              IF(ISVEGL.EQ.1)THEN
+                CPVEGU=CPVEGU + 10.E-6/((BPVEG(MW)+BPVEG(M))*UMAGTMP)
+                CPVEGU=CPVEGU-0.5 !            CALCULATE R FOR LAMINAR FLOW
+                RVEGUM=0.  
+                CPVEGV=CPVEGV + 10.E-6/((BPVEG(MS)+BPVEG(M))*VMAGTMP)
+                CPVEGV=CPVEGV-0.5 !            CALCULATE R FOR LAMINAR FLOW 
                 RVEGVM=0.  
-              ENDIF  
+              ENDIF
+              CPVEGU=SCVEG(M)*CPVEGU  
               CPVEGV=SCVEG(M)*CPVEGV  
               HVGTC=MIN(HPVEG(M),HP(L))  
-              HVGTW=MIN(HPVEG(MW),HP(LWEST(L)))  
+              HVGTW=MIN(HPVEG(MW),HP(LW))  
               HVGTS=MIN(HPVEG(MS),HP(LS))  
-              FXVEG(L,K)=0.25*CPVEGU*( DXP(L)*(BDLPSQ(M)*HVGTC/PVEGZ(M))  
-     &            +DXP(LWEST(L))*(BDLPSQ(MW)*HVGTW/PVEGZ(MW)) )*DXIU(L)  
-              FYVEG(L,K)=0.25*CPVEGV*( DYP(L)*(BDLPSQ(M)*HVGTC/PVEGZ(M))  
-     &            +DYP(LS)*(BDLPSQ(MS)*HVGTS/PVEGZ(MS)) )*DYIV(L)  
-              FXVEG(L,K)=MIN(FXVEG(L,K),CDMAXU)  
-              FYVEG(L,K)=MIN(FYVEG(L,K),CDMAXU)
+              FXVEG(L,K)=MIN(CDMAXU,0.25*CPVEGU*( DXP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))  
+     &                                           +DXP(LW)*(BDLPSQ(MW)*HVGTW/PVEGZ(MW)) )*DXIU(L))
+              FYVEG(L,K)=MIN(CDMAXV,0.25*CPVEGV*( DYP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))  
+     &                                           +DYP(LS)*(BDLPSQ(MS)*HVGTS/PVEGZ(MS)) )*DYIV(L))
+!              FXVEG(L,K)=MIN(FXVEG(L,K),CDMAXU)  
+!              FYVEG(L,K)=MIN(FYVEG(L,K),CDMAXV)
             ENDIF  
 !  
 ! *** DSLLC END BLOCK  
@@ -241,14 +232,14 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
 ! **  BEGIN SMOOTH DRAG FORMULATION  
 !  
-      VISEXP=2./7.
+      VISEXP=0.285714285714 !2/7
       VISFAC=0.0258*(COEFTSBL**VISEXP)
 !
       DO L=2,LA  
         IF(LMASKDRY(L))THEN  
-          IF(ZBR(L).LE.1.E-6)THEN  
-            UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-12 )  
-            VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-12 )  
+          IF(ZBR(L).LE.1.0E-06)THEN  
+            UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.0E-18 )  
+            VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.0E-18 )  
             CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
             CDMAXV=CDLIMIT*STBYO(L)*H1V(L)/( DELT*VMAGTMP )  
             VISMUDU=VISMUD
@@ -259,15 +250,14 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
               SEDTMP=0.5*(SED(L,1,1)+SED(LSC(L),1,1))  
               VISMUDV=CSEDVIS(SEDTMP)  
             ENDIF  
-! **  DELETED COMMENTED OUT LINES & UNUSED VARIABLES
             VISDHU=0.0
             VISDHV=0.0
             IF(UMAGTMP.GT.0.0) VISDHU=(VISMUDU*HUI(L)/UMAGTMP)*VISEXP
             IF(VMAGTMP.GT.0.0) VISDHV=(VISMUDV*HVI(L)/VMAGTMP)*VISEXP
-            STBX(L)=VISFAC*AVCON*STBXO(L)*VISDHU
-            STBY(L)=VISFAC*AVCON*STBYO(L)*VISDHV
-            STBX(L)=MIN(CDMAXU,STBX(L))  
-            STBY(L)=MIN(CDMAXV,STBY(L))  
+            STBX(L)=MIN(CDMAXU,VISFAC*AVCON*STBXO(L)*VISDHU)
+            STBY(L)=MIN(CDMAXV,VISFAC*AVCON*STBYO(L)*VISDHV)
+!            STBX(L)=MIN(CDMAXU,STBX(L))  
+!            STBY(L)=MIN(CDMAXV,STBY(L))  
           ENDIF  
         ENDIF  
       ENDDO  
@@ -281,57 +271,53 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !$OMP& UMAGTMP,VMAGTMP,CDMAXU,CDMAXV,HURTMP,HVRTMP,
 !$OMP& DZHUDZBR,DZHVDZBR)
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-
-	    DO L=2,LA  
+	  DO L=2,LA  
           IF(LMASKDRY(L))THEN  
             LS=LSC(L)  
             LW=LWEST(L)
-            IF(ZBR(L).GT.1.E-6)THEN  
+            IF(ZBR(L).GT.1.0E-6)THEN  
               ZBRATU=0.5*(DXP(LW)*ZBR(LW)+DXP(L)*ZBR(L))*DXIU(L)  
               ZBRATV=0.5*(DYP(LS )*ZBR(LS )+DYP(L)*ZBR(L))*DYIV(L)  
-              UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-12 )  
-              VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-12 )  
+              UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.0E-18 )  
+              VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.0E-18 )  
               CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
               CDMAXV=CDLIMIT*STBYO(L)*H1V(L)/( DELT*VMAGTMP )  
               HURTMP=MAX(ZBRATU,H1U(L))  
               HVRTMP=MAX(ZBRATV,H1V(L))  
-              DZHUDZBR=1.+0.5*DZC(1)*HURTMP/ZBRATU  
-              DZHVDZBR=1.+0.5*DZC(1)*HVRTMP/ZBRATV  
+              DZHUDZBR=1.0+0.5*DZC(1)*HURTMP/ZBRATU  
+              DZHVDZBR=1.0+0.5*DZC(1)*HVRTMP/ZBRATV  
 !  
-              STBX(L)=AVCON*STBXO(L)*.16/((LOG(DZHUDZBR))**2)  
-              STBY(L)=AVCON*STBYO(L)*.16/((LOG(DZHVDZBR))**2)  
-              STBX(L)=MIN(CDMAXU,STBX(L))  
-              STBY(L)=MIN(CDMAXV,STBY(L))  
+              STBX(L)=MIN(CDMAXU,AVCON*STBXO(L)*0.16/((LOG(DZHUDZBR))**2))
+              STBY(L)=MIN(CDMAXV,AVCON*STBYO(L)*0.16/((LOG(DZHVDZBR))**2))
+!              STBX(L)=MIN(CDMAXU,STBX(L))  
+!              STBY(L)=MIN(CDMAXV,STBY(L))  
             ENDIF  
           ENDIF  
         ENDDO  
 !$OMP END PARALLEL
-
       ELSEIF(N.EQ.-2)THEN
         DO L=2,LA  
           LS=LSC(L)  
           ZBRATU=0.5*(DXP(LWEST(L))*ZBR(LWEST(L))+DXP(L)*ZBR(L))*DXIU(L)  
           ZBRATV=0.5*(DYP(LS )*ZBR(LS )+DYP(L)*ZBR(L))*DYIV(L)  
-          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-12 )  
-          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-12 )  
+          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.0E-18 )  
+          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.0E-18 )  
           CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
           CDMAXV=CDLIMIT*STBYO(L)*H1V(L)/( DELT*VMAGTMP )  
           HURTMP=MAX(ZBRATU,H1U(L))  
           HVRTMP=MAX(ZBRATV,H1V(L))  
-          DZHUDZBR=1.+0.5*DZC(1)*HURTMP/ZBRATU  
-          DZHVDZBR=1.+0.5*DZC(1)*HVRTMP/ZBRATV  
+          DZHUDZBR=1.+0.5*DZC(1)*HURTMP/(ZBRATU+1.0E-18)
+          DZHVDZBR=1.+0.5*DZC(1)*HVRTMP/(ZBRATV+1.0E-18)
 !  
-          STBX(L)=AVCON*STBXO(L)*.16/((LOG(DZHUDZBR))**2)  
-          STBY(L)=AVCON*STBYO(L)*.16/((LOG(DZHVDZBR))**2)  
-          STBX(L)=MIN(CDMAXU,STBX(L))  
-          STBY(L)=MIN(CDMAXV,STBY(L)) 
+          STBX(L)=MIN(CDMAXU,AVCON*STBXO(L)*.16/((LOG(DZHUDZBR))**2))
+          STBY(L)=MIN(CDMAXV,AVCON*STBYO(L)*.16/((LOG(DZHVDZBR))**2))
+!          STBX(L)=MIN(CDMAXU,STBX(L))  
+!          STBY(L)=MIN(CDMAXV,STBY(L)) 
         ENDDO  
       ENDIF  
 !  
 ! **  END ROUGH DRAG FORMULATION  
 !  
-
-!
       IF(ISVEG.GE.1)THEN  
         DO K=1,KC  
           DO L=2,LA  
@@ -342,8 +328,7 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
 ! *** DSLLC BEGIN BLOCK  
 !  
-              IF(M.NE.MVEGOW.AND.M.NE.0.AND.M<=90)THEN
-                ! *** M=0 FOR OPEN WATER  
+              IF(M.NE.MVEGOW.AND.M.NE.0.AND.M<=90)THEN ! *** M=0 FOR OPEN WATER  
                 LW=LWEST(L)  
                 LE=LEAST(L)  
                 LS=LSC(L)  
@@ -354,42 +339,32 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
                 MS=MVEGL(LS)  
                 VTMPATU=0.25*(V(L,K)+V(LW,K)+V(LN,K)+V(LNW,K))  
                 UTMPATV=0.25*(U(L,K)+U(LE,K)+U(LS,K)+U(LSE,K))  
-                UMAGTMP=SQRT( U(L,K)*U(L,K)+VTMPATU*VTMPATU +1.E-12 )  
-                VMAGTMP=SQRT( UTMPATV*UTMPATV+V(L,K)*V(L,K) +1.E-12 )  
-                UMAGTMP=MAX(UMAGTMP,UVEGSCL)  
-                VMAGTMP=MAX(VMAGTMP,UVEGSCL)  
+                UMAGTMP=MAX(UVEGSCL,SQRT(U(L,K)*U(L,K)+VTMPATU*VTMPATU+1.0E-18))
+                VMAGTMP=MAX(UVEGSCL,SQRT(UTMPATV*UTMPATV+V(L,K)*V(L,K)+1.0E-18))
+!                UMAGTMP=MAX(UMAGTMP,UVEGSCL)
+!                VMAGTMP=MAX(VMAGTMP,UVEGSCL)
                 CDMAXU=CDLIMIT*STBXO(L)*H1U(L)/( DELT*UMAGTMP )  
                 CDMAXV=CDLIMIT*STBYO(L)*H1V(L)/( DELT*VMAGTMP )  
                 IF(N.EQ.-2)THEN  
                   VTMPATU=0.25*(V1(L,K)+V1(LW,K)+V1(LN,K)+V1(LNW,K))  
                   UTMPATV=0.25*(U1(L,K)+U1(LE,K)+U1(LS,K)+U1(LSE,K))  
-                  UMAGTMP=SQRT( U1(L,K)*U1(L,K)+VTMPATU*VTMPATU+1.E-12 )  
-                  VMAGTMP=SQRT( UTMPATV*UTMPATV+V1(L,K)*V1(L,K)+1.E-12 )  
+                  UMAGTMP=SQRT( U1(L,K)*U1(L,K)+VTMPATU*VTMPATU)  
+                  VMAGTMP=SQRT( UTMPATV*UTMPATV+V1(L,K)*V1(L,K))  
                 ENDIF  
 !JH             CPVEGU=0.5 ! CHANGED DEFINITION
-                CPVEGU=1.0
-                IF(ISVEGL.EQ.1) CPVEGU=CPVEGU + 10.E-6/  
-     &              ((BPVEG(MW)+BPVEG(M))*UMAGTMP )  
-                IF(CPVEGU.GT.1.0)THEN  
-!  
-!            CALCULATE R FOR LAMINAR FLOW  
-!  
-                  CPVEGU=CPVEGU-0.5  
-                  RVEGUM=0.  
-                ENDIF  
-                CPVEGU=SCVEG(M)*CPVEGU  
 !JH             CPVEGV=0.5 ! CHANGED DEFINITION
+                CPVEGU=1.0
                 CPVEGV=1.0
-                IF(ISVEGL.EQ.1) CPVEGV=CPVEGV + 10.E-6/
-     &              ((BPVEG(MS)+BPVEG(M))*VMAGTMP )  
-                IF(CPVEGV.GT.1.0)THEN  
-!  
-!            CALCULATE R FOR LAMINAR FLOW  
-!  
-                  CPVEGV=CPVEGV-0.5  
+                IF(ISVEGL.EQ.1)THEN
+                  CPVEGU=CPVEGU + 10.E-6/((BPVEG(MW)+BPVEG(M))*UMAGTMP)-0.5 !            CALCULATE R FOR LAMINAR FLOW
+!                  CPVEGU=CPVEGU-0.5  
+                  RVEGUM=0.  
+                  CPVEGV=CPVEGV + 10.E-6/((BPVEG(MS)+BPVEG(M))*VMAGTMP)-0.5!            CALCULATE R FOR LAMINAR FLOW
+!                  CPVEGV=CPVEGV-0.5  
                   RVEGVM=0.  
-                ENDIF  
-                CPVEGV=SCVEG(M)*CPVEGV  !shape-factor times 1 or laminar-flow drag coefficient
+                ENDIF
+                CPVEGU=SCVEG(M)*CPVEGU  
+                CPVEGV=SCVEG(M)*CPVEGV  !shape-factor times 1 or laminar-flow drag coefficient 
                 FRACLAY=FLOAT(K)/FLOAT(KC)  !top of the layer (normalized)
                 FHLAYC=FRACLAY*HP(L)  !z location of the normalized top of the sigma layer of the cell
                 FHLAYW=FRACLAY*HP(LW) !z location of the normalized top of the sigma layer of the cell to the west
@@ -403,62 +378,66 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
                 FHLAYCKM1=FRACLAYKM1*HP(L)   !z location of the normalized top of the next sigma layer down of the cell
                 FHLAYWKM1=FRACLAYKM1*HP(LW)  !z location of the normalized top of the next sigma layer down of the cell to the west
                 FHLAYSKM1=FRACLAYKM1*HP(LS)  !z location of the normalized top of the next sigma layer down of the cell to the south
-
-! SCJ: End of the new code block
                 IF(GAMVEG(M)==0.0)THEN !Flag for regular vegetation
-                  IF(HPVEG(M).GT.FHLAYC)THEN !is the vegetation fully penetrating this layer?
-                    HVGTC=HP(L) !set the height equal to the water column depth, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(HPVEG(M).GT.FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
+                  IF(HPVEG(M)>FHLAYC)THEN !is the vegetation fully penetrating this layer?
+!set the height equal to the water column depth, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTC=HP(L)
+                  ELSEIF(HPVEG(M)>FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
                     LAYRATIO=(HPVEG(M)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTC=HP(L)*LAYRATIO !account for fractional layer in this cell
                   ELSE
                     HVGTC=0.0 !absent in this layer
                   ENDIF
-                  IF(HPVEG(MW).GT.FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
-                    HVGTW=HP(LW)  !set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(HPVEG(MW).GT.FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
+                  IF(HPVEG(MW)>FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
+!set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTW=HP(LW)
+                  ELSEIF(HPVEG(MW)>FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
                     LAYRATIO=(HPVEG(MW)-FHLAYWKM1)/(FHLAYW-FHLAYWKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTW=HP(LW)*LAYRATIO !account for fractional layer to the west
                   ELSE
                     HVGTW=0.0 !absent in this layer
                   ENDIF
-                  IF(HPVEG(MS).GT.FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
-                    HVGTS=HP(LS)  !set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(HPVEG(MS).GT.FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
+                  IF(HPVEG(MS)>FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
+!set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTS=HP(LS)
+                  ELSEIF(HPVEG(MS)>FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
                     LAYRATIO=(HPVEG(MS)-FHLAYSKM1)/(FHLAYS-FHLAYSKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTS=HP(LS)*LAYRATIO !account for fractional layer to the south
                   ELSE
                     HVGTS=0.0 !absent in this layer
                   ENDIF
-                  FXVEG(L,K)=0.25*CPVEGU*(DXP(L)*(BDLPSQ(M)*HVGTC/PVEGZ(M))
-     &              +DXP(LW)*(BDLPSQ(MW)*HVGTW/PVEGZ(MW)) )*DXIU(L) 
-                  FYVEG(L,K)=0.25*CPVEGV*(DYP(L)*(BDLPSQ(M)*HVGTC/PVEGZ(M))
-     &              +DYP(LS)*(BDLPSQ(MS)*HVGTS/PVEGZ(MS)) )*DYIV(L) 
+                  FXVEG(L,K)=0.25*CPVEGU*(DXP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))
+     &                                   +DXP(LW)*(BDLPSQ(MW)*HVGTW/PVEGZ(MW)) )*DXIU(L) 
+                  FYVEG(L,K)=0.25*CPVEGV*(DYP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))
+     &                                   +DYP(LS)*(BDLPSQ(MS)*HVGTS/PVEGZ(MS)) )*DYIV(L) 
                 ELSE !GAMVEG(M)/=0.0 for macroalgae
-                  IF(ZMAXMAC(L).GT.FHLAYC)THEN !is the vegetation fully penetrating this layer?
-                    HVGTC=HP(L) !set the height equal to the water column depth, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(ZMAXMAC(L).GT.FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
+                  IF(ZMAXMAC(L)>FHLAYC)THEN !is the vegetation fully penetrating this layer?
+!set the height equal to the water column depth, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTC=HP(L)
+                  ELSEIF(ZMAXMAC(L)>FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
                     LAYRATIO=(ZMAXMAC(L)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTC=HP(L)*LAYRATIO !account for fractional layer in this cell
                   ELSE
                     HVGTC=0.0 !absent in this layer
                   ENDIF
-                  IF(ZMAXMAC(LW).GT.FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
-                    HVGTW=HP(LW)  !set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(ZMAXMAC(LW).GT.FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
+                  IF(ZMAXMAC(LW)>FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
+!set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTW=HP(LW)
+                  ELSEIF(ZMAXMAC(LW)>FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
                     LAYRATIO=(ZMAXMAC(LW)-FHLAYWKM1)/(FHLAYW-FHLAYWKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTW=HP(LW)*LAYRATIO !account for fractional layer to the west
                   ELSE
                     HVGTW=0.0 !absent in this layer
                   ENDIF
-                  IF(ZMAXMAC(LS).GT.FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
-                    HVGTS=HP(LS)  !set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC in CALEXP2T
-                  ELSEIF(ZMAXMAC(LS).GT.FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
+                  IF(ZMAXMAC(LS)>FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
+!set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                    HVGTS=HP(LS)
+                  ELSEIF(ZMAXMAC(LS)>FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
                     LAYRATIO=(ZMAXMAC(LS)-FHLAYSKM1)/(FHLAYS-FHLAYSKM1)
                     IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
                     HVGTS=HP(LS)*LAYRATIO !account for fractional layer to the south
@@ -486,22 +465,23 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
                     IF(LAYRATIO<0.1)LAYRATIO=0.0
                     HVGTS=HP(LS)*LAYRATIO
                   ENDIF
-                  FXVEG(L,K)=0.25*CPVEGU*(DXP(L)*(MACAD(L)*HVGTC/(MVEGZ(L)+1.0E-18))
-     &              +DXP(LW)*(MACAD(LW)*HVGTW/(MVEGZ(LW)+1.0E-18)) )*DXIU(L) 
-                  FYVEG(L,K)=0.25*CPVEGV*(DYP(L)*(MACAD(L)*HVGTC/(MVEGZ(L)+1.0E-18))
-     &              +DYP(LS)*(MACAD(LS)*HVGTS/(MVEGZ(LS)+1.0E-18)) )*DYIV(L) 
+!This augments the internal-mode causing vertical shear drag force according to the vertical blockage ratio
+                  BLOCKAGE_RATIO=1.0+ALPVEG(M)*(ZMAXMAC(L)-ZMINMAC(L))/HP(L)
+                  FXVEG(L,K)=BLOCKAGE_RATIO*0.25*CPVEGU*(DXP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                  +DXP(LW)*(MACAD(LW)*HVGTW/(MVEGZ(LW)+1.0E-18)) )*DXIU(L) 
+                  FYVEG(L,K)=BLOCKAGE_RATIO*0.25*CPVEGV*(DYP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                  +DYP(LS)*(MACAD(LS)*HVGTS/(MVEGZ(LS)+1.0E-18)) )*DYIV(L) 
                 ENDIF
-
                 FXVEG(L,K)=MIN(FXVEG(L,K),CDMAXU)  
                 FYVEG(L,K)=MIN(FYVEG(L,K),CDMAXU)
-               ENDIF  
+              ENDIF  
 !  
 ! *** DSLLC END BLOCK  
 !  
             ENDIF  
           ENDDO  
-        ENDDO  
-      ENDIF  
+        ENDDO
+      ENDIF
   300 CONTINUE  
 !  
 ! ** SUBGRID SCALE CHANNEL FRICTION  
@@ -526,11 +506,11 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
             ZBRATU=ZBRATU/RLCHN  
             HURTMP=MAX(ZBRATU,HCHAN)  
             HUDZBR=HURTMP/ZBRATU  
-            IF(HUDZBR.LT.7.5) HUDZBR=7.5  
-            STBXCH=0.16/( (LOG( HUDZBR ) -1.)**2)  
-            CDMAXU=HCHAN*HCHAN*WCHAN/( DELT*(QCHANU(NMD)+1.E-12) )  
-            STBXCH=MAX(STBXCH,CDMAXU)  
-            STBXCH=MAX(STBXCH,0.1)  
+            HUDZBR=MAX(7.5,HUDZBR)  
+            STBXCH=0.16/( (LOG( HUDZBR ) - 1.0)**2)  
+            CDMAXU=HCHAN*HCHAN*WCHAN/( DELT*(QCHANU(NMD)+1.0E-12) )  
+            STBXCH=MAX(STBXCH,CDMAXU,0.1)
+!            STBXCH=MAX(STBXCH,0.1)  
             FXVEGCH=0.0  
             IF(MU.GT.0) FXVEGCH=  
      &          0.5*(0.5*DYP(LCHNU)*(BDLPSQ(MU)*H1P(LCHNU)/PVEGZ(MU))  
@@ -551,11 +531,11 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
             ZBRATV=ZBRATV/RLCHN  
             HVRTMP=MAX(ZBRATV,HCHAN)  
             HVDZBR=HVRTMP/ZBRATV  
-            IF(HVDZBR.LT.7.5) HVDZBR=7.5  
-            STBYCH=0.16/( (LOG( HVDZBR ) -1.)**2)  
-            CDMAXV=HCHAN*HCHAN*WCHAN/( DELT*(QCHANV(NMD)+1.E-12) )  
-            STBYCH=MAX(STBYCH,CDMAXV)  
-            STBYCH=MAX(STBYCH,0.1)  
+            HVDZBR=MAX(7.5,HVDZBR)  
+            STBYCH=0.16/( (LOG( HVDZBR ) -1.0)**2)  
+            CDMAXV=HCHAN*HCHAN*WCHAN/( DELT*(QCHANV(NMD)+1.0E-12) )  
+            STBYCH=MAX(STBYCH,CDMAXV,0.1)
+!            STBYCH=MAX(STBYCH,0.1)  
             FYVEGCH=0.0  
             IF(MV.GT.0) FYVEGCH=  
      &          0.5*(0.5*DXP(LCHNV)*(BDLPSQ(MV)*H1P(LCHNV)/PVEGZ(MV))  
@@ -568,7 +548,7 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
         DO L=2,LA  
           M=MVEGL(L)  
           MW=MVEGL(LWEST(L))  
-          MS=MVEGL(LSC(L))  
+          MS=MVEGL(LSC(L))
           WRITE(1,1122)N,IL(L),JL(L),MVEGL(L),PVEGZ(M),PVEGZ(MS),  
      &        PVEGZ(MW),STBX(L),STBY(L)  
           WRITE(1,1123)(FXVEG(L,K),K=1,KC)  
@@ -584,10 +564,10 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
  1947 CONTINUE  
       IF(JSTBXY.EQ.0)THEN  
-        DO L=2,LA  
-          STBXO(L)=STBX(L)  
-          STBYO(L)=STBY(L)  
-        ENDDO  
+!        DO L=2,LA  
+          STBXO(2:LA)=STBX(2:LA)  
+          STBYO(2:LA)=STBY(2:LA)  
+!        ENDDO  
         N=0  
         JSTBXY=1  
         IF(ISDZBR.GE.1)THEN  
@@ -611,7 +591,7 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 ! *** DSLLC BEGIN BLOCK  
 !  
       DO L=2,LA  
-        IF(UWVSQ(L).GT.1.E-6 .AND. LMASKDRY(L))THEN  
+        IF(UWVSQ(L).GT.1.0E-6 .AND. LMASKDRY(L))THEN  
           QQWCTMP=SQRT( QQWV2(L)*QQWV2(L)+QQ(L,0)*QQ(L,0) )  
           TWCTMP=QQWCTMP/CTURB2  
 !  
@@ -619,13 +599,13 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
           AEXTMP=WVWHA(L)/SINH(WVKHP(L))  
           ZBRE(L)=ZBR(L)  
-          IF(QQ(L,0).GT.0.)THEN  
-            TMPVAL=UWVSQ(L)*SQRT( AEXTMP/(30.*ZBR(L)) )  
+          IF(QQ(L,0).GT.0.0)THEN  
+            TMPVAL=UWVSQ(L)*SQRT( AEXTMP/(30.0*ZBR(L)) )  
             USTARC=SQRT(QQ(L,0)/CTURB2)  
             TMPVAL=TMPVAL/USTARC  
-            ZBRE(L)=ZBR(L)*(1.+0.19*TMPVAL)  
+            ZBRE(L)=ZBR(L)*(1.0+0.19*TMPVAL)  
           ENDIF  
-          CDRGTMP=(30.*ZBRE(L)/AEXTMP)**0.2  
+          CDRGTMP=(30.0*ZBRE(L)/AEXTMP)**0.2  
           CDRGTMP=5.57*CDRGTMP-6.13  
           CDRGTMP=EXP(CDRGTMP)  
           CDRGTMP=MIN(CDRGTMP,0.22)  
@@ -648,8 +628,8 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
             ENDIF  
             RIPAMP=RIPAMP*WVWHA(L)/SINH(WVKHP(L))  
             TMPVAL=0.  
-            IF(RIPAMP.GT.0.) TMPVAL=LOG(RIPAMP/ZBRE(L))-1.  
-            TMPVAL=MAX(TMPVAL,0.)  
+            IF(RIPAMP.GT.0.) TMPVAL=LOG(RIPAMP/ZBRE(L))-1.0
+            TMPVAL=MAX(TMPVAL,0.0)  
             RIPFAC=1.+3.125*TMPVAL*TMPVAL*RIPSTP  
             QQWV3(L)=RIPFAC*QQWV2(L)  
             QQWCR(L)=SQRT( QQWV3(L)*QQWV3(L)+QQ(L,0)*QQ(L,0) )  
@@ -665,61 +645,62 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
 ! *** DSLLC END BLOCK  
 !  
-      ZBRMAX=-(1.E+12)*ZBRADJ  
-      ZBRMIN=(1.E+12)*ZBRADJ  
-      CDRGMAX=-1.E+12  
-      CDRGMIN=1.E+12  
+      ZBRMAX=-(1.0E+12)*ZBRADJ  
+      ZBRMIN=(1.0E+12)*ZBRADJ  
+      CDRGMAX=-1.0E+12  
+      CDRGMIN=1.0E+12  
       IF(ISWAVE.EQ.1.OR.ISWAVE.EQ.2)WVDTMP=0.4/(WVFRQ*CTURB3)  
       RKZTURB=0.4/CTURB3  
       DO L=2,LA  
         IF(LMASKDRY(L))THEN
           LS=LSC(L)  
-          LN=LNC(L)  
-          UTMP=0.5*STCUV(L)*(U(LEAST(L),1)+U(L,1))+1.E-12  
+          LN=LNC(L)
+          LE=LEAST(L)
+          UTMP=0.5*STCUV(L)*(U(LE,1)+U(L,1))+1.0E-12  
           VTMP=0.5*STCUV(L)*(V(LN,1)+V(L,1))  
           CURANG=ATAN2(VTMP,UTMP)  
           COSWC=COS(CURANG-WACCWE(L))  
-          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.E-12 )  
-          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.E-12 )  
+          UMAGTMP=SQRT( U1(L,1)*U1(L,1)+V1U(L)*V1U(L)+1.0E-18)  
+          VMAGTMP=SQRT( U1V(L)*U1V(L)+V1(L,1)*V1(L,1)+1.0E-18)  
           CDMAXU=STBXO(L)*H1U(L)/( 4.*DELT*UMAGTMP )  
           CDMAXV=STBYO(L)*H1V(L)/( 4.*DELT*VMAGTMP )  
-          CDTMPU=-1.  
-          CDTMPV=-1.  
-          QWCTMPU=0.5*( QQWV2(L)+QQWV2(LEAST(L)) )  
+          CDTMPU=-1.0
+          CDTMPV=-1.0
+          QWCTMPU=0.5*( QQWV2(L)+QQWV2(LE) )  
           QWCTMPV=0.5*( QQWV2(L)+QQWV2(LS ) )  
           IF(ISWCBL.EQ.2)THEN  
-            QWCTMPU=0.5*( QQWC(L)+QQWC(LEAST(L)) )  
+            QWCTMPU=0.5*( QQWC(L)+QQWC(LE) )  
             QWCTMPV=0.5*( QQWC(L)+QQWC(LS ) )  
           ENDIF 
           IF(ISWAVE.EQ.3)THEN  
-            IF(WVFRQL(L).GT.1E-6)THEN
+            IF(WVFRQL(L).GT.1.0E-6)THEN
               WVDTMP=0.4/(WVFRQL(L)*CTURB3)
             ELSE
-              WVDTMP=0.
+              WVDTMP=0.0
             ENDIF
           ENDIF  
           WVDELU=WVDTMP*SQRT(QWCTMPU)  
           WVDELV=WVDTMP*SQRT(QWCTMPV)  
-          QWCTMPU=0.5*( QQWCR(L)+QQWCR(LEAST(L)) )  
+          QWCTMPU=0.5*( QQWCR(L)+QQWCR(LE) )  
           QWCTMPV=0.5*( QQWCR(L)+QQWCR(LS ) )  
           QWCTMPU=SQRT(QWCTMPU)  
           QWCTMPV=SQRT(QWCTMPV)  
-          QCTMPU=0.5*( QQ(L,0)+QQ(LEAST(L),0) )  
+          QCTMPU=0.5*( QQ(L,0)+QQ(LE,0) )  
           QCTMPV=0.5*( QQ(L,0)+QQ(LS ,0) )  
           QWDQCU=QWCTMPU/SQRT(QCTMPU)  
           QWDQCV=QWCTMPV/SQRT(QCTMPV)  
           HZREFU=DZC(1)*H1U(L)  
           HZREFV=DZC(1)*H1V(L)  
-          ZBREU=0.5*(ZBRE(L)+ZBRE(LEAST(L)))  
+          ZBREU=0.5*(ZBRE(L)+ZBRE(LE))  
           ZBREV=0.5*(ZBRE(L)+ZBRE(LS ))  
           ZDHZRU=ZBREU/HZREFU  
           ZDHZRV=ZBREV/HZREFV  
-          HZRUDZ=1./ZDHZRU  
-          HZRVDZ=1./ZDHZRV  
+          HZRUDZ=1.0/ZDHZRU  
+          HZRVDZ=1.0/ZDHZRV  
           DWUD2Z=0.5*WVDELU/ZBREU  
           DWVD2Z=0.5*WVDELV/ZBREV  
-          DWUDZ=2.*DWUD2Z  
-          DWVDZ=2.*DWVD2Z  
+          DWUDZ=2.0*DWUD2Z  
+          DWVDZ=2.0*DWVD2Z  
           DWUDHR=WVDELU/HZREFU  
           DWVDHR=WVDELV/HZREFV  
           CDTMPUX=RKZTURB*QWCTMPU  
@@ -727,38 +708,38 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
           JWCBLU=0  
           JWCBLV=0  
           IF( HZRUDZ.LE.DWUD2Z)THEN  
-            CDTMPU=CDTMPUX/( (1.+ZDHZRU)*LOG(1.+HZRUDZ)-1. )  
+            CDTMPU=CDTMPUX/( (1.0+ZDHZRU)*LOG(1.+HZRUDZ)-1.0 )  
             JWCBLU=1  
           ENDIF  
           IF( HZRVDZ.LE.DWVD2Z)THEN  
-            CDTMPV=CDTMPVY/( (1.+ZDHZRV)*LOG(1.+HZRVDZ)-1. )  
+            CDTMPV=CDTMPVY/( (1.0+ZDHZRV)*LOG(1.+HZRVDZ)-1.0 )  
             JWCBLV=1  
           ENDIF  
           IF( HZRUDZ.GT.DWUD2Z.AND.HZRUDZ.LE.DWUDZ)THEN  
-            BOTTMP=(1.+ZDHZRU)*LOG(1.+DWUD2Z)-0.5*DWUDHR  
-     &        +0.5*HZRUDZ*(1.-0.5*DWUDHR)*(1.-0.5*DWUDHR)/(1.+DWUD2Z)  
+            BOTTMP=(1.0+ZDHZRU)*LOG(1.0+DWUD2Z)-0.5*DWUDHR  
+     &        +0.5*HZRUDZ*(1.0-0.5*DWUDHR)*(1.0-0.5*DWUDHR)/(1.0+DWUD2Z)  
           CDTMPU=CDTMPUX/BOTTMP  
           JWCBLU=2  
         ENDIF  
         IF( HZRVDZ.GT.DWVD2Z.AND.HZRVDZ.LE.DWVDZ)THEN  
-          BOTTMP=(1.+ZDHZRV)*LOG(1.+DWVD2Z)-0.5*DWVDHR  
-     &        +0.5*HZRVDZ*(1.-0.5*DWVDHR)*(1.-0.5*DWVDHR)/(1.+DWVD2Z)  
+          BOTTMP=(1.0+ZDHZRV)*LOG(1.+DWVD2Z)-0.5*DWVDHR  
+     &        +0.5*HZRVDZ*(1.0-0.5*DWVDHR)*(1.0-0.5*DWVDHR)/(1.+DWVD2Z)  
           CDTMPV=CDTMPVY/BOTTMP  
           JWCBLV=2  
         ENDIF  
         IF( HZRUDZ.GT.DWUDZ)THEN  
-          BOTTMP=QWDQCU*( (1.+ZDHZRU)*(LOG(1.+HZRUDZ)-LOG(1.+DWUDZ))  
-     &        +DWUDHR-1. )  
-          BOTTMP=BOTTMP+(1.+ZDHZRU)*LOG(1.+DWUD2Z)  
-     &        +DWUD2Z*(1.-1.25*DWUDHR-ZDHZRU)/(1.+DWUD2Z)  
+          BOTTMP=QWDQCU*( (1.0+ZDHZRU)*(LOG(1.0+HZRUDZ)-LOG(1.0+DWUDZ))  
+     &        +DWUDHR-1.0 )  
+          BOTTMP=BOTTMP+(1.0+ZDHZRU)*LOG(1.0+DWUD2Z)  
+     &        +DWUD2Z*(1.0-1.25*DWUDHR-ZDHZRU)/(1.0+DWUD2Z)  
           CDTMPU=CDTMPUX/BOTTMP  
           JWCBLU=3  
         ENDIF  
         IF( HZRVDZ.GT.DWVDZ)THEN  
-          BOTTMP=QWDQCV*( (1.+ZDHZRV)*(LOG(1.+HZRVDZ)-LOG(1.+DWVDZ))  
-     &        +DWVDHR-1. )  
-          BOTTMP=BOTTMP+(1.+ZDHZRV)*LOG(1.+DWVD2Z)  
-     &        +DWVD2Z*(1.-1.25*DWVDHR-ZDHZRV)/(1.+DWVD2Z)  
+          BOTTMP=QWDQCV*( (1.0+ZDHZRV)*(LOG(1.0+HZRVDZ)-LOG(1.0+DWVDZ))  
+     &        +DWVDHR-1.0 )  
+          BOTTMP=BOTTMP+(1.0+ZDHZRV)*LOG(1.0+DWVD2Z)  
+     &        +DWVD2Z*(1.0-1.25*DWVDHR-ZDHZRV)/(1.0+DWVD2Z)  
             CDTMPV=CDTMPVY/BOTTMP  
             JWCBLV=3  
           ENDIF  
@@ -773,12 +754,12 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
               WRITE(1,1781) ZBREV,WVDELV,HZREFV,CDTMPV,CDMAXV  
             ENDIF  
           ENDIF
-          IF(CDTMPU.LE.0.) CDTMPU=CDMAXU  
-          IF(CDTMPV.LE.0.) CDTMPV=CDMAXV  
-          STBX(L)=AVCON*STBXO(L)*CDTMPU  
-          STBY(L)=AVCON*STBYO(L)*CDTMPV  
-          STBX(L)=MIN(CDMAXU,STBX(L),0.11)  
-          STBY(L)=MIN(CDMAXV,STBY(L),0.11) 
+          IF(CDTMPU.LE.0.0) CDTMPU=CDMAXU  
+          IF(CDTMPV.LE.0.0) CDTMPV=CDMAXV  
+          STBX(L)=MIN(CDMAXU,AVCON*STBXO(L)*CDTMPU,0.11)
+          STBY(L)=MIN(CDMAXV,AVCON*STBYO(L)*CDTMPV,0.11)
+!          STBX(L)=MIN(CDMAXU,STBX(L),0.11)  
+!          STBY(L)=MIN(CDMAXV,STBY(L),0.11) 
         ENDIF
       ENDDO
       IF(DEBUG)THEN  

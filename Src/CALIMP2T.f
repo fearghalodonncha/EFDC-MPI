@@ -265,12 +265,14 @@ C ** SMOLARKIEZC AND MARGOLIN FORM
 C ** STANDARD FORM  
 C  
       DO K=1,KC  
-        DO L=2,LA  
+        DO L=2,LA
+          LE=LEAST(L)
+          LW=LWEST(L)
 C PMC         UHDY2(L,K)=0.25*STCUV(L)*( (UHDY(L  ,K)+UHDY(L  ,K)
           UHDY2(L,K)=0.25*( (UHDY(L  ,K)+UHDY(L  ,K)) 
-     &        +(UHDY(LEAST(L),K)+UHDY(LEAST(L),K)) )  
+     &        +(UHDY(LE,K)+UHDY(LE,K)) )  
           VHDX2(L,K)=0.25*( (VHDX(L  ,K)+VHDX(L  ,K))  
-     &        +(VHDX(LWEST(L),K)+VHDX(LWEST(L),K)) )  
+     &        +(VHDX(LW,K)+VHDX(LW,K)) )  
         ENDDO  
       ENDDO
       ! *** DSLLC BEGIN BLOCK  
@@ -294,10 +296,12 @@ C ** SMOLARKIEZC AND MARGOLIN FORM
 C ** STANDARD FORM  
 C  
       DO K=1,KC  
-        DO L=2,LA  
+        DO L=2,LA
+          LE=LEAST(L)
+          LS=LSC(L)
           FUHU(L,K)=MAX(UHDY2(L,K),0.)*U(L     ,K)  
-     &        +MIN(UHDY2(L,K),0.)*U(LEAST(L)   ,K)  
-          FVHU(L,K)=MAX(VHDX2(L,K),0.)*U(LSC(L),K)  
+     &        +MIN(UHDY2(L,K),0.)*U(LE   ,K)  
+          FVHU(L,K)=MAX(VHDX2(L,K),0.)*U(LS,K)  
      &        +MIN(VHDX2(L,K),0.)*U(L     ,K)  
         ENDDO  
       ENDDO  
@@ -413,8 +417,10 @@ C
 C **  ADVANCE V ADVECTION 1/2 TIME STEP  
 C  
       DO K=1,KC  
-        DO L=2,LA  
-          FY(L,K)=FUHV(LEAST(L),K)-FUHV(L,K)+FVHV(L,K)-FVHV(LSC(L),K)  
+        DO L=2,LA
+          LE=LEAST(L)
+          LS=LSC(L)
+          FY(L,K)=FUHV(LE,K)-FUHV(L,K)+FVHV(L,K)-FVHV(LS,K)  
         ENDDO  
       ENDDO  
       DO K=1,KC  
@@ -436,10 +442,11 @@ C **  CALCULATE CORIOLIS AND CURVATURE PARAMETER
 C  
       DO K=1,KC  
         DO L=2,LA  
-          LN=LNC(L)  
+          LN=LNC(L)
+          LE=LEAST(L)
           CAC(L,K)=( FCORC(L)*DXYP(L)  
      &        +0.5*SNLT*(V(LN ,K)+V(L,K))*DYDI(L)  
-     &        -0.5*SNLT*(U(LEAST(L),K)+U(L,K))*DXDJ(L) )*HP(L)  
+     &        -0.5*SNLT*(U(LE,K)+U(L,K))*DXDJ(L) )*HP(L)  
         ENDDO  
       ENDDO  
 C  
@@ -450,10 +457,12 @@ C
           LN=LNC(L)  
           LS=LSC(L)  
           LNW=LNWC(L)  
-          LSE=LSEC(L)  
+          LSE=LSEC(L)
+          LE=LEAST(L)
+          LW=LWEST(L)
           FCAX(L,K)=0.25*SCAX(L)*(CAC(L,K)*(V(LN,K)+V(L,K))  
-     &        +CAC(LWEST(L),K)*(V(LNW,K)+V(LWEST(L),K)))  
-          FCAY(L,K)=0.25*SCAY(L)*(CAC(L,K)*(U(LEAST(L),K)+U(L,K))  
+     &        +CAC(LW,K)*(V(LNW,K)+V(LW,K)))  
+          FCAY(L,K)=0.25*SCAY(L)*(CAC(L,K)*(U(LE,K)+U(L,K))  
      &        +CAC(LS,K)*(U(LSE,K)+U(LS,K)))  
         ENDDO  
       ENDDO  

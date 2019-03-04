@@ -313,9 +313,11 @@ CPMC      DELT=DT2
           IF(FSWRATF.LT.1.)THEN
             TSLOW=SWRATNS*(Z(0)-1.)
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-            DO L=2,LA  
-              UBED=0.5*( U(L,1)+U(LEAST(L),1) )  
-              VBED=0.5*( V(L,1)+V(LNC(L),1) )  
+            DO L=2,LA
+              LE=LEAST(L)
+              LN=LNC(L)
+              UBED=0.5*( U(L,1)+U(LE,1) )  
+              VBED=0.5*( V(L,1)+V(LN,1) )  
               USPD=SQRT( UBED*UBED+VBED*VBED )  
               TMPVAL=(HTBED1*USPD+HTBED2)*(TEM(L,1)-TEMB(L))  
               NETRAD(L,1)=NETRAD(L,1)-TMPVAL/0.2393E-6
@@ -330,9 +332,11 @@ CPMC      DELT=DT2
 !$OMP END DO NOWAIT
           ELSE
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-            DO L=2,LA  
-              UBED=0.5*( U(L,1)+U(LEAST(L),1) )  
-              VBED=0.5*( V(L,1)+V(LNC(L),1) )  
+            DO L=2,LA
+              LE=LEAST(L)
+              LN=LNC(L)
+              UBED=0.5*( U(L,1)+U(LE,1) )  
+              VBED=0.5*( V(L,1)+V(LN,1) )  
               USPD=SQRT( UBED*UBED+VBED*VBED )  
               TMPVAL=(HTBED1*USPD+HTBED2)*(TEM(L,1)-TEMB(L))  
               NETRAD(L,1)=NETRAD(L,1)-TMPVAL/0.2393E-6

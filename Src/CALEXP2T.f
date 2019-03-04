@@ -148,14 +148,16 @@
         DO L=2,LA  
           IF(LMASKDRY(L))THEN  
             LN=LNC(L)  
-            LS=LSC(L)  
+            LS=LSC(L)
+            LE=LEAST(L)
+            LW=LWEST(L)
             UHC1=0.5*(UHDY(L,1)+UHDY(LS,1))  
-            UHB1=0.5*(UHDY(L,1)+UHDY(LEAST(L),1))  
-            VHC1=0.5*(VHDX(L,1)+VHDX(LWEST(L),1))  
+            UHB1=0.5*(UHDY(L,1)+UHDY(LE,1))  
+            VHC1=0.5*(VHDX(L,1)+VHDX(LW,1))  
             VHB1=0.5*(VHDX(L,1)+VHDX(LN,1))  
             UHC2=0.5*(UHDY(L,2)+UHDY(LS,2))  
-            UHB2=0.5*(UHDY(L,2)+UHDY(LEAST(L),2))  
-            VHC2=0.5*(VHDX(L,2)+VHDX(LWEST(L),2))  
+            UHB2=0.5*(UHDY(L,2)+UHDY(LE,2))  
+            VHC2=0.5*(VHDX(L,2)+VHDX(LW,2))  
             VHB2=0.5*(VHDX(L,2)+VHDX(LN,2))  
             UHB1MX=0.  
             UHB1MN=0.  
@@ -177,10 +179,10 @@
             BOTT=ABS(UHB1*U(L,1))  
             IF(BOTT.GT.0.0)  
      &          UHB1MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB1*U(L,1)  
-            BOTT=ABS(UHB1*U(LEAST(L),1))  
+            BOTT=ABS(UHB1*U(LE,1))  
             IF(BOTT.GT.0.0)  
-     &          UHB1MN=1.+CK2UUM*(UHB2-UHB1)*(U(LEAST(L),2)-U(LEAST(L),1))/
-     &          UHB1*U(LEAST(L),1)  
+     &          UHB1MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/
+     &          UHB1*U(LE,1)  
             BOTT=ABS(VHC1*U(LS,1))  
             IF(BOTT.GT.0.0)  
      &          VHC1MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC1*
@@ -206,10 +208,10 @@
             BOTT=ABS(UHB2*U(L,2))  
             IF(BOTT.GT.0.0)  
      &          UHB2MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB2*U(L,2)  
-            BOTT=ABS(UHB2*U(LEAST(L),2))  
+            BOTT=ABS(UHB2*U(LE,2))  
             IF(BOTT.GT.0.0)  
-     &          UHB2MN=1.+CK2UUM*(UHB2-UHB1)*(U(LEAST(L),2)-U(LEAST(L),1))/
-     &          UHB2*U(LEAST(L),2)  
+     &          UHB2MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/
+     &          UHB2*U(LE,2)  
             BOTT=ABS(VHC2*U(LS,2))  
             IF(BOTT.GT.0.0)  
      &          VHC2MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC2*
@@ -233,7 +235,7 @@
      &          V(LN,2)  
 !  
             FUHU(L,1)=UHB1MX*MAX(UHB1,0.)*U(L,1)  
-     &          +UHB1MN*MIN(UHB1,0.)*U(LEAST(L),1)  
+     &          +UHB1MN*MIN(UHB1,0.)*U(LE,1)  
             FVHU(L,1)=VHC1MX*MAX(VHC1,0.)*U(LS,1)  
      &          +VHC1MN*MIN(VHC1,0.)*U(L,1)  
             FUHV(L,1)=UHC1MX*MAX(UHC1,0.)*V(LWEST(L),1)  
@@ -243,7 +245,7 @@
             FUHJ(L,1)=0.  
             FVHJ(L,1)=0.  
             FUHU(L,2)=UHB2MX*MAX(UHB2,0.)*U(L,2)  
-     &          +UHB2MN*MIN(UHB2,0.)*U(LEAST(L),2)  
+     &          +UHB2MN*MIN(UHB2,0.)*U(LE,2)  
             FVHU(L,2)=VHC2MX*MAX(VHC2,0.)*U(LS,2)  
      &          +VHC2MN*MIN(VHC2,0.)*U(L,2)  
             FUHV(L,2)=UHC2MX*MAX(UHC2,0.)*V(LWEST(L),2)  
@@ -419,9 +421,10 @@
             OPEN(1,FILE='CORC1.DIA')  
             K=1  
             DO L=2,LA  
-              LN=LNC(L)  
-              WRITE(1,1111)IL(L),JL(L),LN,V(LN,K),V(L,K),DYU(LEAST(L)),  
-     &         DYU(L),U(LEAST(L),K),U(L,K),DXV(LN),DXV(L),HP(L),CAC(L,K)  
+              LN=LNC(L)
+              LE=LEAST(L)
+              WRITE(1,1111)IL(L),JL(L),LN,V(LN,K),V(L,K),DYU(LE),  
+     &         DYU(L),U(LE,K),U(L,K),DXV(LN),DXV(L),HP(L),CAC(L,K)  
             ENDDO  
             CLOSE(1)  
           ENDIF  
@@ -492,9 +495,10 @@
 !  
         DO LL=1,NPBS  
           IF(ISPBS(LL).EQ.2)THEN  
-            L=LNC(LPBS(LL))  
+            L=LNC(LPBS(LL))
+            LE=LEAST(L)
             DO K=1,KC  
-              FCAY(L,K)=0.5*SCAY(L)*CAC(L,K)*(U(LEAST(L),K)+U(L,K))  
+              FCAY(L,K)=0.5*SCAY(L)*CAC(L,K)*(U(LE,K)+U(L,K))  
             ENDDO  
           ENDIF  
         ENDDO  
@@ -638,8 +642,9 @@
             LN=LNC(L)  
             LS=LSC(L)  
             LNW=LNWC(L)  
-            LSE=LSEC(L)  
-            WRITE(1,1113)IL(L),JL(L),CAC(L,K),U(LEAST(L),K),U(L,K),  
+            LSE=LSEC(L)
+            LE=LEAST(L)
+            WRITE(1,1113)IL(L),JL(L),CAC(L,K),U(LE,K),U(L,K),  
      &          CAC(LS,K),U(LSE,K),U(LS,K)  
           ENDDO  
           CLOSE(1)  
@@ -703,7 +708,7 @@
         ENDIF
       ENDIF
 !!!End SCJ block
- 1947 FORMAT(3I5,10E12.4)  
+ 1947 FORMAT(3I5,10E12.4)
  1948 FORMAT(15X,10E12.4)
 
 ! FEARGHAL aquaculture installation simulation capabilities
@@ -1033,7 +1038,7 @@ C
             ENDIF  
             IF(QMCSINKX(L,K).NE.0.0)THEN 
               LE=LEAST(L) 
-              TMPVAL=SUB(L)+SUB(LEAST(L))  
+              TMPVAL=SUB(L)+SUB(LE)  
               TMPVAL=MAX(TMPVAL,1.0)  
               FX(L,K)=FX(L,K)-SUB(L)*QMCSINKX(L,K)/TMPVAL  
               FX(LE,K)=FX(LE,K)-SUB(LE)*QMCSINKX(L,K)/TMPVAL  
@@ -1288,5 +1293,11 @@ c      IINTPG=0
 !
 !**********************************************************************C
 !
+ !     if(N>500)then
+      !write(112233,'(i6,5(1x,e10.2)," In")')N,(FY(12127,K),K=1,5)
+      !write(112233,'(i6,5(1x,e10.2)," Out")')N,(FY(23611,K),K=1,5)
+ !     write(112244,'(i6,5(1x,e10.2)," In")')N,(V(12127,K),K=1,5)
+ !     write(112244,'(i6,5(1x,e10.2)," Out")')N,(V(23611,K),K=1,5)
+ !     endif
       RETURN
       END

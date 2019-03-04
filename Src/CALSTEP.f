@@ -95,12 +95,12 @@ C
           TMPUUU=ABS(U(L,K)/DXU(L))+ABS(VATUUU/DYU(L))  
           DTTMP=1./(TMPUUU + 1.0E-18)
           DTL1(L)=MIN(DTL1(L),DTTMP)  
-          UATVVV=0.25*(U(L,K)+U(LS,K)+V(LEAST(L),K)+V(LS+1,K))  
+          UATVVV=0.25*(U(L,K)+U(LS,K)+V(LE,K)+V(LS+1,K))  
           TMPVVV=ABS(V(L,K)/DYV(L))+ABS(UATVVV/DXV(L))  
           DTTMP=1./(TMPVVV + 1.0E-18)  
           DTL1(L)=MIN(DTL1(L),DTTMP)  
           UEAST=ABS(U(L,K))  
-          UWEST=ABS(U(LEAST(L),K))  
+          UWEST=ABS(U(LE,K))  
           VSOUTH=ABS(V(L,K))  
           VNORTH=ABS(V(LN,K))  
           TMPVVV=MAX(VSOUTH,VNORTH)  
@@ -152,12 +152,13 @@ C
 C  
 C **  METHOD 3: IMPLICIT BOTTOM FRICTION AND ROTATIONAL ACCELERATION DAM  
 C  
-      DO L=2,LA  
-        TMPVAL=SUB(L)+SUB(LEAST(L))+SVB(L)+SVB(LNC(L))  
+      DO L=2,LA
+        LE=LEAST(L)
+        LN=LNC(L)  
+        TMPVAL=SUB(L)+SUB(LE)+SVB(L)+SVB(LN)  
         IF(TMPVAL.LT.0.5)THEN  
-          LN=LNC(L)  
           TAUBC=QQ(L,0)/CTURB2  
-          UCTR=0.5*(U(L,1)+U(LEAST(L),1))  
+          UCTR=0.5*(U(L,1)+U(LE,1))  
           VCTR=0.5*(V(L,1)+V(LN,1))  
           UHMAG=HP(L)*SQRT(UCTR*UCTR+VCTR*VCTR)  
           IF(UHMAG.GT.0.0)THEN  
@@ -224,7 +225,7 @@ C **  APPLY A SAFTY FACTOR
 C  
 C      DTTMP=DTSSFAC*DTTMP     pmc delete these lines after checking!!
 C  
-C **  MAKE A MULTIPLE OF OF DTMIN  
+C **  MAKE A MULTIPLE OF DTMIN  
 C  
       TIMEDAY=TIMESEC/86400.  
       IF(DTCOMP.LT.DTMIN)THEN   ! *** DSLLC SINGLE LINE

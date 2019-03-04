@@ -9,9 +9,7 @@ C **  THE NUMBER OF TIME LEVELS IN THE STEP
 C  
       USE GLOBAL
       USE OMP_LIB
-      DOUBLE PRECISION LST,LEND
 
-      REAL(8) foo
       DIMENSION CON(LCM,KCM),CON1(LCM,KCM)  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::CONTMN  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::CONTMX  
@@ -106,18 +104,18 @@ C
   300 CONTINUE  
       IF(IDRYTBP.EQ.0)THEN  
 !$OMP PARALLEL SHARED(DEFAULT)  
-        DO K=1,KS
+        DO K=1,KS  
 !$OMP DO  schedule(static,chunksize) 
           DO L=2,LA  
               FUHU(L,K)=UHDY2(L,K)*CON1(LUPU(L,K),K)  
               FVHU(L,K)=VHDX2(L,K)*CON1(LUPV(L,K),K)  
-              FWU(L,K)=W2(L,K)*CON1(L,KUPW(L,K))  
+              FWU(L,K)=W2(L,K)*CON1(L,KUPW(L,K))
           ENDDO  
+        ENDDO
+        DO L=2,LA  
+          FUHU(L,KC)=UHDY2(L,KC)*CON1(LUPU(L,KC),KC)  
+          FVHU(L,KC)=VHDX2(L,KC)*CON1(LUPV(L,KC),KC)  
         ENDDO 
-        DO L=2,LA
-          FUHU(L,KC)=UHDY2(L,KC)*CON1(LUPU(L,KC),KC)
-          FVHU(L,KC)=VHDX2(L,KC)*CON1(LUPV(L,KC),KC)
-        END DO
 !$OMP END PARALLEL 
       ELSE  
         DO K=1,KC  
@@ -195,8 +193,9 @@ C PMC      ENDDO
           IF(VHDX2(LN,K).LT.0.) FVHU(LN,K)=VHDX2(LN,K)*CON1(LN,K)  
         ENDDO  
         DO LL=1,NCBW  
-          L=LCBW(LL)  
-          IF(UHDY2(LEAST(L),K).LT.0.) FUHU(LEAST(L),K)=UHDY2(LEAST(L),K)*CON1(LEAST(L),K)  
+          L=LCBW(LL)
+          LE=LEAST(L)
+          IF(UHDY2(LE,K).LT.0.) FUHU(LE,K)=UHDY2(LE,K)*CON1(LE,K)  
         ENDDO  
         DO LL=1,NCBE  
           L=LCBE(LL)  
@@ -231,11 +230,13 @@ C
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
-              DO L=2,LA 
+              DO L=2,LA
+                LN=LNC(L)
+                LE=LEAST(L)
                 CH(L,K)=CON1(L,K)*H1P(L)  
      &              +DELT*( ( RDZIC*FQC(L,K)  
-     &              +FUHU(L,K)-FUHU(LEAST(L),K)  
-     &              +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &              +FUHU(L,K)-FUHU(LE,K)  
+     &              +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &              +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
              ENDDO  
             ENDDO  
@@ -245,17 +246,20 @@ C
           ELSE  
             DO K=1,KC  
               RDZIC=DZIC(K)  
-              DO L=2,LA  
-                IF(IMASKDRY(L).EQ.0)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
-     &              +DELT*( ( RDZIC*FQC(L,K)+FUHU(L,K)-FUHU(LEAST(L),K)  
-     &              +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+              DO L=2,LA
+                IF(IMASKDRY(L).EQ.0)THEN  
+                  LN=LNC(L)
+                  LE=LEAST(L)
+                  CH(L,K)=CON1(L,K)*H1P(L)  
+     &              +DELT*( ( RDZIC*FQC(L,K)+FUHU(L,K)-FUHU(LE,K)  
+     &              +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &              +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
-                IF(IMASKDRY(L).EQ.1)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
+                ELSEIF(IMASKDRY(L).EQ.1)THEN
+                  CH(L,K)=CON1(L,K)*H1P(L)  
      &              +DELT*( ( FQC(L,K) )*DXYIP(L) )  
-                IF(IMASKDRY(L).EQ.2)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
+                ELSEIF(IMASKDRY(L).EQ.2)THEN
+                  CH(L,K)=CON1(L,K)*H1P(L)
+                ENDIF
               ENDDO  
             ENDDO 
           ENDIF    ! END IF IDRYTBP
@@ -276,11 +280,13 @@ C
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
-            DO L=2,LA  
+            DO L=2,LA
+              LE=LEAST(L)
+              LN=LNC(L)
               CH(L,K)=CON1(L,K)*H2P(L)  
      &            +DELT*( ( RDZIC*FQC(L,K)  
-     &            +FUHU(L,K)-FUHU(LEAST(L),K)  
-     &            +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &            +FUHU(L,K)-FUHU(LE,K)  
+     &            +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &            +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
             ENDDO  
           ENDDO  
@@ -312,10 +318,10 @@ C
 
         ! *** UPDATE NEW CONCENTRATIONS        
         DO K=1,KC  
-          DO L=2,LA  
-            CON(L,K)=CH(L,K)*HPI(L)  
-          ENDDO  
-        ENDDO  
+ !         DO L=2,LA  
+            CON(2:LA,K)=CH(2:LA,K)*HPI(2:LA)  
+ !         ENDDO  
+        ENDDO 
 
 C  
 C *** ELSE ON TRANSPORT OPTION CHOICE  
@@ -331,11 +337,13 @@ C
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(static,chunksize)
-              DO L=2,LA  
+              DO L=2,LA
+                LE=LEAST(L)
+                LN=LNC(L)
                 CH(L,K)=CON1(L,K)*H1P(L)  
      &              +DELT*( ( RDZIC*FQC(L,K)
-     &              +FUHU(L,K)-FUHU(LEAST(L),K)  
-     &              +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &              +FUHU(L,K)-FUHU(LE,K)  
+     &              +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &              +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
               ENDDO  
             ENDDO  
@@ -344,17 +352,20 @@ C
             DO K=1,KC  
               RDZIC=DZIC(K)  
               DO L=2,LA  
-                IF(IMASKDRY(L).EQ.0)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
+                IF(IMASKDRY(L).EQ.0)THEN
+                    LE=LEAST(L)
+                    LN=LNC(L)
+                    CH(L,K)=CON1(L,K)*H1P(L)  
      &              +DELT*( ( RDZIC*FQC(L,K)
-     &              +FUHU(L,K)-FUHU(LEAST(L),K)  
-     &              +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &              +FUHU(L,K)-FUHU(LE,K)  
+     &              +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &              +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
-                IF(IMASKDRY(L).EQ.1)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
+                ELSEIF(IMASKDRY(L).EQ.1)THEN
+                    CH(L,K)=CON1(L,K)*H1P(L)  
      &              +DELT*( ( FQC(L,K) )*DXYIP(L) )  
-                IF(IMASKDRY(L).EQ.2)  
-     &              CH(L,K)=CON1(L,K)*H1P(L)  
+                ELSEIF(IMASKDRY(L).EQ.2)THEN  
+                    CH(L,K)=CON1(L,K)*H1P(L)
+                ENDIF
               ENDDO  
             ENDDO  
           ENDIF  
@@ -369,10 +380,12 @@ C
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
-            DO L=2,LA  
+            DO L=2,LA
+              LE=LEAST(L)
+              LN=LNC(L)
               CH(L,K)=CON1(L,K)*H2P(L)  
-     &            +DELT*( ( RDZIC*FQC(L,K)+FUHU(L,K)-FUHU(LEAST(L),K)  
-     &            +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &            +DELT*( ( RDZIC*FQC(L,K)+FUHU(L,K)-FUHU(LEA,K)  
+     &            +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &            +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
             ENDDO  
           ENDDO  
@@ -471,20 +484,21 @@ C
       DO K=1,KC  
         DO LL=1,NCBW  
           NSID=NCSERW(LL,M)  
-          L=LCBW(LL)  
-          IF(UHDY2(LEAST(L),K).LE.0.)THEN  
+          L=LCBW(LL)
+          LE=LEAST(L)
+          IF(UHDY2(LE,K).LE.0.)THEN  
             ! *** FLOWING OUT OF DOMAIN
             IF(ISTL_.EQ.2)THEN  
-              CTMP=CON1(L,K)+DELT*(UHDY2(LEAST(L),K)*CON1(L,K)  
-     &            -FUHU(LEAST(L),K))*DXYIP(L)*HPI(L)  
+              CTMP=CON1(L,K)+DELT*(UHDY2(LE,K)*CON1(L,K)  
+     &            -FUHU(LE,K))*DXYIP(L)*HPI(L)  
             ELSE  
               IF(ISCDCA(MVAR).NE.2) CTMP=CON1(L,K)  
-     &            +DELT*(UHDY2(LEAST(L),K)*CON1(L,K)-FUHU(LEAST(L),K))*DXYIP(L)
+     &            +DELT*(UHDY2(LE,K)*CON1(L,K)-FUHU(LE,K))*DXYIP(L)
      &            *HPI(L)  
               IF(ISCDCA(MVAR).EQ.2) CTMP=0.5*(CON1(L,K)+CON(L,K))  
      &            +0.5*(CON1(L,K)-CON(L,K))*H2P(L)*HPI(L)  
-     &            +DELT*(0.5*UHDY2(LEAST(L),K)*(CON1(L,K)+CON(L,K))  
-     &            -FUHU(LEAST(L),K))*DXYIP(L)*HPI(L)  
+     &            +DELT*(0.5*UHDY2(LE,K)*(CON1(L,K)+CON(L,K))  
+     &            -FUHU(LE,K))*DXYIP(L)*HPI(L)  
               CON1(L,K)=CON(L,K)  
             ENDIF  
             CON(L,K)=CTMP  
@@ -608,11 +622,12 @@ C
 
       ! *** PMC BEGIN BLOCK
       ! *** GET ONLY POSITIVE CONCENTRATIONS
-      DO L=2,LA
-        DO K=1,KC
-          POS(L,K)=MAX(CON(L,K),0.)
-        ENDDO
-      ENDDO
+!      DO L=2,LA
+!        DO K=1,KC
+!          POS(L,K)=MAX(CON(L,K),0.)
+!        ENDDO
+!      ENDDO
+      POS(2:LA,1:KC)=MAX(CON(2:LA,1:KC),0.0)
       ! *** PMC END BLOCK
 
       IF(IDRYTBP.EQ.0)THEN  
@@ -635,13 +650,15 @@ C
           RDZIG=DZIG(K)  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE) 
           DO L=2,LA  
-            LS=LSC(L)  
-            UUU(L,K)=U2(L,K)*(POS(L,K)-POS(LWEST(L),K))*DXIU(L)  
+            LS=LSC(L)
+            LW=LWEST(L)
+            UUU(L,K)=U2(L,K)*(POS(L,K)-POS(LW,K))*DXIU(L)  
             VVV(L,K)=V2(L,K)*(POS(L,K)-POS(LS,K))*DYIV(L)  
-            WWW(L,K)=W2(L,K)*(POS(L,K+1)-POS(L,K))*HPI(L)*RDZIG  
+ !           WWW(L,K)=W2(L,K)*(POS(L,K+1)-POS(L,K))*HPI(L)*RDZIG  
           ENDDO  
 !$OMP END DO
-        ENDDO  
+          WWW(2:LA,K)=W2(2:LA,K)*(POS(2:LA,K+1)-POS(2:LA,K))*HPI(2:LA)*RDZIG
+        ENDDO 
         DO K=1,KC  
           RDZIC=DZIC(K) 
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)     !This loop has dependencies on UUU,VVV above 
@@ -687,7 +704,7 @@ C
      &            +VVV(LS,K)+VVV(L,K))  
             ELSE  
               VTERM=VTERM-0.5*DELTA*VHDX2(L,K)*  
-     &            (UUU(L,K)+UUU(LEAST(L),K)+WWW(L,K)+WWW(L,K-1)  
+     &            (UUU(L,K)+UUU(LE,K)+WWW(L,K)+WWW(L,K-1)  
      &            +VVV(LN,K)+VVV(L,K))  
             ENDIF  
             IF(ISFCT(MVAR).GE.2)THEN  
@@ -711,7 +728,8 @@ C
         DO K=1,KS  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
           DO L=2,LA  
-            LN=LNC(L)  
+            LN=LNC(L)
+            LE=LEAST(L)
             AWW=ABS(W2(L,K))  
             WTERM=AWW*(POS(L,K+1)-POS(L,K))  
             IF(ISADAC(MVAR).GE.2)THEN  
@@ -724,11 +742,11 @@ C
             ENDIF  
             IF(W2(L,K).GE.0.0)THEN  
               WTERM=WTERM-0.5*DELTA*W2(L,K)*  
-     &            (UUU(L,K)+UUU(LEAST(L),K)+VVV(L,K)+VVV(LN,K)  
+     &            (UUU(L,K)+UUU(LE,K)+VVV(L,K)+VVV(LN,K)  
      &            +WWW(L,K)+WWW(L,K-1))  
             ELSE  
               WTERM=WTERM-0.5*DELTA*W2(L,K)*  
-     &            (UUU(LEAST(L),K+1)+UUU(L,K+1)+VVV(LN,K+1)+VVV(L,K+1)  
+     &            (UUU(LE,K+1)+UUU(L,K+1)+VVV(LN,K+1)+VVV(L,K+1)  
      &            +WWW(L,K)+WWW(L,K+1))  
             ENDIF  
             IF(ISFCT(MVAR).GE.2)THEN  
@@ -752,9 +770,10 @@ C
           DO K=1,KC  
             DO L=2,LA  
               IF(QSUMPAD(L,K).GT.0.0)THEN  
-                LN=LNC(L)  
+                LN=LNC(L)
+                LE=LEAST(L)
                 FUHU(L  ,K)=0.  
-                FUHU(LEAST(L),K)=0.  
+                FUHU(LE,K)=0.  
                 FVHU(L  ,K)=0.  
                 FVHU(LN ,K)=0.  
                 FWU(L,K  )=0.  
@@ -773,8 +792,9 @@ C
             FVHU(LN,K)=0.0  
           ENDDO  
           DO LL=1,NCBW  
-            L=LCBW(LL)  
-            FUHU(LEAST(L),K)=0.0  
+            L=LCBW(LL)
+            LE=LEAST(L)
+            FUHU(LE,K)=0.0  
           ENDDO  
           DO LL=1,NCBE  
             L=LCBE(LL)  
@@ -792,31 +812,39 @@ C
 C  
 C **  DETERMINE MAX AND MIN CONCENTRATIONS  
 C  
-        DO K=1,KC  
-          DO L=1,LC  
-            CONTMX(L,K)=0.0  
-            CONTMN(L,K)=0.0  
-          ENDDO  
-        ENDDO  
-        DO K=1,KC  
-          DO L=2,LA  
-            CONTMX(L,K)=MAX(CON(L,K),CON2(L,K))  
-            CONTMN(L,K)=MIN(CON(L,K),CON2(L,K))  
-          ENDDO  
-        ENDDO  
-        DO L=2,LA  
-          CMAX(L,1)=MAX(CONTMX(L,1),CONTMX(L,2))  
-          CMAX(L,KC)=MAX(CONTMX(L,KS),CONTMX(L,KC))  
-          CMIN(L,1)=MIN(CONTMN(L,1),CONTMN(L,2))  
-          CMIN(L,KC)=MIN(CONTMN(L,KS),CONTMN(L,KC))  
-        ENDDO  
+!        DO K=1,KC  
+!          DO L=1,LC  
+!            CONTMX(L,K)=0.0  
+!            CONTMN(L,K)=0.0  
+!          ENDDO  
+!        ENDDO
+!        DO K=1,KC  
+!          DO L=2,LA  
+!            CONTMX(L,K)=MAX(CON(L,K),CON2(L,K))  
+!            CONTMN(L,K)=MIN(CON(L,K),CON2(L,K))  
+!          ENDDO  
+!        ENDDO
+        CONTMX(2:LA,1:KC)=MAX(CON(2:LA,1:KC),CON2(2:LA,1:KC))
+        CONTMN(2:LA,1:KC)=MIN(CON(2:LA,1:KC),CON2(2:LA,1:KC))
+!        DO L=2,LA  
+!          CMAX(L,1)=MAX(CONTMX(L,1),CONTMX(L,2))  
+!          CMAX(L,KC)=MAX(CONTMX(L,KS),CONTMX(L,KC))  
+!          CMIN(L,1)=MIN(CONTMN(L,1),CONTMN(L,2))  
+!          CMIN(L,KC)=MIN(CONTMN(L,KS),CONTMN(L,KC))  
+!        ENDDO
+        CMAX(2:LA,1)=MAX(CONTMX(2:LA,1),CONTMX(2:LA,2))  
+        CMAX(2:LA,KC)=MAX(CONTMX(2:LA,KS),CONTMX(2:LA,KC))  
+        CMIN(2:LA,1)=MIN(CONTMN(2:LA,1),CONTMN(2:LA,2))  
+        CMIN(2:LA,KC)=MIN(CONTMN(2:LA,KS),CONTMN(2:LA,KC)) 
         DO K=2,KS  
-          DO L=2,LA  
-            CMAXT=MAX(CONTMX(L,K-1),CONTMX(L,K+1))  
-            CMAX(L,K)=MAX(CONTMX(L,K),CMAXT)  
-            CMINT=MIN(CONTMN(L,K-1),CONTMN(L,K+1))  
-            CMIN(L,K)=MIN(CONTMN(L,K),CMINT)  
-          ENDDO  
+!          DO L=2,LA  
+!            CMAXT=MAX(CONTMX(L,K-1),CONTMX(L,K+1))  
+!            CMAX(L,K)=MAX(CONTMX(L,K),CMAXT)  
+!            CMINT=MIN(CONTMN(L,K-1),CONTMN(L,K+1))  
+!            CMIN(L,K)=MIN(CONTMN(L,K),CMINT)  
+!          ENDDO
+          CMAX(2:LA,K)=MAX(CONTMX(2:LA,K-1),CONTMX(2:LA,K),CONTMX(2:LA,K+1))
+          CMIN(2:LA,K)=MIN(CONTMN(2:LA,K-1),CONTMN(2:LA,K),CONTMN(2:LA,K+1))
         ENDDO  
 !$OMP PARALLEL SHARED(DEFAULT) PRIVATE(CMAXT,CMINT,LS,LN,LW,LE,
 !$OMP& CWMAX,CEMAX,CSMAX,CNMAX,CWMIN,CEMIN,CSMIN,CNMIN,RDZIC) 
@@ -824,9 +852,10 @@ C
 !$OMP DO schedule(static,chunksize)
           DO L=2,LA  
             LS=LSC(L)  
-            LN=LNC(L)  
+            LN=LNC(L)
+            LE=LEAST(L)
             CWMAX=SUB(L)*CONTMX(LWEST(L),K)  
-            CEMAX=SUB(LEAST(L))*CONTMX(LEAST(L),K)  
+            CEMAX=SUB(LE)*CONTMX(LE,K)  
             CSMAX=SVB(L)*CONTMX(LS,K)  
             CNMAX=SVB(LN)*CONTMX(LN,K)  
             CMAXT=MAX(CNMAX,CEMAX)  
@@ -834,7 +863,7 @@ C
             CMAXT=MAX(CMAXT,CWMAX)  
             CMAX(L,K)=MAX(CMAX(L,K),CMAXT)  
             CWMIN=SUB(L)*CONTMN(LWEST(L),K)+1.E+6*(1.-SUB(L))  
-            CEMIN=SUB(LEAST(L))*CONTMN(LEAST(L),K)+1.E+6*(1.-SUB(LEAST(L)))  
+            CEMIN=SUB(LE)*CONTMN(LE,K)+1.E+6*(1.-SUB(LE))  
             CSMIN=SVB(L)*CONTMN(LS,K)+1.E+6*(1.-SVB(L))  
             CNMIN=SVB(LN)*CONTMN(LN,K)+1.E+6*(1.-SVB(LN))  
             CMINT=MIN(CNMIN,CEMIN)  
@@ -863,20 +892,21 @@ C
           RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
           DO L=2,LA  
-            LN=LNC(L)  
-            DU(L,K)=DELT*(DXYIP(L)*(FUHU(L,K)-FUHV(LEAST(L),K)  
+            LN=LNC(L)
+            LE=LEAST(L)
+            DU(L,K)=DELT*(DXYIP(L)*(FUHU(L,K)-FUHV(LE,K)  
      &          +FVHU(L,K)-FVHV(LN,K))  
      &          +RDZIC*(FWU(L,K-1)-FWV(L,K)) )*HPI(L)  
-            DV(L,K)=DELT*(DXYIP(L)*(FUHU(LEAST(L),K)-FUHV(L,K)  
+            DV(L,K)=DELT*(DXYIP(L)*(FUHU(LE,K)-FUHV(L,K)  
      &          +FVHU(LN,K)-FVHV(L,K))  
      &          +RDZIC*(FWU(L,K)-FWV(L,K-1)) )*HPI(L)  
 
 C **  CALCULATE BETA COEFFICIENTS WITH BETAUP AND BETADOWN IN DU AND DV  
 C  
-          IF(DU(L,K).GT.0.)DU(L,K)=(CMAX(L,K)-POS(L,K))/(DU(L,K)+BSMALL)  
-            DU(L,K)=MIN(DU(L,K),1.)  
-          IF(DV(L,K).GT.0.)DV(L,K)=(CON(L,K)-CMIN(L,K))/(DV(L,K)+BSMALL)  
-            DV(L,K)=MIN(DV(L,K),1.)  
+          IF(DU(L,K).GT.0.)DU(L,K)=MIN(1.0,(CMAX(L,K)-POS(L,K))/(DU(L,K)+BSMALL))
+            !DU(L,K)=MIN(DU(L,K),1.)
+          IF(DV(L,K).GT.0.)DV(L,K)=MIN(1.0,(CON(L,K)-CMIN(L,K))/(DV(L,K)+BSMALL))
+            !DV(L,K)=MIN(DV(L,K),1.)  
           ENDDO  
         ENDDO  
 !$OMP END PARALLEL
@@ -895,9 +925,10 @@ C
             DV(LN,K)=0.  
           ENDDO  
           DO LL=1,NCBW  
-            L=LCBW(LL)  
-            DU(LEAST(L),K)=0.  
-            DV(LEAST(L),K)=0.  
+            L=LCBW(LL)
+            LE=LEAST(L)
+            DU(LE,K)=0.  
+            DV(LE,K)=0.  
           ENDDO  
           DO LL=1,NCBE  
             L=LCBE(LL)  
@@ -944,10 +975,12 @@ C
         DO K=1,KC
           RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)  
-          DO L=2,LA  
+          DO L=2,LA
+            LE=LEAST(L)
+            LN=LNC(L)
             CH(L,K)=CON(L,K)*HP(L)  
-     &          +DELT*( (FUHU(L,K)-FUHU(LEAST(L),K)  
-     &          +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
+     &          +DELT*( (FUHU(L,K)-FUHU(LE,K)  
+     &          +FVHU(L,K)-FVHU(LN,K))*DXYIP(L)  
      &          +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
             CON(L,K)=SCB(L)*CH(L,K)*HPI(L)+(1.-SCB(L))*CON(L,K)  
           ENDDO  
@@ -976,8 +1009,9 @@ C
         DO K=1,KC  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
-              LS=LSC(L)  
-              UUU(L,K)=U2(L,K)*(POS(L,K)-POS(LWEST(L),K))*DXIU(L)  
+              LS=LSC(L)
+              LW=LWEST(L)
+              UUU(L,K)=U2(L,K)*(POS(L,K)-POS(LW,K))*DXIU(L)  
               VVV(L,K)=V2(L,K)*(POS(L,K)-POS(LS,K))*DYIV(L)
             ELSE  
               UUU(L,K)=0.  
@@ -1004,16 +1038,17 @@ C
               LN=LNC(L)  
               LS=LSC(L)  
               LNW=LNWC(L)  
-              LSE=LSEC(L)  
+              LSE=LSEC(L)
+              LW=LWEST(L)
               AUHU=ABS(UHDY2(L,K))  
               AVHV=ABS(VHDX2(L,K))  
-              UTERM=AUHU*(POS(L,K)-POS(LWEST(L),K))
+              UTERM=AUHU*(POS(L,K)-POS(LW,K))
               VTERM=AVHV*(POS(L,K)-POS(LS,K)) 
               IF(ISADAC(MVAR).GE.2)THEN  
                 SSCORUE=DELTA*RDZIC*DXYIP(L  )*HPI(L  )*(FQCPAD(L  ,K)  
      &            -QSUMPAD(L  ,K)*CON(L  ,K))  
-                SSCORUW=DELTA*RDZIC*DXYIP(LWEST(L))*HPI(LWEST(L))*(FQCPAD(LWEST(L),K)  
-     &            -QSUMPAD(LWEST(L),K)*CON(LWEST(L),K))  
+                SSCORUW=DELTA*RDZIC*DXYIP(LW)*HPI(LW)*(FQCPAD(LW,K)  
+     &            -QSUMPAD(LW,K)*CON(LW,K))  
                 SSCORVN=DELTA*RDZIC*DXYIP(L  )*HPI(L  )*(FQCPAD(L  ,K)  
      &            -QSUMPAD(L  ,K)*CON(L  ,K))  
                 SSCORVS=DELTA*RDZIC*DXYIP(LS )*HPI(LS )*(FQCPAD(LS ,K)  
@@ -1027,12 +1062,12 @@ C
               ENDIF  
               IF(UHDY2(L,K).GE.0.0)THEN  
                 UTERM=UTERM-0.5*DELTA*UHDY2(L,K)*  
-     &            (VVV(LNW,K)+VVV(LWEST(L),K)+WWW(LWEST(L),K)+WWW(LWEST(L),K-1)  
-     &            +UUU(L,K)+UUU(LWEST(L),K))  
+     &            (VVV(LNW,K)+VVV(LW,K)+WWW(LW,K)+WWW(LW,K-1)  
+     &            +UUU(L,K)+UUU(LW,K))  
               ELSE  
                 UTERM=UTERM-0.5*DELTA*UHDY2(L,K)*  
      &            (VVV(LN,K)+VVV(L,K)+WWW(L,K)+WWW(L,K-1)  
-     &            +UUU(L,K)+UUU(LEAST(L),K))  
+     &            +UUU(L,K)+UUU(LE,K))  
               ENDIF  
               IF(VHDX2(L,K).GE.0.0)THEN  
                 VTERM=VTERM-0.5*DELTA*VHDX2(L,K)*  
@@ -1040,7 +1075,7 @@ C
      &            +VVV(LS,K)+VVV(L,K))  
               ELSE  
                 VTERM=VTERM-0.5*DELTA*VHDX2(L,K)*  
-     &            (UUU(L,K)+UUU(LEAST(L),K)+WWW(L,K)+WWW(L,K-1)  
+     &            (UUU(L,K)+UUU(LE,K)+WWW(L,K)+WWW(L,K-1)  
      &            +VVV(LN,K)+VVV(L,K))  
               ENDIF  
               IF(ISFCT(MVAR).GE.2)THEN  
@@ -1051,9 +1086,9 @@ C
                   FVHU(L,K)=VTERM  
                 ENDIF  
               ELSE  
-                UHU=UTERM/(POS(L,K)+POS(LWEST(L),K)+BSMALL)  
+                UHU=UTERM/(POS(L,K)+POS(LW,K)+BSMALL)  
                 VHV=VTERM/(POS(L,K)+POS(LS,K)+BSMALL)  
-                FUHU(L,K)=MAX(UHU,0.)*POS(LWEST(L),K)  
+                FUHU(L,K)=MAX(UHU,0.)*POS(LWE,K)  
      &            +MIN(UHU,0.)*POS(L,K)  
                 FVHU(L,K)=MAX(VHV,0.)*POS(LS,K)  
      &            +MIN(VHV,0.)*POS(L,K)  
@@ -1068,7 +1103,8 @@ C
         DO K=1,KS  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
-              LN=LNC(L)  
+              LN=LNC(L)
+              LE=LEAST(L)
               AWW=ABS(W2(L,K))  
               WTERM=AWW*(POS(L,K+1)-POS(L,K))  
               IF(ISADAC(MVAR).GE.2)THEN  
@@ -1081,11 +1117,11 @@ C
               ENDIF  
               IF(W2(L,K).GE.0.0)THEN  
                 WTERM=WTERM-0.5*DELTA*W2(L,K)*  
-     &            (UUU(L,K)+UUU(LEAST(L),K)+VVV(L,K)+VVV(LN,K)  
+     &            (UUU(L,K)+UUU(LE,K)+VVV(L,K)+VVV(LN,K)  
      &            +WWW(L,K)+WWW(L,K-1))  
               ELSE  
                 WTERM=WTERM-0.5*DELTA*W2(L,K)*  
-     &            (UUU(LEAST(L),K+1)+UUU(L,K+1)+VVV(LN,K+1)+VVV(L,K+1)  
+     &            (UUU(LE,K+1)+UUU(L,K+1)+VVV(LN,K+1)+VVV(L,K+1)  
      &            +WWW(L,K)+WWW(L,K+1))  
               ENDIF  
               IF(ISFCT(MVAR).GE.2)THEN  
@@ -1123,9 +1159,10 @@ C
             DO L=2,LA
               IF(LMASKDRY(L))THEN  
                 IF(ABS(QSUM(L,K)).GT.1.E-12)THEN  
-                  LN=LNC(L)  
+                  LN=LNC(L)
+                  LE=LEAST(L)
                   FUHU(L  ,K)=0.  
-                  FUHU(LEAST(L),K)=0.  
+                  FUHU(LE,K)=0.  
                   FVHU(L  ,K)=0.  
                   FVHU(LN ,K)=0.  
                   FWU(L,K  )=0.  
@@ -1145,8 +1182,9 @@ C
             FVHU(LN,K)=0.0  
           ENDDO  
           DO LL=1,NCBW  
-            L=LCBW(LL)  
-            FUHU(LEAST(L),K)=0.0  
+            L=LCBW(LL)
+            LE=LEAST(L)
+            FUHU(LE,K)=0.0  
           ENDDO  
           DO LL=1,NCBE  
             L=LCBE(LL)  
@@ -1200,9 +1238,10 @@ C
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
               LS=LSC(L)  
-              LN=LNC(L)  
+              LN=LNC(L)
+              LE=LEAST(L)
               CWMAX=SUB(L)*CONTMX(LWEST(L),K)  
-              CEMAX=SUB(LEAST(L))*CONTMX(LEAST(L),K)  
+              CEMAX=SUB(LE)*CONTMX(LE,K)  
               CSMAX=SVB(L)*CONTMX(LS,K)  
               CNMAX=SVB(LN)*CONTMX(LN,K)  
               CMAXT=MAX(CNMAX,CEMAX)  
@@ -1210,7 +1249,7 @@ C
               CMAXT=MAX(CMAXT,CWMAX)  
               CMAX(L,K)=MAX(CMAX(L,K),CMAXT)  
               CWMIN=SUB(L)*CONTMN(LWEST(L),K)+1.E+6*(1.-SUB(L))  
-              CEMIN=SUB(LEAST(L))*CONTMN(LEAST(L),K)+1.E+6*(1.-SUB(LEAST(L)))  
+              CEMIN=SUB(LE)*CONTMN(LE,K)+1.E+6*(1.-SUB(LE))  
               CSMIN=SVB(L)*CONTMN(LS,K)+1.E+6*(1.-SVB(L))  
               CNMIN=SVB(LN)*CONTMN(LN,K)+1.E+6*(1.-SVB(LN))  
               CMINT=MIN(CNMIN,CEMIN)  
@@ -1255,11 +1294,12 @@ C
           RDZIC=DZIC(K)  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
-              LN=LNC(L)  
-              DU(L,K)=DELT*SCB(L)*( DXYIP(L)*(FUHU(L,K)-FUHV(LEAST(L),K)  
+              LN=LNC(L)
+              LE=LEAST(L)
+              DU(L,K)=DELT*SCB(L)*( DXYIP(L)*(FUHU(L,K)-FUHV(LE,K)  
      &            +FVHU(L,K)-FVHV(LN,K))  
      &            +RDZIC*(FWU(L,K-1)-FWV(L,K)) )*HPI(L)  
-              DV(L,K)=DELT*SCB(L)*( DXYIP(L)*(FUHU(LEAST(L),K)-FUHV(L,K)  
+              DV(L,K)=DELT*SCB(L)*( DXYIP(L)*(FUHU(LE,K)-FUHV(L,K)  
      &            +FVHU(LN,K)-FVHV(L,K))  
      &            +RDZIC*(FWU(L,K)-FWV(L,K-1)) )*HPI(L)  
             ELSE
@@ -1276,9 +1316,10 @@ C
             DV(LN,K)=0.  
           ENDDO  
           DO LL=1,NCBW  
-            L=LCBW(LL)  
-            DU(LEAST(L),K)=0.  
-            DV(LEAST(L),K)=0.  
+            L=LCBW(LL)
+            LE=LEAST(L)
+            DU(LE,K)=0.  
+            DV(LE,K)=0.  
           ENDDO  
           DO LL=1,NCBE  
             L=LCBE(LL)  
@@ -1338,8 +1379,9 @@ C
           RDZIC=DZIC(K)  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN
+              LE=LEAST(L)
               CH(L,K)=CON(L,K)*HP(L)  
-     &            +DELT*( (FUHU(L,K)-FUHU(LEAST(L),K)  
+     &            +DELT*( (FUHU(L,K)-FUHU(LE,K)  
      &            +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
      &            +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
               CON(L,K)=SCB(L)*CH(L,K)*HPI(L)+(1.-SCB(L))*CON(L,K)
