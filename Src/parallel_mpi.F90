@@ -1459,7 +1459,7 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO I = 3,4
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     DSENDW_4D(II) = PARTEM(L,K,NW)
                   END DO
@@ -1481,7 +1481,7 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO I = IC-1,IC
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     PARTEM(L,K,NW) = DRECVE_4D(II)
                   END DO
@@ -1493,7 +1493,7 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO I = IC-3,IC-2
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     DSENDE_4D(II) = PARTEM(L,K,NW)
                   END DO
@@ -1513,7 +1513,7 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO I = 1,2
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     PARTEM(L,K,NW) = DRECVW_4D(II)
                   ENDDO
@@ -1524,14 +1524,14 @@ MODULE PARALLEL_MPI
 
 
      ! START ARRAY COMMUNICATION FROM NORTH TO SOUTH AND VICE VERSA
-      LENGARR=IC*2*KC*NWQV
+      LENGARR=IC*2*KC*NWQVM
       IF (PART_NORTH.NE.-1)THEN  ! NEIGHBOUR TO THE NORTH
          II = 0
          DO I = 1,IC
             DO K = 1,KC
                DO J = JC-3,JC-2
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     DSENDN_4D(II) = PARTEM(L,K,NW)
                   ENDDO
@@ -1543,6 +1543,7 @@ MODULE PARALLEL_MPI
          CALL MPI_SEND(DSENDN_4D,LENGARR,MPI_REAL8,PART_NORTH,NODEID, &
             EFDC_COMM, IERR)
          ! ARRAY PACKED AND SENT TO
+!         WRITE(*,*), 'SEND = ', PARTID, N, PARTEM(LIJ(5,JC-2),KC,14)
       END IF
 
       IF (PART_SOUTH.NE.-1)THEN
@@ -1553,20 +1554,21 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO J = 1,2
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     PARTEM(L,K,NW) = DRECVS_4D(II) ! unpack data from north
                   END DO
                END DO
             END DO
          END DO
+ !        WRITE(*,*), 'RECIEVE =', PARTID, N, PARTEM(LIJ(5,2),KC,14)
 
          II = 0
          DO I = 1,IC
             DO K = 1,KC
                DO J = 3,4
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     DSENDS_4D(II) = PARTEM(L,K,NW)   ! pack data and send north
                   ENDDO
@@ -1587,7 +1589,7 @@ MODULE PARALLEL_MPI
             DO K = 1,KC
                DO J = JC-1,JC
                   L = LIJ(I,J)
-                  DO NW=1,NWQV
+                  DO NW=1,NWQVM
                     II =II + 1
                     PARTEM(L,K,NW) = DRECVN_4D(II)
                   END DO

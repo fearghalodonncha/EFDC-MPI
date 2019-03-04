@@ -185,7 +185,7 @@ C8**  READ TIME-RELATED REAL PARAMETERS
        ! Then take base day as day relative to beginning of year 
        ! for backwards compatability with previous versions of EFDC
         TBEGIN = JD_OUT(YBEG,MBEG,DBEG) - JD_OUT(YBEG,01,01) ; ! assuming Jan 1st=day 
-        YEAR_REF = YBEG
+        YREF = YBEG
         MREF = MBEG
         DREF = DBEG
         IF (PARTID == 0) THEN
@@ -194,7 +194,7 @@ C8**  READ TIME-RELATED REAL PARAMETERS
           WRITE(607,1111) YBEG,MBEG,DBEG
         END IF
       ELSE
-        YEAR_REF = 2017 ! default
+        YREF = 2019 ! default
         TBEGIN = TBEGIN_IN  ! TBEGIN is specified as number of days since start of year
       END IF
 1111   FORMAT('SIMULATION BEGINS FOR DATE: ',I0.4,'-',I0.2,'-',I0.2)
@@ -596,8 +596,8 @@ CGR  4/7/10  CREATED SEPERATE ASSIMILATION FACTORS FOR U AND V COMPONENTS, TSUUD
 	  IF(NLUVDA.GT.0.AND.NUVSER.GT.0)THEN
 	    DO N=1,NLUVDA                                            
             READ(1,*,IOSTAT=ISO)ICUVDA_GL(N),JCUVDA_GL(N),NUVSERA_GL(N),
-     &        TSUUDA_GL(N),TSVVDA_GL(N),NORMDIR_GL(N),FSUVDA_GL(N),
-     &        IWUVDA_GL(N), IRVUDA_GL(N),RRUVDA_GL(N)
+     &        TSUUDA_GL(N),TSVVDA_GL(N),NORMDIR_GL(N),FSUVDA_GL(N),IWUVDA_GL(N),
+     &        IRVUDA_GL(N),RRUVDA_GL(N)
           ENDDO
           WRITE(7,1002)NCARD
 	    DO N=1,NLUVDA                                            

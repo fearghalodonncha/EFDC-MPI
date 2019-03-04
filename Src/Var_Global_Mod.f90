@@ -3723,7 +3723,6 @@ MODULE GLOBAL
     INTEGER,ALLOCATABLE,DIMENSION(:)::LWEST
     INTEGER,ALLOCATABLE,DIMENSION (:)::L_CONG
     INTEGER::CONGDOM
-
     REAL(wp),ALLOCATABLE,DIMENSION (:,:)::DUM_COM1
     REAL(wp),ALLOCATABLE,DIMENSION (:,:)::DUM_COM2
 
@@ -3798,7 +3797,7 @@ MODULE GLOBAL
     INTEGER INIT_DT  ! Flag to initialize deep thunder grid structures
     INTEGER NSTEP_CALLDT ! counter to flag DT file read call
     INTEGER NSTEPS   ! number of timesteps between DT file read
-    INTEGER*8 YEAR_REF,MREF,DREF   ! use this for output file namings
+    INTEGER*8 YREF,MREF,DREF   ! use this for output file namings
     LOGICAL DTFLAG
     LOGICAL NCWMS
     CHARACTER(LEN=1024) PATHDT,PATHNCWMS
@@ -3876,4 +3875,8 @@ MODULE GLOBAL
     REAL,ALLOCATABLE,DIMENSION(:)::MVEGZ  ! Porosity factor in Z
     REAL,ALLOCATABLE,DIMENSION(:,:,:)::MACLIM
           ! End MACROALGAE variables
+          ! Begin variables related to WQ write
+   INTEGER,ALLOCATABLE,DIMENSION(:)::IC_STRID  ! Provides starting I coordinate related to global domain
+   INTEGER,ALLOCATABLE,DIMENSION(:)::JC_STRID  ! Provides starting j coordinate related to global domain
+
 END

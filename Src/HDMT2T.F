@@ -33,6 +33,7 @@ C
       USE PARALLEL_MPI
       USE WINDWAVE ,ONLY:WINDWAVEINIT,WINDWAVETUR
       USE OMP_LIB
+      use iom
 #ifdef key_omp
       REAL(8) ostart,oend,tomp,lstart,lend,lomp
 #else

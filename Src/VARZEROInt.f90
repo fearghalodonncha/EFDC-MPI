@@ -453,4 +453,7 @@ SUBROUTINE VARZEROInt
     ! Data Assimilation variables
     VP_I=0
     VP_J=0
+
+    IC_STRID=0
+    JC_STRID=0
 END
