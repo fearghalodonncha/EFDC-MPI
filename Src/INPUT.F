@@ -1736,6 +1736,15 @@ C73*  CONTROLS FOR HORIZONTAL PLANE VELOCITY PLOTTING
       WRITE(7,1002)NCARD  
       WRITE(7,*) ISVPH,NPVPH,ISRVPH,IVPHXY  
       IF(ISO.GT.0) GOTO 100  
+
+      CALL CHECK_OUTPUT_FREQUENCY
+#ifdef key_ncdf
+      ! We need information on I & J location in cell to manage reconciliation
+      ! Ensure these present for velocity elevation and transported solutes
+      IVPHXY=1
+      IPPHXY=1
+      ISPHXY(:) = 1
+#endif
 C  
 C74*  CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING 
       NCARD='74'  
@@ -5221,3 +5230,51 @@ C
   900   FORMAT(L1)  
   999   RETURN
       END
+
+      SUBROUTINE CHECK_OUTPUT_FREQUENCY
+      USE GLOBAL
+      IMPLICIT NONE
+
+      ! To allow effective mapping of variables to the Netcdf file
+      ! we need consistency between output frequency for
+      ! velocity, surface elevation and transported constitutents.
+      ! These are all written to a single file efdcout_YYYYMMDDHHMMSS.nc
+      ! at equivalent time frequency. Hence need to synchronise
+      ! NPPPH (elevation), NPVPH(velocity) and NPSPH(scalar transport)
+      ! Set write frequency to maximum of user specified values and print
+      ! warning to screen
+      INTEGER I,J, NPSPH_MAX
+
+      ! 1) Find maximum write frequency of scalar transport
+      NPSPH_MAX = 0
+      DO N=1,7
+        IF (ISSPH(N) > 0) NPSPH_MAX = MAX(NPSPH_MAX, NPSPH(N))
+      END DO
+      ! We need to allow for situation where user outputs solute transport or
+      ! surface elevation but not velocities
+      IF (ISVPH >0 .AND. ISPPH > 0) THEN
+        IF (NPVPH /= NPPPH) THEN
+          IF (PARTID == MASTER_TASK ) THEN
+            PRINT *, ' USER DEFINED WRITE INTERVAL FOR ELEVATION AND VELOCITY NOT EQUAL '
+            PRINT *, ' SPECIFYING WRITE FREQUENCY AS MAXIMUM VALUE = ', MAX(NPVPH,NPPPH)
+          END IF
+          NPVPH = MAX(NPVPH,NPPPH)
+        END IF
+      END IF
+      IF (ISPPH > 0) NPVPH = MAX(NPVPH,NPPPH)
+      IF (NPSPH_MAX > 0) THEN ! (i.e. write of solute transport is active
+        IF (NPVPH /= NPSPH_MAX) THEN
+          IF (PARTID == MASTER_TASK ) THEN
+            PRINT *, ' USER DEFINED WRITE INTERVAL FORTRANSPORTED VARIABLES AND VEL/EL NOT EQUAL '
+            PRINT *, ' SPECIFYING WRITE FREQUENCY AS MAXIMUM VALUE = ',MAX(NPVPH,NPSPH_MAX)
+          END IF
+          NPVPH = MAX(NPVPH,NPSPH_MAX)
+        END IF
+      END IF
+      IF (PARTID == MASTER_TASK ) THEN
+        PRINT *, ' HORIZONTAL MAPS OF USER DEFINED VARIABLES (VEL, ELEV, TRANSPORT)'
+        PRINT *, ' WILL BE WRITTEN', NPVPH, '  TIMES PER REFERENCE PERIOD'
+      END IF
+      END SUBROUTINE CHECK_OUTPUT_FREQUENCY
+
+

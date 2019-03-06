@@ -372,7 +372,6 @@ C
       ELSEIF(ISPPH.EQ.2)THEN  
         NCPPH=NTS-(NTSPTC-(NTSPTC/NPPPH))/NFLTMT  
         JSPPH=1  
-        NSNAPSHOTS=2
         SNAPSHOTS(1)=(TBEGIN*TCON+TIDALP*NTC)/86400.-0.001
         SNAPSHOTS(2)=SNAPSHOTS(1)+0.001
       ELSE   ! *** IF(ISPPH.EQ.1)THEN  
@@ -2290,9 +2289,8 @@ C
       CLOSE(7)  
       CLOSE(8)  
       CLOSE(9)  
-      
+
       IF (PARTID == MASTER_TASK) THEN
-!        NSNAPSHOTS = NPVPH * NTC
         CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
       END IF
 C
