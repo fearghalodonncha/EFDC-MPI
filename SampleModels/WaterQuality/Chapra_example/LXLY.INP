@@ -1,0 +1,7 @@
+C LXLY.INP FILE, IN FREE FORMAT ACROSS LINE for  4 Active Cells
+C 10-Apr-09   6:31:19 PM 
+C                                                              WIND 
+C    I     J      X      Y      CUE     CVE     CUN     CVN  SHELTER
+    3    3         2.5        70.6   1.00000   0.00000   0.00000   1.00000   1.00   0.000E+00
+    4    3       211.8        70.6   1.00000   0.00000   0.00000   1.00000   1.00   0.000E+00
+    5    3       421.1        70.6   1.00000   0.00000   0.00000   1.00000   1.00   0.000E+00

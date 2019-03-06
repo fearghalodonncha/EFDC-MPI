@@ -1,0 +1,18 @@
+C ** , tser.inp Time Series FILE,  DDD  10-Apr-09 6:31:19 PM
+C ** REPEATS NCSER(2) TIMES
+C ** 
+C ** InType  MCSER(NS)  TCCSER(NS)  TACSER(NS)  RMULADJ(NS)  ADDADJ(NS)
+C ** 
+C **  IF InType.EQ.1 THEN READ DEPTH WEIGHTS AND SINGLE VALUE OF QSER
+C **                      ELSE READ A VALUE OF TEMP FOR EACH LAYER
+C **  
+C **  InType=1 Structure
+C **  WKQ(K),K=1,KC
+C **  TCSER(M,NS)    CSER(M,1,NS)          !(MCSER(NS,2) PAIRS FOR NS=1,NCSER(2) SERIES)
+C **
+C **  InType=0 Structure
+C **  TCSER(M,NS)    (QSER(M,K,NS),K=1,KC) !(MQSER(NS) PAIRS)
+C ** 
+       0       2   86400       0       1       0 ' *** Series_01
+     0.000     20.00
+    31.000     20.00

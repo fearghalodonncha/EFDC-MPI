@@ -1,0 +1,7 @@
+C DXDY.INP FILE, IN FREE FORMAT ACROSS COLUMNS for  4 Active Cells
+C 10-Apr-09   6:31:19 PM 
+C                                           BOTTOM                 Veg
+C  I    J        DX        DY      DEPTH     ELEV     ZROUGH      TYPE
+    3    3         5.0     141.2    10.000   -10.000    0.0200
+    4    3       413.6     141.2    10.000   -10.000    0.0200
+    5    3         5.0     141.2    10.000   -10.000    0.0200

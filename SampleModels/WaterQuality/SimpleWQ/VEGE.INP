@@ -1,0 +1,15 @@
+C  VEGE.INP file, in free format across line, 
+C 
+C  MVEGTYP(# vege type class) MVEGOW(type class open water) UVEGSCL(vel scale) 0
+C
+C  After reading MVEGTYP then read in MVEGTYP lines of the following variables
+C  For macroalgae, unused GAMVEG is the bottom of the macroalgae community (it need not start frm the bottom)
+C  When GAMVEG=0.0, it is regular vegetaion (not macroalgae). If the bottom of the macroalgae cutlutre starts at 0.0, then make it -1.0E-6 (0.0 is a flag for regular vegetation)
+C  MVEGTYP  MVEGOW  NVEGSER  UVEGSCL
+C                                                           not used  used for kelp
+C    M    NVEGSER   RDLPSQ    BPVEG      HPVEG    ALPVEG    BETVEG    GAMVEG   SCVEG
+C  typ#   time ser  1/m**2    meters     meters   no dim    no dim    no dim   nodim
+C
+ 1            0       0      0.0 
+ 1            0      0.1      0.05        48     1.0       1.0      05.0       1.0 
+ 

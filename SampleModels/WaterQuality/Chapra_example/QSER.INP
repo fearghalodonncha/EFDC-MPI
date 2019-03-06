@@ -1,0 +1,17 @@
+C ** , qser.inp Time Series FILE,  DDD  10-Apr-09 6:31:19 PM
+C **
+C **  InType MQSER(NS) TCQSER(NS) TAQSER(NS) RMULADJ(NS) ADDADJ(NS) ICHGQS
+C **
+C **  IF InType.EQ.1 THEN READ DEPTH WEIGHTS AND SINGLE VALUE OF QSER
+C **                      ELSE READ A VALUE OF QSER FOR EACH LAYER
+C **  
+C **  InType=1 Structure
+C **  WKQ(K),K=1,KC
+C **  TQSER(M,NS)    QSER(M,1,NS)          !(MQSER(NS) PAIRS FOR NS=1,NQSER SERIES)
+C **
+C **  InType=0 Structure
+C **  TQSER(M,NS)    (QSER(M,K,NS),K=1,KC) !(MQSER(NS) PAIRS)
+C **
+       0       2   86400       0       1       0       0 ' *** Series_01
+      0.00    0.0772
+     31.00    0.0772

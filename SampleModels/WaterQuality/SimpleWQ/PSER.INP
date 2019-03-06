@@ -1,0 +1,16 @@
+C ** SNL-EFDC Training, pser.inp Time Series FILE,  DDD  6/21/2013 1:03:16 PM
+C **   REPEATS NPSER TIMES
+C **
+C **   MPSER(NS)   TCPSER(NS)  TAPSER(NS)  RMULADJ(NS)  ADDADJ(NS)
+C **
+C **   TPSER(M,NS)  PSER(M,1,NS)   !(mpser(ns) pairs for ns=1,npser series)
+       4   86400       0       1.0       0 ' *** ConstandHead
+    -1.0    	0.0
+	0.0			0.0
+	0.75		0.000001
+    10.000    	0.000001
+       4   86400       0       1.0       0 ' *** ConstandHead
+    -1.0    	0.0
+	0.0			0.0
+	0.75		-0.00001
+    10.000    	-0.00001
