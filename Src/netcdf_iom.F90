@@ -240,8 +240,8 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   END DO
   CLOSE(123)
 ! ASSUME A CARTESIAN GRID FOR NOW
-  DELX_EAST = EASTING(10) - EASTING(9)
-  DELY_NORTH = NORTHING(10) - NORTHING(9)
+  DELX_EAST = EASTING(IC-2) - EASTING(IC-3)
+  DELY_NORTH = NORTHING(IC-2) - NORTHING(IC-3)
   DO I =2,NLONS
     IF (EASTING(I) < 1000) EASTING(I) = EASTING(I-1) + DELX_EAST
   END DO
@@ -307,7 +307,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
           OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
           READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
           DO I=2,LA
-            READ(UNITNAME,*) ILOC,JLOC ,IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
+            READ(UNITNAME,*) IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
             MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:NVARS)             ! U VELOCITY   | MAP TO
             MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(NVARS+1:2*NVARS)     ! V VELOCITY   | GLOB GRD
           END DO
@@ -806,8 +806,8 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   ENDDO
   CLOSE(123)
 ! assume a Cartesian grid for now
-  delx_east = EASTING(10) - EASTING(9)
-  dely_north = NORTHING(10) - NORTHING(9)
+  delx_east = abs(EASTING(4) - EASTING(3))
+  dely_north = abs(NORTHING(4) - NORTHING(3))
   DO I =2,IC_GLOBAL
     IF(EASTING(i) < 1000) EASTING(i) = EASTING(i-1) + delx_east 
   ENDDO
@@ -1073,7 +1073,6 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, "long_name", WQV17_NAME) )
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, "standard_name", WQV17_NAME) )
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, UNITS, WQV17_UNITS) )
-    call check_nf90( nf90_put_var(NCID, WQV17_VARID, WQV_ARRAY_OUT))    ! WQ data
   ENDIF
 ! WQV18 definition
   IF(ISTRWQ(18).EQ.1)THEN 
@@ -1094,7 +1093,6 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, "long_name", WQV19_NAME) )
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, "standard_name", WQV19_NAME) )
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, UNITS, WQV19_UNITS) )
-    call check_nf90( nf90_put_var(NCID, WQV19_VARID, WQV_ARRAY_OUT))    ! WQ data
   ENDIF
 ! WQV20 definition
   IF(ISTRWQ(20).EQ.1)THEN 

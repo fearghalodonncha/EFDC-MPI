@@ -221,9 +221,9 @@ C
             end do
             I = IL(L)
             J = JL(L)
-            IF(KC.GT.1)WRITE(10,210)I,J,XPAR(I),YPAR(J),
+            IF(KC.GT.1)WRITE(10,210)XPAR(I),YPAR(J),
      &        (utmps_av(K),K=1,KC),(vtmps_av(K),K=1,KC)  
-            IF(KC.EQ.1)WRITE(10,200)IL(L),JL(L),VELEKB,VELNKB  
+            IF(KC.EQ.1)WRITE(10,200)XPAR(I),YPAR(J),VELEKB,VELNKB
             
             IF(DTFLAG) THEN
                DO K = 1,KC
