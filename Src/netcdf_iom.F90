@@ -127,67 +127,67 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
                          !NLONS,NLATS,KCM,FLIU,YREF,MREF,DREF,PATHNCWMS,DTFLAG,NCWMS)
   USE GLOBAL
   LOGICAL::FOPEN
-  integer, parameter :: NDIMS = 4
+  INTEGER, PARAMETER :: NDIMS = 4
   INTEGER NLONS,NLATS
-  INTEGER VAR1, NPRY,NPRX,NACTIVE,TIMEFILE,NFILES, &
+  INTEGER VAR1, TIMEFILE,NFILES, &
           I,J,TIMESTEP,NVARS, ILOC,JLOC, IMAP, JMAP
-  real ::  var2,TEMP_SURF
-  REAL*8 time_write_jd,time_write
-  INTEGER*8 timesec_out,jul_day,ndays,twrite_sec
-  CHARACTER(len=4) :: year,year_out
-  character(len=2) :: month,day,hour,minute,month_out,day_out
-  CHARACTER(len=128) :: dstamp,timeorigin
-  INTEGER*8::jd_out
-  INTEGER:: delx_east,dely_north, & 
-  yyyy,mm,dd,hh,minu
+  REAL ::  VAR2,TEMP_SURF
+  REAL*8 TIME_WRITE_JD,TIME_WRITE
+  INTEGER*8 TIMESEC_OUT,JUL_DAY,NDAYS,TWRITE_SEC
+  CHARACTER(LEN=4) :: YEAR,YEAR_OUT
+  CHARACTER(LEN=2) :: MONTH,DAY,HOUR,MINUTE,MONTH_OUT,DAY_OUT
+  CHARACTER(LEN=128) :: DSTAMP,TIMEORIGIN
+  INTEGER*8::JD_OUT
+  INTEGER:: DELX_EAST,DELY_NORTH, &
+  YYYY,MM,DD,HH,MINU
   INTEGER DOMAINID(10000)
-  CHARACTER(8) :: date
-  CHARACTER(10) :: time
-  CHARACTER(5) :: zone
-  REAL merid, false_easting, false_northing, inv_flattening,lat_proj, &
-          long_cen_mer,long_pri_mer,sma
+  CHARACTER(8) :: DATE
+  CHARACTER(10) :: TIME
+  CHARACTER(5) :: ZONE
+  REAL MERID, FALSE_EASTING, FALSE_NORTHING, INV_FLATTENING,LAT_PROJ, &
+          LONG_CEN_MER,LONG_PRI_MER,SMA
 ! various netcdf related naming parameters
   CHARACTER (LEN = *), PARAMETER :: LVL_NAME = "Depth"
   CHARACTER (LEN = *), PARAMETER :: LAT_NAME = "Y"
   CHARACTER (LEN = *), PARAMETER :: LON_NAME = "X"
   CHARACTER (LEN = *), PARAMETER :: WX_NAME = "WX"
   CHARACTER (LEN = *), PARAMETER :: WY_NAME = "WY"
-  CHARACTER (LEN = *), PARAMETER :: REC_NAME = "time"
-  character (len = *), parameter :: uvel_name = "u"
-  character (len = *), parameter :: vvel_name = "v"
-  character (len = *), parameter :: wvel_name = "w"
-  character (len = *), parameter :: salinity_name = "Salinity"
-  character (len = *), parameter :: temp_name = "Temperature"
-  character (len = *), parameter :: dye_name = "Tracer"
-  character (len = *), parameter :: elev_name = "Elevation"
-  character (len = *), parameter :: UNITS = "units"
-  character (len = *), parameter :: uvel_UNITS = "m/sec"
-  character (len = *), parameter :: vvel_units = "m/sec"
-  character (len = *), parameter :: TEMP_UNITS = "Degree Celsius"
-  character (len = *), parameter :: dye_units = "Concentration (%)"
-  character (len = *), parameter :: elev_units = "m"
-  character (len = *), parameter :: LAT_UNITS = "m"
-  character (len = *), parameter :: LON_UNITS = "m"
+  CHARACTER (LEN = *), PARAMETER :: REC_NAME = "Time"
+  CHARACTER (LEN = *), PARAMETER :: UVEL_NAME = "u"
+  CHARACTER (LEN = *), PARAMETER :: VVEL_NAME = "v"
+  CHARACTER (LEN = *), PARAMETER :: WVEL_NAME = "w"
+  CHARACTER (LEN = *), PARAMETER :: SALINITY_NAME = "Salinity"
+  CHARACTER (LEN = *), PARAMETER :: TEMP_NAME = "Temperature"
+  CHARACTER (LEN = *), PARAMETER :: DYE_NAME = "Tracer"
+  CHARACTER (LEN = *), PARAMETER :: ELEV_NAME = "Elevation"
+  CHARACTER (LEN = *), PARAMETER :: UNITS = "units"
+  CHARACTER (LEN = *), PARAMETER :: UVEL_UNITS = "m/sec"
+  CHARACTER (LEN = *), PARAMETER :: VVEL_UNITS = "m/sec"
+  CHARACTER (LEN = *), PARAMETER :: TEMP_UNITS = "Degree Celsius"
+  CHARACTER (LEN = *), PARAMETER :: DYE_UNITS = "Concentration (%)"
+  CHARACTER (LEN = *), PARAMETER :: ELEV_UNITS = "m"
+  CHARACTER (LEN = *), PARAMETER :: LAT_UNITS = "m"
+  CHARACTER (LEN = *), PARAMETER :: LON_UNITS = "m"
   CHARACTER (LEN = *), PARAMETER :: LVL_UNITS = "m"
-  REAL,parameter:: FillValue_real = -9999.
-  INTEGER,parameter:: FillValue_int = -9999
-  integer, parameter :: char_length=128
+  REAL,PARAMETER:: FILLVALUE_REAL = -9999.
+  INTEGER,PARAMETER:: FILLVALUE_INT = -9999
+  INTEGER, PARAMETER :: CHAR_LENGTH=128
 
- ! When we create netCDF files, variables and dimensions, we get back
- ! an ID for each one.
-  integer :: ncid, LVL_DIMID, LON_DIMID, LAT_DIMID, &
-             lon_varid, lat_varid, lvl_varid,time_dimid, &
-             time_varid,tranme_varid,IIB, &
-             uvel_varid, temp_varid, vvel_varid, &   ! netcdf
-             dye_varid,elev_varid, salinity_varid, &
-             dimids_2d(3), &                  ! variables
-             fileloop,  &
-             unitname, &  ! file id idents
-             fileid_begin, fileid_end
+ ! WHEN WE CREATE NETCDF FILES, VARIABLES AND DIMENSIONS, WE GET BACK
+ ! AN ID FOR EACH ONE.
+  INTEGER :: NCID, LVL_DIMID, LON_DIMID, LAT_DIMID, &
+             LON_VARID, LAT_VARID, LVL_VARID,TIME_DIMID, &
+             TIME_VARID,TRANME_VARID,IIB, &
+             UVEL_VARID, TEMP_VARID, VVEL_VARID, &   ! NETCDF
+             DYE_VARID,ELEV_VARID, SALINITY_VARID, &
+             DIMIDS_2D(3), &                  ! VARIABLES
+             FILELOOP,  &
+             UNITNAME, &  ! FILE ID IDENTS
+             FILEID_BEGIN, FILEID_END
   INTEGER :: II
-  REAL:: dimlocs(4)
+  REAL:: DIMLOCS(4)
 
-  ! acFILEEXT for allocatable arrays based on
+  ! ACFILEEXT FOR ALLOCATABLE ARRAYS BASED ON
   CHARACTER (LEN=50) GRID_X,GRID_Y,FORMAT_STRING
   CHARACTER*4,ALLOCATABLE,DIMENSION(:)::INTCHAR4
   CHARACTER*3,ALLOCATABLE,DIMENSION(:)::FILEEXT
@@ -196,213 +196,180 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   INTEGER,ALLOCATABLE,DIMENSION(:)::LVLS
   REAL,ALLOCATABLE,DIMENSION(:)::TEMP_VELS,TEMP_CONC,EASTING,NORTHING,LATS,LONS 
   INTEGER,ALLOCATABLE,DIMENSION(:)::DIMIDS
-  REAL,ALLOCATABLE,DIMENSION(:,:,:)::map_u_vel,map_v_vel,map_temperature,map_dye, &
-                                     MAP_VV, map_salinity
-  REAL,ALLOCATABLE,DIMENSION(:,:):: map_surfel
-  REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::MAP_WQ !WQ variables
+  REAL,ALLOCATABLE,DIMENSION(:,:,:)::MAP_U_VEL,MAP_V_VEL,MAP_TEMPERATURE,MAP_DYE, &
+                                     MAP_VV, MAP_SALINITY
+  REAL,ALLOCATABLE,DIMENSION(:,:):: MAP_SURFEL
+  REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::MAP_WQ !WQ VARIABLES
   NFILES = NSNAPSHOTS + 1
   NVARS = KC
   NLONS = IC_GLOBAL
   NLATS = JC_GLOBAL
-  write(*,*) 'within netcdf', nfiles, nvars, nlons, nlats
   ALLOCATE(LVLS(NVARS))
   ALLOCATE(INTCHAR4(NFILES)) 
   ALLOCATE(FILE_IN(5000))
   ALLOCATE(FILE_OUT(NFILES))
   ALLOCATE(TEMP_VELS (2*NVARS) )
   ALLOCATE(TEMP_CONC (NVARS) )
-  ALLOCATE(map_u_vel (NLONS,NLATS,NVARS) )
-  ALLOCATE(map_v_vel (NLONS,NLATS,NVARS) )
-  ALLOCATE(map_salinity (NLONS,NLATS,NVARS) )
-  ALLOCATE(map_temperature (NLONS,NLATS,NVARS) )
-  ALLOCATE(map_dye (NLONS,NLATS,NVARS) )
+  ALLOCATE(MAP_U_VEL (NLONS,NLATS,NVARS) )
+  ALLOCATE(MAP_V_VEL (NLONS,NLATS,NVARS) )
+  ALLOCATE(MAP_SALINITY (NLONS,NLATS,NVARS) )
+  ALLOCATE(MAP_TEMPERATURE (NLONS,NLATS,NVARS) )
+  ALLOCATE(MAP_DYE (NLONS,NLATS,NVARS) )
   ALLOCATE(MAP_VV (NLONS,NLATS,NVARS) )
-  ALLOCATE(map_surfel (NLONS,NLATS) )
+  ALLOCATE(MAP_SURFEL (NLONS,NLATS) )
   ALLOCATE(EASTING (NLONS) )
   ALLOCATE(NORTHING (NLATS) )
   ALLOCATE(LONS (NLONS) )
   ALLOCATE(LATS (NLATS) )
   ALLOCATE(DIMIDS (NDIMS) )
-  ALLOCATE(MAP_WQ(IC_GLOBAL,JC_GLOBAL,KC,NWQVM)) !WQ map
+  ALLOCATE(MAP_WQ(IC_GLOBAL,JC_GLOBAL,KC,NWQVM)) !WQ MAP
   UNITNAME=0;FILEID_BEGIN=0;FILEID_END=0
 
-  OPEN(123,FILE='SANITY_CHECK.dat',STATUS='UNKNOWN')
-  CLOSE(123,status='DELETE')
-  open(124,file='raw_ts.dat',status='unknown')
-  close(124,status='delete')
   do II =1,NFILES
     write(INTCHAR4(ii),'(I4.4)') ii
   end do
 
   EASTING(:) = 0.; NORTHING(:) = 0.
+  ! The Netcdf mapping requires information on the spatial
   OPEN(123,file="LXLY.INP",status="unknown")
-  do ii = 1,4
-    read(123,*)
-  end do
-  do ii = 1,LC_GLOBAL-2
-    read(123,*)I,J,EASTING(I),NORTHING(J)
-  end do
-  close(123)
-! assume a Cartesian grid for now
-  delx_east = easting(10) - easting(9)
-  dely_north = northing(10) - northing(9)
-  DO i =2,NLONS
-    if (easting(i) < 1000) easting(i) = easting(i-1) + delx_east 
-  end do
+  DO II = 1,4
+    READ(123,*)
+  END DO
+  DO II = 1,LC_GLOBAL-2
+    READ(123,*)I,J,EASTING(I),NORTHING(J)
+  END DO
+  CLOSE(123)
+! ASSUME A CARTESIAN GRID FOR NOW
+  DELX_EAST = EASTING(10) - EASTING(9)
+  DELY_NORTH = NORTHING(10) - NORTHING(9)
+  DO I =2,NLONS
+    IF (EASTING(I) < 1000) EASTING(I) = EASTING(I-1) + DELX_EAST
+  END DO
 
-  DO i =2,NLATS
-    if (northing(i) < 1000) northing(i) = northing(i-1) + dely_north
-  end do
+  DO I =2,NLATS
+    IF (NORTHING(I) < 1000) NORTHING(I) = NORTHING(I-1) + DELY_NORTH
+  END DO
 
   DO I = NLONS-1,1,-1
-    if (easting(i) < 1000) easting(i) = easting(i+1) - delx_east
-  end do
+    IF (EASTING(I) < 1000) EASTING(I) = EASTING(I+1) - DELX_EAST
+  END DO
 
   DO I = NLATS-1,1,-1
-    if (northing(i) < 1000) northing(i) = northing(i+1) - dely_north
-  end do
+    IF (NORTHING(I) < 1000) NORTHING(I) = NORTHING(I+1) - DELY_NORTH
+  END DO
 ! Easting northing obtained and stored
 
-! Information on mesh for netcdf grid spacing attribute
-  if (delx_east < 100) then
-    format_string = "(I2)"
-  elseif (delx_east < 1000) then
-    format_string  = "(I3)"
-  else
-    format_string  = "(I4)"
-  end if
+! INFORMATION ON MESH FOR NETCDF GRID SPACING ATTRIBUTE
+  IF (DELX_EAST < 100) THEN
+    FORMAT_STRING = "(I2)"
+  ELSEIF (DELX_EAST < 1000) THEN
+    FORMAT_STRING  = "(I3)"
+  ELSE
+    FORMAT_STRING  = "(I4)"
+  END IF
+  WRITE(GRID_X,FORMAT_STRING) DELX_EAST
+  IF (DELY_NORTH < 100) THEN
+    FORMAT_STRING = "(I2)"
+  ELSEIF (DELY_NORTH < 1000) THEN
+    FORMAT_STRING  = "(I3)"
+  ELSE
+    FORMAT_STRING  = "(I4)"
+  END IF
+  WRITE(GRID_Y,FORMAT_STRING) DELY_NORTH
 
-  write(grid_x,format_string) delx_east
-  if (dely_north < 100) then
-    format_string = "(I2)"
-  elseif (dely_north < 1000) then
-    format_string  = "(I3)"
-  else
-    format_string  = "(I4)"
-  end if
-  write(grid_y,format_string) dely_north
-! use LORP file to obtain domain decompostion information for reconstruction
-  open(1,File='LORP.INP',status='old')
-  do ii =1,3
-    READ(1,*)
-  END DO  
-  read(1,*) NPRX,NPRY,NACTIVE
-  READ(1,*)
- 
-  do ii =1,NPRX
-    read(1,*) 
-  end do
-  read(1,*)
 
-  do ii = 1,NPRY
-    read(1,*)
-  end do
-  read(1,*)
 
-  do ii= 1,NACTIVE
-    read(1,*)
-  END DO
-
-  READ(1,*)
-  DO ii=1,NPRX*NPRY  
-    READ(1,*) DOMAINID(ii) 
-  END DO
-  ALLOCATE(FILEEXT(NPRX*NPRY))
+  ALLOCATE(FILEEXT(NPARTX*NPARTY)) ! FILE EXTENSION CHARACTER STRING FOR EACH OF THE EFDC FILES (VELVECH###.OUT, SALPLTH###.OUT, etc.)
   IF (MPI_PAR_FLAG == 1) THEN
-    DO ii =1, NPRX*NPRY
+    DO ii =1, NPARTX*NPARTY
       WRITE(FILEEXT(ii), '(I3.3)')ii
     END DO
   ELSE
     FILEEXT(:) = ''
   END IF
   TIMEFILE= 0  
-  map_u_vel(:,:,:) =-9999.
-  map_v_vel(:,:,:) =-9999.
-  map_salinity(:,:,:) =-9999.
-  map_temperature(:,:,:) =-9999.
-  map_dye(:,:,:) =-9999.
+  MAP_U_VEL(:,:,:) =-9999.
+  MAP_V_VEL(:,:,:) =-9999.
+  MAP_SALINITY(:,:,:) =-9999.
+  MAP_TEMPERATURE(:,:,:) =-9999.
+  MAP_DYE(:,:,:) =-9999.
   MAP_VV(:,:,:) =-9999.
-  map_surfel(:,:) =-9999.
-  WRITE(*,*) 'BEGIN LOOP THROUGH',  NSNAPSHOTS - 1, ' FILES'
+  MAP_SURFEL(:,:) =-9999.
   DO TIMESTEP = 1,NSNAPSHOTS -1 ! NSNAPSHOTS IS PREPARING FOR NEXT WRITE
-    unitname = 300
-    fileid_begin = unitname
-    iib =0
-    DO FILELOOP = 1, NPRX*NPRY
+    UNITNAME = 300
+    FILEID_BEGIN = UNITNAME
+    IIB =0
+    DO FILELOOP = 1, NPARTX*NPARTY
       IIB = IIB +1
-      IF (DOMAINID(FILELOOP) == -1) GOTO 333  ! skip partitions that didn't write
-      unitname = unitname  + 1
-      FILE_IN(fileloop)= 'VELVECH'//trim(FILEEXT(iib))//'.OUT'
-      OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-      READ(unitname,*) var1,timesec_out,partid,LA
-      DO i=2,LA
-        READ(unitname,*) ILOC,JLOC ,IMAP, JMAP ,  (temp_vels(ii),ii=1,2*nvars)  ! read vels
-        map_u_vel(IMAP, JMAP,:)= temp_vels(1:nvars)             ! u velocity   | map to
-        map_v_vel(IMAP, JMAP,:)= temp_vels(nvars+1:2*nvars)     ! v velocity   | glob grd
-      END DO
-      IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 ) THEN
-        unitname = unitname  + 1
-        FILE_IN(fileloop)= 'SALCONH'//trim(FILEEXT(iib))//'.OUT'
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA
-        DO i=2,LA
-          READ(unitname,*)IMAP, JMAP, (temp_conc(II),II=1,nvars)   ! read salinity output
-          map_salinity(IMAP, JMAP,:)= temp_conc(:)               ! map to global grid
-        END DO
-      END IF
-      IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
-        unitname = unitname  + 1
-        FILE_IN(fileloop)= 'TEMCONH'//trim(FILEEXT(iib))//'.OUT'
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA 
-        DO i=2,LA
-          READ(unitname,*)IMAP, JMAP, (temp_conc(ii),ii=1,nvars)   ! read temperature
-          map_temperature(IMAP, JMAP,:)= temp_conc(:) ! + 273.15     ! map to global grid
-        END DO
-      END IF
-      IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
-        unitname = unitname  + 1
-        FILE_IN(fileloop)= 'DYECONH'//trim(FILEEXT(iib))//'.OUT'
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA
-        DO i=2,LA
-          READ(unitname,*)IMAP, JMAP, (temp_conc(II),II=1,nvars)   ! read dye
-          map_dye(IMAP, JMAP,:)= temp_conc(:)
-        END DO
-      END IF
-      IF (ISPPH == 1 ) THEN
-        unitname = unitname  + 1
-        FILE_IN(fileloop)= 'SURFCON'//trim(FILEEXT(iib))//'.OUT'
-        OPEN(unitname, FILE = trim(FILE_IN(FILELOOP)), status ='old')
-        READ(unitname,*) var1,var2,partid,LA
-        DO i=2,LA
-          READ(unitname,*)IMAP, JMAP, temp_surf   ! read surface elevation
-          map_surfel(IMAP, JMAP)= temp_surf
-        END DO
-      END IF
-
-333   continue
-    END DO  ! END loop on files (i.e. across all partitions 
-      WRITE(*,*) 'END LOOP THROUGH',  NSNAPSHOTS - 1, ' FILES'
-
-    IIB = 0
+      IF (TILE2NODE(FILELOOP) /= -1) THEN  ! skip partitions that didn't write
+          unitname = unitname  + 1
+          FILE_IN(FILELOOP)= 'VELVECH'//trim(FILEEXT(IIB))//'.OUT'
+          OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+          READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
+          DO I=2,LA
+            READ(UNITNAME,*) ILOC,JLOC ,IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
+            MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:NVARS)             ! U VELOCITY   | MAP TO
+            MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(NVARS+1:2*NVARS)     ! V VELOCITY   | GLOB GRD
+          END DO
+          IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 ) THEN
+            UNITNAME = UNITNAME  + 1
+            FILE_IN(FILELOOP)= 'SALCONH'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ SALINITY OUTPUT
+              MAP_SALINITY(IMAP, JMAP,:)= TEMP_CONC(:)               ! MAP TO GLOBAL GRID
+            END DO
+          END IF
+          IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+            UNITNAME = UNITNAME  + 1
+            FILE_IN(FILELOOP)= 'TEMCONH'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = TRIM(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ TEMPERATURE
+              MAP_TEMPERATURE(IMAP, JMAP,:)= TEMP_CONC(:) ! + 273.15     ! map to global grid
+            END DO
+          END IF
+          IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
+            UNITNAME = UNITNAME  + 1
+            FILE_IN(FILELOOP)= 'DYECONH'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ DYE
+              MAP_DYE(IMAP, JMAP,:)= TEMP_CONC(:)
+            END DO
+          END IF
+          IF (ISPPH == 1 ) THEN
+            UNITNAME = UNITNAME  + 1
+            FILE_IN(FILELOOP)= 'SURFCON'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*)IMAP, JMAP, TEMP_SURF   ! READ SURFACE ELEVATION
+              MAP_SURFEL(IMAP, JMAP)= TEMP_SURF
+            END DO
+          END IF
+      END IF  ! ENDIF ON CHECK WHETHER DOMAIN EXISTS ( IF (TILE2NODE(FILELOOP) /= -1)
+    END DO  ! END LOOP ON FILES (I.E. ACROSS ALL PARTITIONS
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
-!  sanity check
+
 ! Begin write to netcdf
     TIMEFILE = TIMEFILE +1
 ! Use information from time_write to create filename using similar structure to
 ! Deep Thunder: i.e. wrfout_d03_YYYY-MM-hh:mm:sc.nc
 ! time_write at present is time in days since 01-01-2000
-    time_write = timesec_out/86400.   ! convert from time in days to time in seconds
-    jul_day = jd_out(yref,1,1)    ! YREF defined at init with default=2000 
-    time_write_jd = time_write + jul_day
-    CALL time2year(yyyy,mm,dd,hh,minu,timesec_out,yref)
-    write(year,'(I4.4)') yyyy
-    write(month, '(I2.2)') mm
-    write(day, '(I2.2)') dd
-    write(hour, '(I2.2)') hh
-    write(minute, '(I2.2)') minu
-    dstamp = year//'-'//month//'-'//day//'-'//hour//minute 
+    TIME_WRITE = TIMESEC_OUT/86400.   ! convert from time in seconds to  time in days to
+    JUL_DAY = JD_OUT(YREF,1,1)    ! yref defined at init with default=2000
+    TIME_WRITE_JD = TIME_WRITE + JUL_DAY
+    CALL TIME2YEAR(YYYY,MM,DD,HH,MINU,TIMESEC_OUT,YREF)
+    WRITE(YEAR,'(I4.4)') YYYY
+    WRITE(MONTH, '(I2.2)') MM
+    WRITE(DAY, '(I2.2)') DD
+    WRITE(HOUR, '(I2.2)') HH
+    WRITE(MINUTE, '(I2.2)') MINU
+    dstamp = year//month//day//hour//minute
     timeorigin = 'seconds since '//year//'-01-01 00:00:00 -0:00'
 ! Possibly datestamp of output files doesn't exactly correspond (e.g. for 36
 ! hour forecast. Hence for output folders write to folder date stamped with
@@ -415,17 +382,17 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 ! This implementation causes round off issues
 ! Introduce simpler time conversion that maintains a base of 2000-01-01
 ! and convert this to base of relevant year (2015 in this case)
-    ndays = jd_out(yyyy,1,1) - jd_out(yref,1,1)
-    twrite_sec = timesec_out - (ndays * 86400)
-    DO ii=1, NLATS
-      LATS(ii) =ii
+    NDAYS = JD_OUT(YYYY,1,1) - JD_OUT(YREF,1,1)
+    TWRITE_SEC = TIMESEC_OUT - (NDAYS * 86400)
+    DO II=1, NLATS
+      LATS(II) =II
     END DO
-    DO ii = 1, NLONS
-      lons(ii) = ii
-    end do
-    do ii = 1,NVARS
-      LVLS(ii)= 100 - int( (100/NVARS) * ii)
-    end do
+    DO II = 1, NLONS
+      LONS(II) = II
+    END DO
+    DO II = 1,NVARS
+      LVLS(II)= 100 - INT( (100/NVARS) * II)
+    END DO
   ! Always check the return code of every netCDF function call. In
   ! this example program, wrapping netCDF calls with "call check()"
   ! makes sure that any return which is not equal to nf90_noerr (0)
@@ -506,8 +473,8 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       call check_nf90( nf90_put_att(ncid, elev_varid, "_FillValue", FillValue_real) )
       call check_nf90( nf90_put_att(ncid, elev_varid, "coordinates", "X Y time") )
       call check_nf90( nf90_put_att(ncid, elev_varid, "grid_mapping", "transverse_mercator") )
-      call check_nf90( nf90_put_att(ncid, elev_varid, "long_name","surface_elevation_relative_to_NGVD_1929_datum") )
-      call check_nf90( nf90_put_att(ncid, elev_varid, "offset","Lake_height_datum_is_97.235m_above_navd88_datum") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "long_name","surface_elevation_relative_to_datum") )
+      call check_nf90( nf90_put_att(ncid, elev_varid, "offset","mean_water_level") )
       call check_nf90( nf90_put_att(ncid, elev_varid, "standard_name", "surface_elevations") )
       call check_nf90( nf90_put_att(ncid, elev_varid, UNITS, elev_units) )
     END IF

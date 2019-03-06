@@ -33,11 +33,9 @@
       CALL cdate(jd,yyyy,mm,dd)                 ! yyyy mm dd from julian dayi
       tsecmod = timesec
       tday = MOD(tsecmod,86400.)           ! current time in day term 
-       write(*,*)'tday = ',timesec,tday
        hh = INT(tday/3600.)              ! base hour          ! may not coincide exactly with Codar
       temp = tday/86400.
       minu = NINT(MOD(FLOAT(tday),3600.))/60
-      write(*,*) 'time2year =',timesec,tsecmod,tday,time,jd,tday,hh,minu,temp
       return
       end 
 

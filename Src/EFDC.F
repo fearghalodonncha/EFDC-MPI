@@ -2253,8 +2253,8 @@ C
         WRITE(8,2004)TIME_END,  TCPU  
         ! **              EXACT FORMAT REQUIRED BY EFDC_EXPLORER  
         ! *** TIME LOG
-        CALL TIMELOG(N,TIMEDAY)  
         OPEN(9,FILE='TIME.LOG',STATUS='UNKNOWN')  
+        CALL TIMELOG(N,TIMEDAY)
         WRITE(9,6995)THDMT,TCONG  
         IF( NSEDFLUME==0 )THEN
           WRITE(9,6996)TPUV,TSSED  
@@ -2291,7 +2291,6 @@ C
       CLOSE(8)  
       CLOSE(9)  
       
-      write(*,*) 'CALL FILE RECONCILIATION', PARTID, MASTER_TASK
       IF (PARTID == MASTER_TASK) THEN
 !        NSNAPSHOTS = NPVPH * NTC
         CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
