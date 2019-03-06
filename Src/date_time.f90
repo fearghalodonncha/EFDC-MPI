@@ -1,63 +1,63 @@
 
- function iday(yyyy, mm, dd) result(ival)
+ FUNCTION IDAY(YYYY, MM, DD) RESULT(IVAL)
 !====IDAY IS A COMPANION TO CALEND; GIVEN A CALENDAR DATE, YYYY, MM,
 !           DD, IDAY IS RETURNED AS THE DAY OF THE YEAR.
 !           EXAMPLE: IDAY(1984, 4, 22) = 113
 
- integer, intent(in) :: yyyy, mm, dd
- integer             :: ival
+ INTEGER, INTENT(IN) :: YYYY, MM, DD
+ INTEGER             :: IVAL
 
- ival = 3055*(mm+2)/100 - (mm+10)/13*2 -91 +  &
-       (1-(modulo(yyyy, 4)+3)/4              &
-        + (Modulo(yyyy, 100) + 99)/100 -        &
-       (modulo(yyyy, 400)+399)/400)*(mm+10)/13 + dd
+ IVAL = 3055*(MM+2)/100 - (MM+10)/13*2 -91 +  &
+       (1-(MODULO(YYYY, 4)+3)/4              &
+        + (MODULO(YYYY, 100) + 99)/100 -        &
+       (MODULO(YYYY, 400)+399)/400)*(MM+10)/13 + DD
 
- return
- end function iday
+ RETURN
+ END FUNCTION IDAY
 
 
-function jd_out(yyyy, mm, dd) result(ival)
-  integer, intent(in)  :: yyyy
-  integer, intent(in)  :: mm
-  integer, intent(in)  :: dd
-  integer*8            :: ival
+FUNCTION JD_OUT(YYYY, MM, DD) RESULT(IVAL)
+  INTEGER, INTENT(IN)  :: YYYY
+  INTEGER, INTENT(IN)  :: MM
+  INTEGER, INTENT(IN)  :: DD
+  INTEGER*8            :: IVAL
 !              DATE ROUTINE JD(YYYY, MM, DD) CONVERTS CALENDER DATE TO
 !              JULIAN DATE.  SEE CACM 1968 11(10):657, LETTER TO THE
 !              EDITOR BY HENRY F. FLIEGEL AND THOMAS C. VAN FLANDERN.
 !    EXAMPLE JD(1970, 1, 1) = 2440588
-  ival = dd - 32075 + 1461*(yyyy+4800+(mm-14)/12)/4 +  &
-        367*(mm-2-((mm-14)/12)*12)/12 - 3*((yyyy+4900+(mm-14)/12)/100)/4
-  return
- end function jd_out
+  IVAL = DD - 32075 + 1461*(YYYY+4800+(MM-14)/12)/4 +  &
+        367*(MM-2-((MM-14)/12)*12)/12 - 3*((YYYY+4900+(MM-14)/12)/100)/4
+  RETURN
+ END FUNCTION JD_OUT
 
- subroutine cdate(jd,yyyy,mm,dd)
+ SUBROUTINE CDATE(JD,YYYY,MM,DD)
 !====GIVEN A JULIAN DAY NUMBER, NNNNNNNN, YYYY,MM,DD ARE RETURNED AS THE
 !         CALENDAR DATE. JD = NNNNNNNN IS THE JULIAN DATE FROM AN EPOCH
 !         IN THE VERY DISTANT PAST.  SEE CACM 1968 11(10):657,
 !         LETTER TO THE EDITOR BY FLIEGEL AND VAN FLANDERN.
 !    EXAMPLE CALL CDATE(2440588, YYYY, MM, DD) RETURNS 1970 1 1 .
 
- integer,intent(in)  ::  jd
- integer,intent(out) ::  yyyy,mm,dd
- integer l
+ INTEGER,INTENT(IN)  ::  JD
+ INTEGER,INTENT(OUT) ::  YYYY,MM,DD
+ INTEGER L
 
- l = jd + 68569
- n = 4*l/146097
- l = l - (146097*n + 3)/4
- yyyy = 4000*(l+1)/1461001
- l = l - 1461*yyyy/4 + 31
- mm = 80*l/2447
- dd = l - 2447*mm/80
- l = mm/11
- mm = mm + 2 - 12*l
- yyyy = 100*(n-49) + yyyy + l
- return
- end subroutine cdate
-
-
+ L = JD + 68569
+ N = 4*L/146097
+ L = L - (146097*N + 3)/4
+ YYYY = 4000*(L+1)/1461001
+ L = L - 1461*YYYY/4 + 31
+ MM = 80*L/2447
+ DD = L - 2447*MM/80
+ L = MM/11
+ MM = MM + 2 - 12*L
+ YYYY = 100*(N-49) + YYYY + L
+ RETURN
+ END SUBROUTINE CDATE
 
 
-      FUNCTION ref_att (r_time, r_date)
+
+
+      FUNCTION REF_ATT (R_TIME, R_DATE)
 !
 !=======================================================================
 !                                                                      !
@@ -91,74 +91,74 @@ function jd_out(yyyy, mm, dd) result(ival)
 !  Imported variable declarations.
 !
       USE GLOBAL
-      real(wp), intent(in) :: r_time
-      real(wp), dimension(8), intent(out) :: r_date
-      character (len=19) :: ref_att
+      REAL(WP), INTENT(IN) :: R_TIME
+      REAL(WP), DIMENSION(8), INTENT(OUT) :: R_DATE
+      CHARACTER (LEN=19) :: REF_ATT
 !
 !  Local variable declarations.
 !
-      integer(wp) :: iday, ihour, isec, iyear, leap, minute, month
-      integer(wp), dimension(13) :: iyd =                                   &
+      INTEGER(WP) :: IDAY, IHOUR, ISEC, IYEAR, LEAP, MINUTE, MONTH
+      INTEGER(WP), DIMENSION(13) :: IYD =                                   &
      &         (/ 1,32,60,91,121,152,182,213,244,274,305,335,366 /)
-      integer(wp), dimension(13) :: iydl =                                  &
+      INTEGER(WP), DIMENSION(13) :: IYDL =                                  &
      &         (/ 1,32,61,92,122,153,183,214,245,275,306,336,367 /)
-      real(wp) :: day, sec, yday
-      character (len=19) :: text
+      REAL(WP) :: DAY, SEC, YDAY
+      CHARACTER (LEN=19) :: TEXT
 !
 !-----------------------------------------------------------------------
 !  Decode reference time.
 !-----------------------------------------------------------------------
 !
-      iyear=MAX(1,INT(r_time*0.0001))
-      month=MIN(12,MAX(1,INT((r_time-REAL(iyear*10000))*0.01)))
-      day=r_time-AINT(r_time*0.01)*100.0
-      iday=INT(day)
-      sec=(day-AINT(day))*86400.0
-      ihour=INT(sec/3600.0)
-      minute=INT(MOD(sec,3600.0)/60.0)
-      isec=INT(MOD(sec,60.0))
+      IYEAR=MAX(1,INT(R_TIME*0.0001))
+      MONTH=MIN(12,MAX(1,INT((R_TIME-REAL(IYEAR*10000))*0.01)))
+      DAY=R_TIME-AINT(R_TIME*0.01)*100.0
+      IDAY=INT(DAY)
+      SEC=(DAY-AINT(DAY))*86400.0
+      IHOUR=INT(SEC/3600.0)
+      MINUTE=INT(MOD(SEC,3600.0)/60.0)
+      ISEC=INT(MOD(SEC,60.0))
 !
 !-----------------------------------------------------------------------
 !  Get year day.
 !-----------------------------------------------------------------------
 !
-      leap=MOD(iyear,4)
-      IF (leap.eq.0) THEN
-        yday=REAL(iydl(month))+REAL(iday)-1.0
+      LEAP=MOD(IYEAR,4)
+      IF (LEAP.EQ.0) THEN
+        YDAY=REAL(IYDL(MONTH))+REAL(IDAY)-1.0
       ELSE
-        yday=REAL(iyd(month))+REAL(iday)-1.0
+        YDAY=REAL(IYD(MONTH))+REAL(IDAY)-1.0
       END IF
 !
 !-----------------------------------------------------------------------
 !  Build output date vector.
 !-----------------------------------------------------------------------
 !
-      r_date(1)=r_time
-      r_date(2)=REAL(iyear)
-      r_date(3)=MAX(1.0,yday)
-      r_date(4)=REAL(month)
-      r_date(5)=MAX(1.0,REAL(iday))
-      r_date(6)=REAL(ihour)
-      r_date(7)=REAL(minute)
-      r_date(8)=REAL(isec)
+      R_DATE(1)=R_TIME
+      R_DATE(2)=REAL(IYEAR)
+      R_DATE(3)=MAX(1.0,YDAY)
+      R_DATE(4)=REAL(MONTH)
+      R_DATE(5)=MAX(1.0,REAL(IDAY))
+      R_DATE(6)=REAL(IHOUR)
+      R_DATE(7)=REAL(MINUTE)
+      R_DATE(8)=REAL(ISEC)
 !
 !-----------------------------------------------------------------------
 !  Build reference-time string.
 !-----------------------------------------------------------------------
 !
-      WRITE (text,10) iyear, month, iday, ihour, minute, isec
- 10   FORMAT (i4,'-',i2.2,'-',i2.2,1x,i2.2,':',i2.2,':',i2.2)
-      ref_att=text
+      WRITE (TEXT,10) IYEAR, MONTH, IDAY, IHOUR, MINUTE, ISEC
+ 10   FORMAT (I4,'-',I2.2,'-',I2.2,1X,I2.2,':',I2.2,':',I2.2)
+      REF_ATT=TEXT
       RETURN
-      END FUNCTION ref_att
+      END FUNCTION REF_ATT
 
-   SUBROUTINE  Conversion(Number, Year, Month, Day)
+   SUBROUTINE  CONVERSION(NUMBER, YEAR, MONTH, DAY)
    IMPLICIT  NONE
 
-   INTEGER, INTENT(IN)  :: Number
-   INTEGER, INTENT(OUT) :: Year, Month, Day
+   INTEGER, INTENT(IN)  :: NUMBER
+   INTEGER, INTENT(OUT) :: YEAR, MONTH, DAY
 
-   Year  = Number / 10000
-   Month = MOD(Number, 10000) / 100
-   Day   = MOD(Number, 100)
-   END SUBROUTINE  Conversion
+   YEAR  = NUMBER / 10000
+   MONTH = MOD(NUMBER, 10000) / 100
+   DAY   = MOD(NUMBER, 100)
+   END SUBROUTINE  CONVERSION

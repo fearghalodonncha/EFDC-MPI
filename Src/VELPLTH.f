@@ -97,6 +97,7 @@ C
         IF(ISDYNSTP.EQ.0)THEN  
           TIME=INT(DT*N)+INT(TCON*TBEGIN)  
         ELSE  
+          TIME=TIMESEC
         ENDIF  
         OPEN(10,FILE='VELVECH'//ans(partid2)//'.OUT',POSITION='APPEND')  
         WRITE (10,*)N,TIME,PARTID,LA 

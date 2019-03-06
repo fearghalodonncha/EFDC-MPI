@@ -204,6 +204,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   NVARS = KC
   NLONS = IC_GLOBAL
   NLATS = JC_GLOBAL
+  write(*,*) 'within netcdf', nfiles, nvars, nlons, nlats
   ALLOCATE(LVLS(NVARS))
   ALLOCATE(INTCHAR4(NFILES)) 
   ALLOCATE(FILE_IN(5000))
@@ -280,14 +281,12 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     format_string  = "(I4)"
   end if
   write(grid_y,format_string) dely_north
-  write(*,*) 'grid size=',delx_east,dely_north,trim(grid_x),trim(grid_y)
 ! use LORP file to obtain domain decompostion information for reconstruction
   open(1,File='LORP.INP',status='old')
   do ii =1,3
     READ(1,*)
   END DO  
   read(1,*) NPRX,NPRY,NACTIVE
-  write(*,*) NPRX,NPRY,NACTIVE
   READ(1,*)
  
   do ii =1,NPRX
@@ -324,11 +323,11 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   map_dye(:,:,:) =-9999.
   MAP_VV(:,:,:) =-9999.
   map_surfel(:,:) =-9999.
-  DO TIMESTEP = 1,NSNAPSHOTS
+  WRITE(*,*) 'BEGIN LOOP THROUGH',  NSNAPSHOTS - 1, ' FILES'
+  DO TIMESTEP = 1,NSNAPSHOTS -1 ! NSNAPSHOTS IS PREPARING FOR NEXT WRITE
     unitname = 300
     fileid_begin = unitname
     iib =0
-    write(*,*) 'write file number ', Timestep,'of ', NSNAPSHOTS
     DO FILELOOP = 1, NPRX*NPRY
       IIB = IIB +1
       IF (DOMAINID(FILELOOP) == -1) GOTO 333  ! skip partitions that didn't write
@@ -384,22 +383,20 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 
 333   continue
     END DO  ! END loop on files (i.e. across all partitions 
+      WRITE(*,*) 'END LOOP THROUGH',  NSNAPSHOTS - 1, ' FILES'
+
     IIB = 0
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
 !  sanity check
 ! Begin write to netcdf
     TIMEFILE = TIMEFILE +1
-    write(*,*) 'FILE_OUT =',INTCHAR4(1)
-    write(*,*) 'TIMEFIL=',TIMEFILE 
 ! Use information from time_write to create filename using similar structure to
 ! Deep Thunder: i.e. wrfout_d03_YYYY-MM-hh:mm:sc.nc
 ! time_write at present is time in days since 01-01-2000
     time_write = timesec_out/86400.   ! convert from time in days to time in seconds
     jul_day = jd_out(yref,1,1)    ! YREF defined at init with default=2000 
     time_write_jd = time_write + jul_day
-    write(*,*) 'before time2year',time_write_jd,jul_day,time_Write
     CALL time2year(yyyy,mm,dd,hh,minu,timesec_out,yref)
-    write(*,*) 'year out =', yyyy,mm,dd,hh,minu,time_write_jd,time_write,jul_day
     write(year,'(I4.4)') yyyy
     write(month, '(I2.2)') mm
     write(day, '(I2.2)') dd
@@ -420,8 +417,6 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 ! and convert this to base of relevant year (2015 in this case)
     ndays = jd_out(yyyy,1,1) - jd_out(yref,1,1)
     twrite_sec = timesec_out - (ndays * 86400)
-    write(*,*) 'twrite_Sec = ',twrite_sec,timesec_out,ndays
-
     DO ii=1, NLATS
       LATS(ii) =ii
     END DO
@@ -438,9 +433,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 
   ! Create the netCDF file. The nf90_clobber parameter tells netCDF to
   ! overwrite this file, if it already exists
-    write(*,*) 'begin netcdf',FILE_OUT(TIMEFILE)
     call check_nf90(nf90_create(trim(FILE_OUT(TIMEFILE)), NF90_CLOBBER, ncid) )
-    write(*,*) 'fname',FILE_OUT(TIMEFILE),'done'
   ! Define the dimensions. NetCDF will hand back an ID for each. 
     call check_nf90( nf90_def_dim(ncid, LVL_NAME, NVARS, lvl_dimid) )
     call check_nf90( nf90_def_dim(ncid, LON_NAME, NLONS, lon_dimid) )
@@ -820,22 +813,18 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   TIME_WRITE = FLOAT(ITSEC)/86400.   ! convert from time in seconds to time in days
   JUL_DAY = jd_out(YREF,1,1)    ! YREF defined at init with default=2019 
   TIME_WRITE_JD = TIME_WRITE + JUL_DAY
-  WRITE(*,*) 'Before time2year',TIME_WRITE_JD,JUL_DAY,TIME_WRITE
   CALL time2year(YYYY,MM,DD,HH,MINU,ITSEC,YREF)
-  WRITE(*,*)'Year out =', YYYY,MM,DD,HH,MINU,TIME_WRITE_JD,TIME_WRITE,JUL_DAY
   WRITE(YEAR,  '(I4.4)')YYYY
   WRITE(MONTH, '(I2.2)')MM
   WRITE(DAY,   '(I2.2)')DD
   WRITE(HOUR,  '(I2.2)')HH
   WRITE(MINUTE,'(I2.2)')MINU
-  DSTAMP = YEAR//'-'//MONTH//'-'//DAY//'-'//HOUR//MINUTE 
+  DSTAMP = YEAR//MONTH//DAY//HOUR//MINUTE
   TIMEORIGIN = 'Seconds since '//YEAR//'-01-01 00:00:00 -0:00'
-
   WQFILE_OUT = 'wqvout_'//TRIM(DSTAMP)//'00.nc'
   CALL check_nf90(nf90_create(TRIM(WQFILE_OUT), NF90_CLOBBER, NCID) )
   NDAYS = jd_out(YYYY,1,1) - jd_out(YREF,1,1) !Number of days into the simulation
   TWRITE_SEC = ITSEC - (NDAYS * 86400)
-  WRITE(*,*) 'twrite_sec = ',TWRITE_SEC,ITSEC,NDAYS
 !Calculate latitude/longitude
   ALLOCATE(EASTING (IC_GLOBAL) )
   ALLOCATE(NORTHING (JC_GLOBAL) )
@@ -889,7 +878,6 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     LVLS(II)= 100 - INT( (100/KC) * II)
   ENDDO
   write(grid_y,format_string) int(dely_north)
-  write(*,*) 'grid size=',delx_east,dely_north,TRIM(grid_x),TRIM(grid_y)
 ! Define the dimensions. NetCDF will hand back an ID for each. 
   call check_nf90( nf90_def_dim(NCID, LVL_NAME, KC, LVL_DIMID) )
   call check_nf90( nf90_def_dim(NCID, LON_NAME, IC_GLOBAL, LON_DIMID) )
@@ -1239,44 +1227,39 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,10)
     call check_nf90( nf90_put_var(NCID, WQV10_VARID, WQTMP))    ! WQ data
   ENDIF
-! WQV4 details
-  IF(ISTRWQ(4).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,11)
-    call check_nf90( nf90_put_var(NCID, WQV4_VARID, WQTMP))    ! WQ data
-  ENDIF
 ! WQV11 details
   IF(ISTRWQ(11).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,12)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,11)
     call check_nf90( nf90_put_var(NCID, WQV11_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV12 details
   IF(ISTRWQ(12).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,13)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,12)
     call check_nf90( nf90_put_var(NCID, WQV12_VARID, WQTMP))    ! WQ data
   ENDIF
 !WQV13 definition
   IF(ISTRWQ(13).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,14)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,13)
     call check_nf90( nf90_put_var(NCID, WQV13_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV14 details
   IF(ISTRWQ(14).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,15)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,14)
     call check_nf90( nf90_put_var(NCID, WQV14_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV15 details
   IF(ISTRWQ(15).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,16)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,15)
     call check_nf90( nf90_put_var(NCID, WQV15_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV16 details
   IF(ISTRWQ(16).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,17)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,16)
     call check_nf90( nf90_put_var(NCID, WQV16_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV17 details
   IF(ISTRWQ(17).EQ.1)THEN 
-    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,18)
+    WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,17)
     call check_nf90( nf90_put_var(NCID, WQV17_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV18 details

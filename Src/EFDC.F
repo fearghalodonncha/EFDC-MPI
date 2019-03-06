@@ -2291,9 +2291,10 @@ C
       CLOSE(8)  
       CLOSE(9)  
       
+      write(*,*) 'CALL FILE RECONCILIATION', PARTID, MASTER_TASK
       IF (PARTID == MASTER_TASK) THEN
-        NSNAPSHOTS = NPVPH * NTC
-!        CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
+!        NSNAPSHOTS = NPVPH * NTC
+        CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
       END IF
 C
 

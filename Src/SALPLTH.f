@@ -143,7 +143,6 @@ C
   300 CONTINUE  
       IF(ISDYNSTP.EQ.0)THEN  
         TIME=DT*FLOAT(N)+TCON*TBEGIN  
-
       ELSE  
         TIME=TIMESEC  
       ENDIF  
