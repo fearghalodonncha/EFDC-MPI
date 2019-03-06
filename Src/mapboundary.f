@@ -151,7 +151,6 @@ C ** to child partition
           MMAX = MMAX+NSED+NSND
           DO MS = MMIN,MMAX
             DO K =1,KC
-              write(*,*)K,II,MS,L,M
               CQS(K,II,MS) = CQSE_GL(LL,MS)
             END DO
           END DO   

@@ -206,7 +206,7 @@ SUBROUTINE VARZEROInt
     KQWRD=0
     KQWRU=0
     KUPCJP=0
-    KUPW=0
+    KUPW=1
     KWBU=0
     KWBV=0
     KWU=0
