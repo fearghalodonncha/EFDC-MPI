@@ -64,7 +64,6 @@ PROG=EFDC
 #Name of modules
 MODULESF90 = Var_Global_Mod.o DRIFTER.o WINDWAVE.o
 MODULESF902 = parallel_mpi.o netcdf_iom.o
-MODULESFOR = 
 
 #Files with .f90 extension
 OBJS1 = diagnostics.o \
@@ -106,7 +105,8 @@ OBJS2 = VARINIT.o \
 	EFDC.o \
 	CONGRAD_MPI.o \
         CALHDMF.o \
-	INPUT.o
+	INPUT.o \
+        CALWQC.o 
 
 #Files with .f extension
 OBJS3 = ACON.o AINIT.o \
@@ -129,7 +129,7 @@ OBJS3 = ACON.o AINIT.o \
 	CALBAL1.o CALTSXY.o initbin0.o RWQSTL.o WASP5.o \
 	CALBAL2.o initbin2.o RWQSUN.o WASP6.o \
 	CALBAL3.o CALVEGSER.o INITBIN3.o SALPLTH.o WASP7EPA.o \
-	CALBAL4.o CALWQC.o INITBIN4.o SALPLTV.o WASP7.o \
+	CALBAL4.o INITBIN4.o SALPLTV.o WASP7.o \
 	CALBAL5.o CBALEV1.o initbin.o SALTSMTH.o WAVEBL.o \
 	CALBED9.o CBALEV2.o SCANASER.o WAVESXY.o \
 	CALBED.o CBALEV3.o JPEFDC.o SCANDSER.o WQ3D.o \
@@ -159,12 +159,9 @@ OBJS3 = ACON.o AINIT.o \
 	mapboundary.o SECNDS.o VARALLOC.o puvdasm.o
 
 
-#Files with .for extension
-OBJS4 = PUVDASM.o
-
 #Link all objects
-$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)
-	$(FC) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  $(LFLAGS) -o $(PROG)
+$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS2) $(OBJS3)
+	$(FC) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS2) $(OBJS3)  $(LFLAGS) -o $(PROG)
 
 #Compile subroutines and modules
 $(MODULESF90): %.o: %.f90
@@ -172,22 +169,13 @@ $(MODULESF90): %.o: %.f90
 $(MODULESF902): %.o: %.F90
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@
 
-$(MODULESFOR): %.o: %.f
-	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@
-
-$(OBJS1): %.o: %.f90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
+$(OBJS1): %.o: %.f90 $(MODULESF90) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
-$(OBJS11): %.o: %.F90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
+$(OBJS2): %.o: %.F $(MODULESF90) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
-$(OBJS2): %.o: %.F $(MODULESF90) $(MODULESFOR) $(MODULESF902)
-	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
-
-$(OBJS3): %.o: %.f $(MODULESF90) $(MODULESFOR) $(MODULESF902)
-	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
-
-$(OBJS4): %.o: %.for $(MODULESF90) $(MODULESFOR) $(MODULESF902)
+$(OBJS3): %.o: %.f $(MODULESF90) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
 #Clean up after yourself
