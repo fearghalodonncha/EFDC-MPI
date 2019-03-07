@@ -9,8 +9,7 @@ CFLAGS = -c
 
 CPPFLAGS =-cpp
 MPIFLAGS =key_mpi#   # define key_mpi to activate mpi compilation
-OMP_FLAGS=#          # define key_omp to activate open MP compilation
-HYD_FLAG=key_hyd#    # define key_hyd to activate hybrid MPI/OpenMP compilations
+OMP_FLAGS=key_omp#          # define key_omp to activate open MP compilation
 NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
 DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
 
@@ -37,6 +36,10 @@ ifdef NCFLAGS
   CPPFLAGS +=-D$(NCFLAGS)
   F_INC += -I$(NCDIR)/include
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
+endif
+ifdef OMPFLAGS
+  FC += -fopenmp
+  CPPFLAGS +=-D$(OMP_FLAGS) 
 endif
 # This is for Data Assimilation operations
 # Only need it if we invoke data assimilation
