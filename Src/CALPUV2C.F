@@ -156,8 +156,8 @@ C
      &      -DELTD2*SVB(L)*HRVO(L)*HV(L)*(P(L)-P(LS))  
      &      +SVB(L)*DELT*DYIV(L)*(DXYV(L)*(TSY(L)-RITB1*TBY(L))  
      &      -FCAYE(L)+FPGYE(L)-SNLT*FYE(L)) 
-        RCX(L)=1.  
-        RCY(L)=1.  
+        RCX(L)=1.0/(1.0+FBODYFXI(L)) !Multiple layers, no vegetation
+        RCY(L)=1.0/(1.0+FBODYFYI(L)) 
       ENDDO  
 !$OMP END PARALLEL
       IF(ISDSOLV.GE.1.AND.DEBUG) CALL DGN_PUV
@@ -209,8 +209,8 @@ C * MULTIPLE LAYERS WITH VEGETATION
 C  
       IF(KC.GT.1.AND.ISVEG.GE.1)THEN  
         DO L=2,LA  
-          RCX(L)=1./( 1.+FBODYFXI(L)+DELT*FXVEGE(L) )  !SCJ why does FUHDYE not get FBODYFXI included in it if there is no vegetation?
-          RCY(L)=1./( 1.+FBODYFYI(L)+DELT*FYVEGE(L) )  !SCJ why does FVHDXE not get FBODYFYI included in it if there is no vegetation? 
+          RCX(L)=1./( 1.+FBODYFXI(L)+DELT*FXVEGE(L) )  
+          RCY(L)=1./( 1.+FBODYFYI(L)+DELT*FYVEGE(L) ) 
           FUHDYE(L)=FUHDYE(L)*RCX(L)  
           FVHDXE(L)=FVHDXE(L)*RCY(L)  
         ENDDO  
@@ -692,12 +692,6 @@ C
 #else
         ICORDRY_GLOB = ICORDRY
 #endif
-         if (partid==17) then
-         
-        open(123,file='temp.dat',status='unknown',position='append')
-        write(123,*) 'ICORDry=',N,ICORDRY,ICORDRY_GLOB
-        close(123)
-         end if
         IF(ICORDRY_GLOB.NE.0)THEN  
           NCORDRY=NCORDRY+1  
           GOTO 1000  

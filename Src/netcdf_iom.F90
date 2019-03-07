@@ -302,7 +302,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     DO FILELOOP = 1, NPARTX*NPARTY
       IIB = IIB +1
       IF (TILE2NODE(FILELOOP) /= -1) THEN  ! skip partitions that didn't write
-          unitname = unitname  + 1
+          unitname = unitname  + 1 
           FILE_IN(FILELOOP)= 'VELVECH'//trim(FILEEXT(IIB))//'.OUT'
           OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
           READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
@@ -694,26 +694,26 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   !WQ variables
   CHARACTER(LEN=*),PARAMETER::WQV1_NAME="Cyanobacteria"
   CHARACTER(LEN=*),PARAMETER::WQV2_NAME="Diatoms"
-  CHARACTER(LEN=*),PARAMETER::WQV3_NAME="Green algae"
-  CHARACTER(LEN=*),PARAMETER::WQV4_NAME="Refractory particulate organic carbon"
-  CHARACTER(LEN=*),PARAMETER::WQV5_NAME="Labile particulate organic carbon"
-  CHARACTER(LEN=*),PARAMETER::WQV6_NAME="Dissolved organic carbon"
-  CHARACTER(LEN=*),PARAMETER::WQV7_NAME="Refractory particulate organic phosphorus"
-  CHARACTER(LEN=*),PARAMETER::WQV8_NAME="Labile particulate organic phosphorus"
-  CHARACTER(LEN=*),PARAMETER::WQV9_NAME="Dissolved organic phosphorus"
-  CHARACTER(LEN=*),PARAMETER::WQV10_NAME="Total phosphate"
-  CHARACTER(LEN=*),PARAMETER::WQV11_NAME="Refractory particulate organic nitrogen"
-  CHARACTER(LEN=*),PARAMETER::WQV12_NAME="Labile particulate organic nitrogen"
-  CHARACTER(LEN=*),PARAMETER::WQV13_NAME="Dissolved organic nitrogen"
-  CHARACTER(LEN=*),PARAMETER::WQV14_NAME="Ammonia nitrogen"
-  CHARACTER(LEN=*),PARAMETER::WQV15_NAME="Nitrate nitrogen"
-  CHARACTER(LEN=*),PARAMETER::WQV16_NAME="Particulate biogenic silica"
-  CHARACTER(LEN=*),PARAMETER::WQV17_NAME="Dissolved available silica"
-  CHARACTER(LEN=*),PARAMETER::WQV18_NAME="Chemical oxygen demand"
-  CHARACTER(LEN=*),PARAMETER::WQV19_NAME="Dissolved oxygen"
-  CHARACTER(LEN=*),PARAMETER::WQV20_NAME="Total active metal"
-  CHARACTER(LEN=*),PARAMETER::WQV21_NAME="Fecal coliform bacteria"
-  CHARACTER(LEN=*),PARAMETER::WQV22_NAME="Dissolved carbon dioxide"
+  CHARACTER(LEN=*),PARAMETER::WQV3_NAME="Green_algae"
+  CHARACTER(LEN=*),PARAMETER::WQV4_NAME="Refractory_particulate_organic_carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV5_NAME="Labile_particulate_organic_carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV6_NAME="Dissolved_organic_carbon"
+  CHARACTER(LEN=*),PARAMETER::WQV7_NAME="Refractory_particulate_organic_phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV8_NAME="Labile_particulate_organic_phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV9_NAME="Dissolved_organic_phosphorus"
+  CHARACTER(LEN=*),PARAMETER::WQV10_NAME="Total_phosphate"
+  CHARACTER(LEN=*),PARAMETER::WQV11_NAME="Refractory_particulate_organic_nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV12_NAME="Labile_particulate_organic_nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV13_NAME="Dissolved_organic_nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV14_NAME="Ammonia_nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV15_NAME="Nitrate_nitrogen"
+  CHARACTER(LEN=*),PARAMETER::WQV16_NAME="Particulate_biogenic_silica"
+  CHARACTER(LEN=*),PARAMETER::WQV17_NAME="Dissolved_available_silica"
+  CHARACTER(LEN=*),PARAMETER::WQV18_NAME="Chemical_oxygen_demand"
+  CHARACTER(LEN=*),PARAMETER::WQV19_NAME="Dissolved_oxygen"
+  CHARACTER(LEN=*),PARAMETER::WQV20_NAME="Total_active_metal"
+  CHARACTER(LEN=*),PARAMETER::WQV21_NAME="Fecal_coliform_bacteria"
+  CHARACTER(LEN=*),PARAMETER::WQV22_NAME="Dissolved_carbon_dioxide"
   CHARACTER(LEN=*),PARAMETER::WQV23_NAME="Macroalgae"
 !WQ variable units
   CHARACTER(LEN=*),PARAMETER::WQV1_UNITS="mg/L"
@@ -738,7 +738,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   CHARACTER(LEN=*),PARAMETER::WQV20_UNITS="kmol"
   CHARACTER(LEN=*),PARAMETER::WQV21_UNITS="MPN/100mL"
   CHARACTER(LEN=*),PARAMETER::WQV22_UNITS="kg/m3"
-  CHARACTER(LEN=*),PARAMETER::WQV23_UNITS="mg/L"
+  CHARACTER(LEN=*),PARAMETER::WQV23_UNITS="kg/m3"
   INTEGER::WQV1_VARID, WQV2_VARID, WQV3_VARID, WQV4_VARID, WQV5_VARID, WQV6_VARID, & !WQ variable IDs for NetCDF
            WQV7_VARID, WQV8_VARID, WQV9_VARID, WQV10_VARID,WQV11_VARID,WQV12_VARID,&
            WQV13_VARID,WQV14_VARID,WQV15_VARID,WQV16_VARID,WQV17_VARID,WQV18_VARID,&
@@ -796,7 +796,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   ALLOCATE(EASTING (IC_GLOBAL) )
   ALLOCATE(NORTHING (JC_GLOBAL) )
   ALLOCATE(LVLS(KC))
-  EASTING(:) = 0.; NORTHING(:) = 0.
+  EASTING(:) = 0.0; NORTHING(:) = 0.0
   OPEN(123,FILE="LXLY.INP",STATUS="OLD")
   DO II = 1,4
     READ(123,*)
@@ -809,19 +809,19 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   delx_east = abs(EASTING(4) - EASTING(3))
   dely_north = abs(NORTHING(4) - NORTHING(3))
   DO I =2,IC_GLOBAL
-    IF(EASTING(i) < 1000) EASTING(i) = EASTING(i-1) + delx_east 
+    IF(EASTING(I) < 1000) EASTING(I) = EASTING(I-1) + delx_east 
   ENDDO
 
   DO I =2,JC_GLOBAL
-    IF(NORTHING(i) < 1000) NORTHING(i) = NORTHING(i-1) + dely_north
+    IF(NORTHING(I) < 1000) NORTHING(I) = NORTHING(I-1) + dely_north
   ENDDO
 
   DO I = IC_GLOBAL-1,1,-1
-    IF(EASTING(i) < 1000) EASTING(i) = EASTING(i+1) - delx_east
+    IF(EASTING(I) < 1000) EASTING(I) = EASTING(I+1) - delx_east
   ENDDO
 
   DO I = JC_GLOBAL-1,1,-1
-    IF(NORTHING(i) < 1000) NORTHING(i) = NORTHING(i+1) - dely_north
+    IF(NORTHING(I) < 1000) NORTHING(I) = NORTHING(I+1) - dely_north
   ENDDO
 ! Easting northing obtained and stored
 ! Grid information
@@ -1141,7 +1141,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   call check_nf90( nf90_put_var(NCID, LVL_VARID, LVLS) )       ! Sigma levels 
   call check_nf90( nf90_put_var(NCID, LON_VARID, EASTING) )    ! EASTING
   call check_nf90( nf90_put_var(NCID, LAT_VARID, NORTHING) )   ! Northing
-  call check_nf90( nf90_put_var(NCID, TIME_VARID, TWRITE_SEC) )   ! Time
+  call check_nf90( nf90_put_var(NCID, TIME_VARID, TWRITE_SEC) )! Time
 ! WQV1 details
   IF(ISTRWQ(1).EQ.1)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,1)

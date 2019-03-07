@@ -128,19 +128,15 @@ C
      &         -DELTD2*SVB(L)*HRVO(L)*HV(L)*(P(L)-P(LS ))
      &         +SVB(L)*DELT*DYIV(L)*(DXYV(L)*(TSY(L)-RITB1*TBY(L))
      &         -FCAYE(L)+FPGYE(L)-SNLT*FYE(L))
-        RCX(L)=1.  
-        RCY(L)=1.  
+        RCX(L)=1.0/(1.0+FBODYFXI(L)) !Multiple layers, no vegetation
+        RCY(L)=1.0/(1.0+FBODYFYI(L)) 
       ENDDO
 
 !$OMP END PARALLEL
       IF(ISDSOLV.GE.1.AND.DEBUG) CALL DGN_PUV
 C  
 C **  SET IMPLICIT BOTTOM AND VEGETATION DRAG AS APPROPRIATE  
-C  
-!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) !Multiple layers no vegetation
-      RCY(2:LA)=1./(1.+FBODYFYI(2:LA))
-!$OMP END PARALLEL
+C
       RCX(1)=0.  
       RCY(1)=0.  
       RCX(LC)=0.  

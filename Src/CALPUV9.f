@@ -144,10 +144,9 @@ C
 C  
 C **  SET IMPLICIT BOTTOM AND VEGETATION DRAG AS APPROPRIATE  
 C  
-!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
-      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) !SCJ how is this ever used
-      RCY(2:LA)=1./(1.+FBODYFYI(2:LA)) !This is never considered in FUHDYE/FVHDXE if there is no vegetation and there are multiple layers
-!$OMP END PARALLEL 
+      RCX(2:LA)=1./(1.+FBODYFXI(2:LA)) !Multiple layers no vegetation
+      RCY(2:LA)=1./(1.+FBODYFYI(2:LA)) 
+
       RCX(1)=0.  
       RCY(1)=0.  
       RCX(LC)=0.  
