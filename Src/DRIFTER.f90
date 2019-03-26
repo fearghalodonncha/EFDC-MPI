@@ -53,6 +53,10 @@ CONTAINS
                     CALL CONTAINER(XLA,YLA,ZLA,LLA,KLA,NP) !OUT:LLA,KLA,BELVLA,HPLA
                 ENDDO
             ELSE
+                NPD = NPD_TOT
+                XLA=XLA_ALL
+                YLA=YLA_ALL
+                ZLA=ZLA_ALL
                 CALL CONTAINER(XLA,YLA,ZLA,LLA,KLA) !OUT:LLA,KLA,BELVLA,HPLA
             ENDIF
             ! *** MAKE SURE THE FILE IS NEW
@@ -66,7 +70,11 @@ CONTAINS
             WRITE(ULGR,*) trim(METHOD)
             WRITE(ULGR,*) NPD_TOT,KC
             WRITE(ULGR,*) TIMEDAY
-            WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+            IF (MPI_PAR_FLAG == 1) THEN ! We want to write the global variables
+               WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+            ELSE  ! Serial so we just write the computed local variables
+               WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
+            END IF
             FLUSH(ULGR)
             TIMENEXT_WRITE_DR=TIMEDAY+LA_FREQ+0.000001
         ENDIF
@@ -178,6 +186,8 @@ CONTAINS
 
         !  MAKE CHECK WHETHER PARTICLE IS WITHIN GHOST ZONE AND IS MOVE
         IF (MPI_PAR_FLAG == 1) THEN
+          ! At each timestep we need to make a check whether drifters have
+          ! exited the domain and redistribute accordingly
           CALL COMMUNICATE_DRIFTERS
         END IF
 
@@ -185,9 +195,14 @@ CONTAINS
         IF (TIMEDAY>=TIMENEXT_WRITE_DR) THEN
             IF (PARTID == MASTER_TASK) THEN
                 WRITE(ULGR,*) TIMEDAY
-                WRITE(ULGR,*) (XLA_ALL(NP),YLA_ALL(NP),(ZLA_ALL(NP)),NP=1,NPD_TOT)
-            END IF
+                IF (MPI_PAR_FLAG == 1) THEN ! We want to write the global variables
+                  WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+                ELSE  ! Serial so we just write the computed local variables
+                  WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
+                END IF
             FLUSH(ULGR)
+            END IF
+
             TIMENEXT_WRITE_DR = TIMENEXT_WRITE_DR+LA_FREQ
         ENDIF
     END SUBROUTINE
@@ -217,8 +232,14 @@ CONTAINS
         ! ALLOCATE(LLA(NPD),KLA(NPD),HPLA(NPD),BELVLA(NPD))
         ALLOCATE(XLA_ALL(NPD_TOT*2),YLA_ALL(NPD_TOT*2),ZLA_ALL(NPD_TOT*2),DLA_ALL(NPD_TOT*2))
         ALLOCATE(ILA_ALL(NPD_TOT*2),JLA_ALL(NPD_TOT*2))
+        XLA_ALL(:) = 0.; YLA_ALL(:) = 0.; ZLA_ALL(:) = 0; DLA_ALL(:) = 0.
+        ILA_ALL(:) = 0; JLA_ALL(:) = 0
+        IF (MPI_PAR_FLAG == 0) THEN ! Allocate serial variables now
+          NPD=NPD_TOT
+          ALLOCATE(XLA(NPD),YLA(NPD),ZLA(NPD),DLA(NPD))
+          ALLOCATE(LLA(NPD),KLA(NPD),HPLA(NPD),BELVLA(NPD))
+        END IF
         ALLOCATE(ZCTR(0:KC+1))
-        XLA_ALL(:) = 0; YLA_ALL(:) = 0; ZLA_ALL(:) = 0; DLA_ALL(:) = 0
         !  LLA = 0
         !  KLA = 0
         !  HPLA= 0
@@ -235,6 +256,14 @@ CONTAINS
             ENDDO
         ENDIF
         CLOSE(ULOC)
+        IF (MPI_PAR_FLAG == 0) THEN ! Serial, local and global variables equate
+          DO NP = 1,NPD
+             XLA(NP) = XLA_ALL(NP)
+             YLA(NP) = YLA_ALL(NP)
+             ZLA(NP) = ZLA_ALL(NP)
+             DLA(NP) = DLA_ALL(NP)
+          END DO
+        END IF
         IF(LA_PRAN>0) RANVAL = RAND()
         RETURN
 999     STOP 'DRIFTER.INP READING ERROR!'
@@ -927,7 +956,7 @@ CONTAINS
     SUBROUTINE COMMUNICATE_DRIFTERS! (XLA, YLA, ZLA, XLA_ALL, YLA_ALL, ZLA_ALL)   !**********************************************
 !! This is only related to MPI implementation of code. Not necessary otherwise
 #ifdef key_mpi
-        ! WE PACK THE THREE DRIFTER COMPONENTS (XLA, YLA and ZLA) INTO A
+        ! WE PACK THE FIVE DRIFTER COMPONENTS (ILA, JLA, XLA, YLA and ZLA) INTO A
         ! SINGLE ARRAY, DISTRIBUTE TO ALL PROCESSORS USING MPI_ALLGATHER.
         ! UNPACK LOCALLY AND FOR EACH PROCESSOR IDENTIFY IF WITHIN SUBDOMAIN
         ! BASED ON GLOBAL (I,J) INDICES
@@ -941,11 +970,11 @@ CONTAINS
             DEALLOCATE(DRIFT_PACK_LOCAL)
             DEALLOCATE(DRIFT_PACK_GLOBAL)
         END IF
-        ALLOCATE(DRIFT_PACK_LOCAL(NPD*5),STAT=ERROR)
+        ALLOCATE(DRIFT_PACK_LOCAL(NPD*5),STAT=ERROR) ! Times 5 because it's 5 variables (ILA, JLA, XLA, YLA and ZLA)
         IF(.NOT.ALLOCATED(PROC_SIZE_ARR))THEN
-            ALLOCATE(PROC_SIZE_ARR(NPARTS),STAT=ERROR)
-            ALLOCATE(displs(NPARTS),STAT=ERROR)
-            ALLOCATE(rcounts(NPARTS),STAT=ERROR)
+            ALLOCATE(PROC_SIZE_ARR(NPARTS),STAT=ERROR) ! Collects number of Drifters on each subdomain into single array
+            ALLOCATE(rcounts(NPARTS),STAT=ERROR)       ! A count of number of variables in each subdomain used in MPI_GATHER
+            ALLOCATE(displs(NPARTS),STAT=ERROR)        ! "Stride" length or displacement in packing variables in gathered array
             IF(ERROR.NE.0) WRITE(*,*) 'ALLOCATION ERROR DRIFT_PACK'
         END IF
         DRIFT_PACK_LOCAL(:) = 0.
@@ -959,7 +988,10 @@ CONTAINS
             DISPLS(I) = (I-1)   ! INDEX
             RCOUNTS(I) = 1
         ENDDO
-        CALL MPI_ALLGATHERv(NPD, 1, MPI_INTEGER, PROC_SIZE_ARR, rcounts,displs, &
+        ! For MPI Gather, we need to know how many drifters exist on each subdmoain. This varies
+        ! as drifters enter/exit so we need to do for each timestep
+        ! an MPI_Gather on NPD and gathered into array PROC_SIZE_ARR
+        CALL MPI_ALLGATHERv(NPD, 1, MPI_INTEGER, PROC_SIZE_ARR, RCOUNTS,DISPLS, &
             MPI_INTEGER, MPI_COMM_WORLD, ERROR)
         IF (ERROR /= 0 ) THEN
             PRINT '(A48)','ERROR DOING A GATHER OF NPD SIZE FOR DRIFTER MODULE'
@@ -968,12 +1000,12 @@ CONTAINS
 
 
         DO I=1,NPARTS
-            DISPLS(I) = (I-1)*(PROC_SIZE_ARR(I-1)*5) ! DISPLACEMENT INDEX FOR COMMUNICATION (ARRAY OF SIZE NPARTITION)
-            RCOUNTS(I) =  PROC_SIZE_ARR(I)*5         ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION
+            RCOUNTS(I) =  PROC_SIZE_ARR(I)*5         ! Size of each array communicated based on NPD; times 5 for # variables
+            DISPLS(I) = (I-1)*(PROC_SIZE_ARR(I-1)*5) ! Displacement index for communication
         ENDDO
-        ALLOCATE(DRIFT_PACK_GLOBAL(sum(PROC_SIZE_ARR)*5),STAT=ERROR)
-        DRIFT_PACK_GLOBAL(:) = 0.
-        CALL MPI_ALLGATHERv(DRIFT_PACK_LOCAL, NPD*5, MPI_REAL8, DRIFT_PACK_GLOBAL, rcounts,displs, MPI_REAL8, MPI_COMM_WORLD, ERROR)
+        ALLOCATE(DRIFT_PACK_GLOBAL(sum(PROC_SIZE_ARR)*5),STAT=ERROR) ! Total number of drifters can vary due to Ghost zone implementation
+        DRIFT_PACK_GLOBAL(:) = 0. ! initialize
+        CALL MPI_ALLGATHERv(DRIFT_PACK_LOCAL, NPD*5, MPI_REAL8, DRIFT_PACK_GLOBAL, RCOUNTS,DISPLS, MPI_REAL8, MPI_COMM_WORLD, ERROR)
         IF (ERROR /= 0 ) THEN
             PRINT '(A48)','ERROR DOING AN MPI GATHER OF ALL PARTICLES FOR DRIFTER MODULE'
             PRINT '(A12,I6, A36, f8.3)','PARTITION = ', PARTID, ' AND ',' COMMUNICATED PARTICLES = ', DRIFT_PACK_LOCAL
@@ -985,6 +1017,7 @@ CONTAINS
         ZLA_ALL(:) = 0.
 
         ! UNPACK INTO GLOBAL XLA AND YLA AND REMAP TO PARTITIONS
+        ! This must follow the same logic as packing so that ILA, JLA, etc. correctly mapped
         IBEGIN = 1
         XL_IBEG = 1
         DO I =1,NPARTS
@@ -1007,6 +1040,7 @@ CONTAINS
             DEALLOCATE (XLA, YLA, ZLA, LLA, KLA , HPLA, BELVLA)
         END IF
         ALLOCATE (XLA(0), YLA(0), ZLA(0), LLA(0) )
+        ! Map from global coordinates to local (subdomain)
         DO NP=1, sum(PROC_SIZE_ARR)
             ILA_LOC = XLOC( INT(ILA_ALL(NP)))
             JLA_LOC = YLOC(INT(JLA_ALL(NP)))
@@ -1033,7 +1067,7 @@ CONTAINS
                 HPLA(NP),KLA(NP),ZLA(NP))
         END DO
 #endif
-    END SUBROUTINE
+END SUBROUTINE
 
 
     FUNCTION GHOSTZONE(L) RESULT(INSIDE)   ! **********************************************
