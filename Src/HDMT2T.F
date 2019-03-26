@@ -476,7 +476,6 @@ C
 C  
 C----------------------------------------------------------------------C  
 C  
-        if (partid==MASTER_TASK) OPEN(111, file='loop_count.dat',status='unknown')
         if (partid == MASTER_TASK) CALL CPU_TIME(ostart) 
  1001 CONTINUE  
       IF(N.GE.NTS)GO TO 1000  
@@ -1988,12 +1987,15 @@ C
 
       GOTO 1001
  1000 CONTINUE  
-       if (PARTID == MASTER_TASK) THEN
-          OPEN(112,FILE='TIMING.dat',status='unknown',position='append')
+
+      IF (DEBUG) THEN
+        IF (PARTID == MASTER_TASK) THEN
+          OPEN(112,FILE='TIMING.DAT',STATUS='UNKNOWN',POSITION='APPEND')
           CALL CPU_TIME(OEND)
-          write(112,*) NPARTS,OEND-OSTART
+          WRITE(112,*) NPARTS,OEND-OSTART
           CLOSE(112)
         END IF
+      ENDIF
 C  
 C**********************************************************************C  
 C  

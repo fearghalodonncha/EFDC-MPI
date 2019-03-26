@@ -283,9 +283,15 @@ C
         IF(IWQNC.EQ.1)CALL WWQNC  
 C  
 C **    WRITE TIME SERIES  
-C  
+C
+C *** Write of WQ spatial maps depends on netCDF library. If this is not
+C *** available then it will not write spatial maps.  A user-defined function
+C *** could be temporarily introduced that dumps WQ variables to ASCII file
+C *** to investigate further, have a look at WQ_NC_WRITE in netcdf_iom.F90 file
         IF(ITNWQ.GT.0 .AND. MOD(ITNWQ,IWQTSDT).EQ.0 .AND. ISVPH.EQ.1)THEN
+#ifdef key_ncdf
           CALL WQ_NC_WRITE
+#endif
         ENDIF
         IF(ITNWQ.GE.IWQTSB .AND. ITNWQ.LE.IWQTSE.AND.IWQTSE.GT.0)THEN  
           IF(MOD(ITNWQ,IWQTSDT).EQ.0) CALL WWQTS

@@ -2233,6 +2233,7 @@ C
  2003 FORMAT('CPU USER    =',F7.3,'  CPU SYSTEM  =',F7.3)  
  2004 FORMAT('ELAPSED TIME=',F7.3,'  CPU TIME    =',F7.3)  
  2005 FORMAT('T P&UV VELS =',F7.3,'  T SEDZLJ    =',F7.3)  
+        WRITE(*,*)CPUTIME(1),CPUTIME(2)
 
       ! *** EFDC LOG
       IF (PARTID == 0) THEN
@@ -2289,10 +2290,13 @@ C
       CLOSE(7)  
       CLOSE(8)  
       CLOSE(9)  
-
+C *** We want the netcdf reconciliation called only if we have key_ncdf invoked
+C *** else it will return error due to calling subroutine that doesn't exist
+#ifdef key_ncdf
       IF (PARTID == MASTER_TASK) THEN
         CALL ASCII2NCF  ! Subroutine that does NetCDF reconciliation
       END IF
+#endif
 C
 
 ! convert grid wide flows to netcdf based on agreed formats 

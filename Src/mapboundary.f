@@ -119,8 +119,6 @@ C ** to child partition
          JJJ = YLOC(JQS_GL(LL))
       IF ( III.GT.0. AND. III .LE. IC) THEN
         IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-         OPEN (44,file ='River_details'//ANS(PARTID2)//'.txt',
-     &     status='unknown')
          II = ii +1
          IQS(ii) = III
          JQS(ii) = JJJ
@@ -137,9 +135,6 @@ C ** to child partition
          NTOXSRQ(II) = NTOXSRQ_GL(LL)
          NSEDSRQ(II) = NSEDSRQ_GL(LL)
          NSNDSRQ(II) = NSNDSRQ_GL(LL)
-         write(44,*) IQS_GL(LL),JQS_GL(LL),III,JJJ,LL,NTOX,partid, 
-     &   (NCSERQ(ii,K),K=1,4)
-        
          MMAX = 4 + NTOX
          DO MS = 1,MMAX
            DO K =1,KC
@@ -176,7 +171,6 @@ C ** to child partition
            NCSERQ(L,M)=NSNDSRQ(L)
          ENDDO
        END DO
-       CLOSE(44)
        RETURN
        END
 
@@ -194,7 +188,6 @@ C ** to child partition
          JJJ = YLOC(JCBS_GL(LL))
          IF ( III.GT.0. AND. III .LE. IC) THEN
            IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-      OPEN (44,file ='concs_S'//ANS(PARTID2)//'.txt',status='unknown')
              II = ii +1
              NCBS = NCBS + 1
              ICBS(ii) = III
@@ -225,8 +218,6 @@ C ** to child partition
              DO MS = MMIN,MMAX
                CBS(II,1,MS) = CBS_GL(LL,1,MS)
              END DO   
-
-          write(44,*) ICBS_GL(LL),JCBS_GL(LL),III,JJJ,NTSCRS(II),(CBS(II,1,MS),MS=1,4)
              MMAX = 4 + NTOX
              DO MS = 1,MMAX
                CBS(II,2,MS) = CBS_GL(LL,2,MS)
@@ -239,7 +230,6 @@ C ** to child partition
            END IF
          END IF         
       END DO
-         CLOSE(44)
 
       NCBW_GL = NCBW
       NCBW = 0
@@ -249,7 +239,6 @@ C ** to child partition
         JJJ = YLOC(JCBW_GL(LL))
         IF ( III.GT.0. AND. III .LE. IC) THEN
           IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-!      OPEN (44,file ='concs_W'//ANS(PARTID2)//'.txt',status='unknown')
             II = ii +1
             NCBW = NCBW + 1
             ICBW(ii) = III
@@ -280,8 +269,6 @@ C ** to child partition
             DO MS = MMIN,MMAX
               CBW(II,1,MS) = CBW_GL(LL,1,MS)
             END DO   
-
-!          write(44,*) ICBW_GL(LL),JCBW_GL(LL),III,JJJ,NTSCRW(II),(CBW(II,1,MS),MS=1,4)
             MMAX = 4 + NTOX
             DO MS = 1,MMAX
               CBW(II,2,MS) = CBW_GL(LL,2,MS)
@@ -294,7 +281,6 @@ C ** to child partition
           END IF
         END IF         
       END DO
-!         CLOSE(44)
 
       NCBE_GL = NCBE
       NCBE = 0
@@ -469,6 +455,10 @@ C ** to child partition
       END
 
       SUBROUTINE MAPASSIMPOINTS
+      ! This routine was implemented as part of HF Radar data assimilation study
+      ! (Assimilating surface velocities across a domain)
+      ! It identifies all cells where assimilation takes place in each
+      ! domain and the total number of assimilation points using an MPI_REDUCE call
 #ifdef key_mpi
       USE mpi
       USE GLOBAL
