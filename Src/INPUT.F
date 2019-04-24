@@ -3149,7 +3149,7 @@ C
      &                      (ISRESTI.GE.1.AND.ISCI(1).EQ.0).OR.
      &                      (ISTOPT(1).GT.1)))THEN  ! *** PMC SINGLE LINE - FORCE IC
         IF(ISTOPT(1).GE.1)THEN  
-          PRINT *,'READING SALT.INP'
+          IF (PARTID == MASTER_TASK) PRINT *,'READING SALT.INP'
           OPEN(1,FILE='SALT.INP',STATUS='UNKNOWN')  
 C  
 C **    SKIP OVER TITLE AND AND HEADER LINES  
@@ -4713,9 +4713,10 @@ C
           WINTER_START = 0.
           WINTER_END=0.
         ENDIF
-        
-        PRINT *,' NUMBER OF WIND SERIES=',NWSER
-        PRINT *,' ANEMOMETER HEIGHT (m)=',WINDH
+        IF (PARTID == MASTER_TASK) THEN
+          PRINT *,' NUMBER OF WIND SERIES=',NWSER
+          PRINT *,' ANEMOMETER HEIGHT (m)=',WINDH
+        END IF
         IF (WINTER_START.LT.WINTER_END) THEN
           PRINT *,' SURFACE WIND STRESSES TURNED OFF FROM ',WINTER_START
      &            ," TO ",WINTER_END

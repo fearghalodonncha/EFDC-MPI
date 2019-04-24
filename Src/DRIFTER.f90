@@ -21,6 +21,7 @@ MODULE DRIFTER
 CONTAINS
   
     SUBROUTINE DRIFTERC   ! ***************************************************************************
+        INTEGER INIT_COMMUNICATE, INIT_COMMUNICATE_ALL,IERR
         ! SOLVE DIFFERENTIAL EQS. FOR (X,Y,Z):
         ! DX=U.DT+RAN.SQRT(2EH.DT)
         ! DY=V.DT+RAN.SQRT(2EH.DT)
@@ -186,24 +187,34 @@ CONTAINS
 
         !  MAKE CHECK WHETHER PARTICLE IS WITHIN GHOST ZONE AND IS MOVE
         IF (MPI_PAR_FLAG == 1) THEN
+          INIT_COMMUNICATE=0; INIT_COMMUNICATE_ALL=0
+          DO NP=1,NPD
+             IF (NEAR_GHOSTZONE(LLA(NP)))  THEN
+             INIT_COMMUNICATE=1
+             END IF
+          END DO
+          CALL MPI_ALLREDUCE(INIT_COMMUNICATE,INIT_COMMUNICATE_ALL,1,MPI_INT,MPI_SUM,EFDC_COMM,IERR)
+          IF (INIT_COMMUNICATE_ALL > 0) THEN
+             CALL COMMUNICATE_DRIFTERS
+          END IF
           ! At each timestep we need to make a check whether drifters have
           ! exited the domain and redistribute accordingly
-          CALL COMMUNICATE_DRIFTERS
+
         END IF
 
         ! *** WRITE THE CURRENT TRACK POSITION
         IF (TIMEDAY>=TIMENEXT_WRITE_DR) THEN
-            IF (PARTID == MASTER_TASK) THEN
-                WRITE(ULGR,*) TIMEDAY
-                IF (MPI_PAR_FLAG == 1) THEN ! We want to write the global variables
-                  WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
-                ELSE  ! Serial so we just write the computed local variables
-                  WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
-                END IF
-            FLUSH(ULGR)
-            END IF
-
-            TIMENEXT_WRITE_DR = TIMENEXT_WRITE_DR+LA_FREQ
+           IF (MPI_PAR_FLAG == 1) THEN
+              CALL COMMUNICATE_DRIFTERS  ! We need to update global arrays if MPI
+              IF (PARTID == MASTER_TASK) THEN ! Only master processor needs to update
+                 WRITE(ULGR,*) TIMEDAY
+                 WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+              END IF
+           ELSE  ! Serial so we just write the computed local variables
+              WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
+           END IF
+           FLUSH(ULGR)
+           TIMENEXT_WRITE_DR = TIMENEXT_WRITE_DR+LA_FREQ
         ENDIF
     END SUBROUTINE
  
@@ -264,6 +275,8 @@ CONTAINS
              DLA(NP) = DLA_ALL(NP)
           END DO
         END IF
+        IF (PARTID == MASTER_TASK)  PRINT *,'DRIFTER: NUMBER OF DRIFTERS INITIALZED: ',NPD_TOT
+
         IF(LA_PRAN>0) RANVAL = RAND()
         RETURN
 999     STOP 'DRIFTER.INP READING ERROR!'
@@ -865,7 +878,6 @@ CONTAINS
             XCOR(L,5) = 0.25*SUM(XC)
             YCOR(L,5) = 0.25*SUM(YC)
         ENDDO
-        PRINT *,'DRIFTER: NUMBER OF DRIFTERS INITIALZED: ',NPD
 100     CLOSE(UCOR)
         RETURN
 998     STOP 'CORNERS.INP READING ERROR!'
@@ -1001,8 +1013,11 @@ CONTAINS
 
         DO I=1,NPARTS
             RCOUNTS(I) =  PROC_SIZE_ARR(I)*5         ! Size of each array communicated based on NPD; times 5 for # variables
-            DISPLS(I) = (I-1)*(PROC_SIZE_ARR(I-1)*5) ! Displacement index for communication
         ENDDO
+        DISPLS=0
+        DO I=2,NPARTS
+           DISPLS(I) = DISPLS(I-1) + RCOUNTS(I-1)    ! Displacement index for communication
+        END DO
         ALLOCATE(DRIFT_PACK_GLOBAL(sum(PROC_SIZE_ARR)*5),STAT=ERROR) ! Total number of drifters can vary due to Ghost zone implementation
         DRIFT_PACK_GLOBAL(:) = 0. ! initialize
         CALL MPI_ALLGATHERv(DRIFT_PACK_LOCAL, NPD*5, MPI_REAL8, DRIFT_PACK_GLOBAL, RCOUNTS,DISPLS, MPI_REAL8, MPI_COMM_WORLD, ERROR)
@@ -1010,6 +1025,7 @@ CONTAINS
             PRINT '(A48)','ERROR DOING AN MPI GATHER OF ALL PARTICLES FOR DRIFTER MODULE'
             PRINT '(A12,I6, A36, f8.3)','PARTITION = ', PARTID, ' AND ',' COMMUNICATED PARTICLES = ', DRIFT_PACK_LOCAL
         END IF
+
         ILA_ALL(:) = 0.
         JLA_ALL(:) = 0.
         XLA_ALL(:) = 0.
@@ -1021,8 +1037,8 @@ CONTAINS
         IBEGIN = 1
         XL_IBEG = 1
         DO I =1,NPARTS
-            IBEGIN = IBEGIN + DISPLS(I)
-            XL_IBEG = XL_IBEG + (DISPLS(I)/5)
+            IBEGIN =  DISPLS(I) + 1
+            XL_IBEG = (DISPLS(I)/5) +1
             XL_END  = XL_IBEG + (RCOUNTS(I)/5) -1
             ISTEP = (RCOUNTS(I)/5)
             IEND = IBEGIN + ISTEP -1
@@ -1096,6 +1112,23 @@ END SUBROUTINE
             IF (JLOCATION >2 .AND. JLOCATION < JC-1) THEN
                 INSIDE=.TRUE.  ! RETURN TRUE IF L WITHIN COMPUTATIONAL DOMAIN
             END IF
+        END IF
+    END FUNCTION
+
+        FUNCTION NEAR_GHOSTZONE(L) RESULT(INSIDE)   ! **********************************************
+        LOGICAL(4)::INSIDE
+        INTEGER(4),INTENT(IN)::L
+        INTEGER(4):: ILOCATION, JLOCATION
+        ILOCATION = IL(L)
+        JLOCATION = JL(L)
+        INSIDE=.FALSE.
+        IF (IJCT(ILOCATION, JLOCATION) == 5) THEN
+           IF (ILOCATION <= 3 .OR. ILOCATION >= IC-3) THEN
+              INSIDE=.TRUE.
+           END IF
+           IF (JLOCATION <= 3 .OR. JLOCATION >= JC-3) THEN
+              INSIDE=.TRUE.
+           END IF
         END IF
     END FUNCTION
 
