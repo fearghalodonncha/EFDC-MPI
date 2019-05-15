@@ -5,7 +5,14 @@ MODULE DRIFTER
     ! *** OTHER VERSIONS OF EFDC.
 
     ! *** January 7th 2019
-    ! *** Updated this file to support MPI parallel implementation
+    ! *** Fearghal O'Donncha Updated this file to support MPI parallel implementation
+    ! *** 1) Initial distribution of particles modified to account for multiple independent domains
+    ! *** 2) MPI communication routine to transfer across domains
+    ! *** 3) File read/write modified to account for MPI integration
+    !
+    ! *** For questions about the MPI implementation,
+    ! *** contact Fearghal @ feardonn@ie.ibm.com
+
 
     USE GLOBAL
 
@@ -60,24 +67,26 @@ CONTAINS
                 ZLA=ZLA_ALL
                 CALL CONTAINER(XLA,YLA,ZLA,LLA,KLA) !OUT:LLA,KLA,BELVLA,HPLA
             ENDIF
-            ! *** MAKE SURE THE FILE IS NEW
-            OPEN(ULGR,FILE='DRIFTER.OUT',STATUS='UNKNOWN')
-            CLOSE(ULGR,STATUS='DELETE')
-            OPEN(ULGR,FILE='DRIFTER.OUT',STATUS='UNKNOWN')
             JSPD=0
             VER=101
-            WRITE(ULGR,*) VER
-            WRITE(ULGR,*) trim(TITLE)
-            WRITE(ULGR,*) trim(METHOD)
-            WRITE(ULGR,*) NPD_TOT,KC
-            WRITE(ULGR,*) TIMEDAY
-            IF (MPI_PAR_FLAG == 1) THEN ! We want to write the global variables
-               WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
-            ELSE  ! Serial so we just write the computed local variables
-               WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
+            ! *** MAKE SURE THE FILE IS NEW
+            IF (PARTID == MASTER_TASK) THEN
+              OPEN(ULGR,FILE='DRIFTER.OUT',STATUS='UNKNOWN')
+              CLOSE(ULGR,STATUS='DELETE')
+              OPEN(ULGR,FILE='DRIFTER.OUT',STATUS='UNKNOWN')
+              WRITE(ULGR,*) VER
+              WRITE(ULGR,*) trim(TITLE)
+              WRITE(ULGR,*) trim(METHOD)
+              WRITE(ULGR,*) NPD_TOT,KC
+              WRITE(ULGR,*) TIMEDAY
+              IF (MPI_PAR_FLAG == 1) THEN ! We want to write the global variables
+                 WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+              ELSE  ! Serial so we just write the computed local variables
+                 WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
+              END IF
+              FLUSH(ULGR)
             END IF
-            FLUSH(ULGR)
-            TIMENEXT_WRITE_DR=TIMEDAY+LA_FREQ+0.000001
+              TIMENEXT_WRITE_DR=TIMEDAY+LA_FREQ+0.000001
         ENDIF
 
         !----NEXT CALL---------------------------
@@ -210,10 +219,10 @@ CONTAINS
                  WRITE(ULGR,*) TIMEDAY
                  WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
               END IF
-           ELSE  ! Serial so we just write the computed local variables
+           ELSE  ! Serial so we just write the computed local variables and don't need any MPI communication
               WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
            END IF
-           FLUSH(ULGR)
+           IF (PARTID == MASTER_TASK) FLUSH(ULGR)  ! Will throw error if I try flush for all processes
            TIMENEXT_WRITE_DR = TIMENEXT_WRITE_DR+LA_FREQ
         ENDIF
     END SUBROUTINE
