@@ -1,14 +1,28 @@
-!     parallel_mpi.f
-!     subroutines for communicating between processors using mpi
-!     subroutines included:
-!     distribute_mpi      distribute the model domain across processors
-!     communcate_mpi      exchange ghost cells around horizontal domains
-!                          send data from (nx-1,j) east to (1,j) and 
-!                          receive data from (2,j) east to (nx,j) in west
-!     communicate_p      exchange two_dimensional P array across ghost zones after congrad computations
-!     communicate_w      exchange uhdy and vhdx prior to computation of vertic velocity, W   
-!
+!!-----------------------------------------------------------------------------
+!! Author    : Fearghal O'Donncha, feardonn@ie.ibm.com
+!! IBM Research Ireland, 2017-2019
+!!-----------------------------------------------------------------------------
+
 MODULE PARALLEL_MPI
+
+!!=============================================================================
+!! This module manages all MPI communication related to solution synchronization
+!! Primary focus is:
+!! 1) enabling efficient communciation of bulk of variables at end of timestep
+!! 2) generic routine to communicate 2D variables
+!! 3) generic routine to communicate 3D variables
+!! Module consists of subroutines to communicate between processors using mpi
+!!
+!!
+!! subroutines included:
+!!     distribute_mpi      distribute the model domain across processors
+!!     communcate_mpi      exchange ghost cells around horizontal domains
+!!                         send data from (nx-1,j) east to (1,j) and
+!!                         receive data from (2,j) east to (nx,j) in west
+!!     communicate_p      exchange two_dimensional P array across ghost zones after congrad computations
+!!     communicate_w      exchange uhdy and vhdx prior to computation of vertic velocity, W
+!!
+!!=============================================================================
 
 #ifdef key_mpi
        USE GLOBAL      

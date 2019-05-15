@@ -1,17 +1,28 @@
+!!-----------------------------------------------------------------------------
+!! Author    : Fearghal O'Donncha, feardonn@ie.ibm.com
+!! IBM Research Ireland, 2017-2019
+!!-----------------------------------------------------------------------------
 MODULE iom
-   !!=====================================================================
-   !!                    ***  MODULE  iom ***
-   !! Input/Output manager :  Library to read input files
-   !!====================================================================
+!!
+!! Note that this module is only active if 'key_ncdf', specified
+!! during compilation time
 
-   !!--------------------------------------------------------------------
-   !!   iom_griddims   : determine size of grid
-   !!   iom_readgrid   : get data from netcdf file 
-   !!   iom_
-   !!   iom_gettime    : read the time axis cdvar in the file
-   !!   iom_varid      : get the id of a variable in a file
-   !!   iom_rstput     : write a field in a restart file (interfaced to several routines)
-   !!--------------------------------------------------------------------
+
+!!=============================================================================
+!! This module contains all subroutines to handle netCDF integration,
+!! both to read and write to files.
+!! File read relates to reading structured netCDF grid with 1D, 2D and 3D dimensions
+!!
+!! File write focuses on
+!! 1) Porting hydrodynamic variables to netCDF form, where each processor dumps
+!!    all data to file during runtime, and at end this data is collected to
+!!    single date-stamped netCDF file
+!! 2) Writing water quality variables to netCDF file during runtime
+!!
+!!
+!!=============================================================================
+
+
 
 #ifdef key_ncdf 
    USE netcdf
@@ -40,6 +51,34 @@ CONTAINS
     CALL check_nf90(nf90_close(ncid))
    end subroutine griddims    
 
+    SUBROUTINE readgrid_1D(infile,idata,NSIZE,varloc)
+    USE netcdf
+    INTEGER(KIND=4), INTENT(IN) :: NSIZE, varloc
+    DOUBLE PRECISION,DIMENSION(NSIZE),INTENT(OUT):: idata
+    INTEGER(KIND=4) :: dimids(1)
+    INTEGER(KIND=4) :: ncid, xtype, ndims, varid
+    CHARACTER(LEN=1084), INTENT(IN) :: infile
+    CHARACTER(LEN=50) :: vname
+
+    !Open netCDF file
+    !:-------:-------:-------:-------:-------:-------:-------:-------:
+    CALL check_nf90(nf90_open(trim(infile), nf90_nowrite, ncid))
+
+    CALL check_nf90(nf90_inquire_variable(ncid,varloc,vname,xtype,ndims,dimids))
+    CALL check_nf90(nf90_inq_varid(ncid,vname,varid))
+
+    CALL check_nf90(nf90_get_var(ncid,varid,idata))
+
+    !:-------:-------:-------:-------:-------:-------:-------:-------:
+
+    !Close netCDF file
+    !:-------:-------:-------:-------:-------:-------:-------:-------:
+
+    CALL check_nf90(nf90_close(ncid))
+
+    END SUBROUTINE readgrid_1D
+
+
     SUBROUTINE readgrid_2D(infile,idata,NX,NY,varloc)
     INTEGER(KIND=4), INTENT(IN) :: NX, NY, varloc
     DOUBLE PRECISION, DIMENSION(NX,NY), INTENT(OUT):: idata
@@ -67,33 +106,6 @@ CONTAINS
 
     END SUBROUTINE readgrid_2D
 
-
-    SUBROUTINE readgrid_1D(infile,idata,NSIZE,varloc)
-    USE netcdf
-    INTEGER(KIND=4), INTENT(IN) :: NSIZE, varloc
-    DOUBLE PRECISION,DIMENSION(NSIZE),INTENT(OUT):: idata
-    INTEGER(KIND=4) :: dimids(1)
-    INTEGER(KIND=4) :: ncid, xtype, ndims, varid
-    CHARACTER(LEN=1084), INTENT(IN) :: infile
-    CHARACTER(LEN=50) :: vname
-
-    !Open netCDF file
-    !:-------:-------:-------:-------:-------:-------:-------:-------:
-    CALL check_nf90(nf90_open(trim(infile), nf90_nowrite, ncid))
-
-    CALL check_nf90(nf90_inquire_variable(ncid,varloc,vname,xtype,ndims,dimids))
-    CALL check_nf90(nf90_inq_varid(ncid,vname,varid))
-
-    CALL check_nf90(nf90_get_var(ncid,varid,idata))
-
-    !:-------:-------:-------:-------:-------:-------:-------:-------:
-
-    !Close netCDF file
-    !:-------:-------:-------:-------:-------:-------:-------:-------:
-
-    CALL check_nf90(nf90_close(ncid))
-
-    END SUBROUTINE readgrid_1D
 
     SUBROUTINE readgrid_3D(infile,idata,NT,NY,NX,varloc)
     INTEGER(KIND=4), INTENT(IN) :: NX, NY,NT, varloc
