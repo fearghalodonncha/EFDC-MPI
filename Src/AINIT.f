@@ -203,6 +203,12 @@ C *** ALL ZEROING OF ARRAYS MOVED TO ZERO
 C *** TEMPERATURE INITIATION
           TEM(L,K)=TEMO
           TEM1(L,K)=TEMO
+C *** DYE INITIATION
+          DYE(L,K) = 0.
+          DYE1(L,K) = 0.
+C *** SAL INITIATION
+          SAL(L,K) = 0.
+          SAL1(L,K) = 0.
         ENDDO  
       ENDDO  
       NTMPC=MAX(NSED,1)  
