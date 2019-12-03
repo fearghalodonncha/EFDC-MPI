@@ -39,11 +39,11 @@ C
 #else
       REAL(4) ostart,oend
 #endif
-      REAL  TMP,TCHKROFF
+      REAL  TMP,TCHKROFF, VFW2
       
       INTEGER::I1,I2
       INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::ISSBCP  
-      LOGICAL BTEST, LTEST
+      LOGICAL BTEST, LTEST, KINVARA_MC
 
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WCOREW  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WCORNS  
@@ -70,6 +70,12 @@ C
 !      INTEGER GETCH*1  
 !      END  
 C
+      KINVARA_MC = .FALSE.
+      IF (KINVARA_MC) THEN
+         OPEN(777, FILE='CheckFreshwaterMassBal.txt', status='unknown')
+         VFW2 = 0.
+         IFLPRINT = 0
+      END IF
       IF(.NOT.ALLOCATED(WCOREW))THEN
         ALLOCATE(WCOREW(LCM))
         ALLOCATE(WCORNS(LCM))
@@ -1587,6 +1593,36 @@ C
         IF(ISTRAN(7).EQ.1)  CALL COMMUNICATE_3D(SNDT)
         IF(ISTRAN(8).EQ.1)  CALL COMMUNICATE_4D_WQ(WQV)
 #endif
+C**********************************************************************C
+C
+C **  OPTIONAL WE DO A CHECK ON MASS CONSERVATION FOR FRESHWATER INFLOWS
+C
+C**********************************************************************C
+      IF (KINVARA_MC) THEN
+          TOTVOL=0.0
+          TOTVOL0=0.0
+          TOTVOL00=0.0
+          VFW0=0.0
+          VSW=0.0
+          VFW00=0.0
+          VFW1=0.0
+          DO L = 2, LA
+            TOTVOL=TOTVOL+((1.*(HP(L)))*DXYP(L))
+            VFW1= VFW1+((1.*( HP(L)))*DXYP(L)*(1-(SAL(L,1)/35)))
+            VSW= VSW+((1.*( HP(L)))*DXYP(L)*((SAL(L,1)/35)))
+            if (1-(SAL(L,1)/35) .NE. 0.) THEN
+               WRITE(*,*) IL(L), JL(L), SAL(L,1)
+             end if
+          END DO
+          VFW2= VFW2  + (QSS(1,1)*DT)
+!            write(*,*) QSS(1,1), DXP(10), HU(10), HV(10), BELV(10), IL(10), JL(10), DT
+!     c              write(*,*) totvol0,totvol00,vsw0,vsw00,vfw0,vfw00
+          IFLPRINT = IFLPRINT + 1
+          if (IFLPRINT.eq.50) then
+                write(777,*) timesec/3600,totvol,(totvol-vsw-vfw1),vfw1, VSW,vfw2
+                IFLPRINT = 0
+          end if
+      END IF
 C**************************************************************
 
 C  
