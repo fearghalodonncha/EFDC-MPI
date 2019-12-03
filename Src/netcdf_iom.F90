@@ -255,23 +255,24 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   DELX_EAST = EASTING(IC-2) - EASTING(IC-3)
   DELY_NORTH = NORTHING(JC-2) - NORTHING(JC-3)
   DO I =2,NLONS
-    IF (EASTING(I) < 1000) EASTING(I) = EASTING(I-1) + DELX_EAST
+    IF (EASTING(I) == 0) EASTING(I) = EASTING(I-1) + DELX_EAST
   END DO
 
   DO I =2,NLATS
-    IF (NORTHING(I) < 1000) NORTHING(I) = NORTHING(I-1) + DELY_NORTH
+    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I-1) + DELY_NORTH
   END DO
 
   DO I = NLONS-1,1,-1
-    IF (EASTING(I) < 1000) EASTING(I) = EASTING(I+1) - DELX_EAST
+    IF (EASTING(I) == 0) EASTING(I) = EASTING(I+1) - DELX_EAST
   END DO
 
   DO I = NLATS-1,1,-1
-    IF (NORTHING(I) < 1000) NORTHING(I) = NORTHING(I+1) - DELY_NORTH
+    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I+1) - DELY_NORTH
   END DO
 ! Easting northing obtained and stored
 
 ! INFORMATION ON MESH FOR NETCDF GRID SPACING ATTRIBUTE
+
   IF (DELX_EAST < 100) THEN
     FORMAT_STRING = "(I2)"
   ELSEIF (DELX_EAST < 1000) THEN
@@ -314,16 +315,18 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     DO FILELOOP = 1, NPARTX*NPARTY
       IIB = IIB +1
       IF (TILE2NODE(FILELOOP) /= -1) THEN  ! skip partitions that didn't write
-          unitname = unitname  + 1 
-          FILE_IN(FILELOOP)= 'VELVECH'//trim(FILEEXT(IIB))//'.OUT'
-          OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
-          READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
-          DO I=2,LA
-            READ(UNITNAME,*) IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
-            MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:NVARS)             ! U VELOCITY   | MAP TO
-            MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(NVARS+1:2*NVARS)     ! V VELOCITY   | GLOB GRD
-          END DO
-          IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 ) THEN
+          IF (ISVPH > 0) THEN
+            unitname = unitname  + 1
+            FILE_IN(FILELOOP)= 'VELVECH'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*) IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
+              MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:NVARS)             ! U VELOCITY   | MAP TO
+              MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(NVARS+1:2*NVARS)     ! V VELOCITY   | GLOB GRD
+            END DO
+          END IF
+          IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0 ) THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'SALCONH'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
@@ -333,7 +336,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               MAP_SALINITY(IMAP, JMAP,:)= TEMP_CONC(:)               ! MAP TO GLOBAL GRID
             END DO
           END IF
-          IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+          IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0) THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'TEMCONH'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = TRIM(FILE_IN(FILELOOP)), STATUS ='OLD')
@@ -343,7 +346,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               MAP_TEMPERATURE(IMAP, JMAP,:)= TEMP_CONC(:) ! + 273.15     ! map to global grid
             END DO
           END IF
-          IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
+          IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0) THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'DYECONH'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
@@ -353,7 +356,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               MAP_DYE(IMAP, JMAP,:)= TEMP_CONC(:)
             END DO
           END IF
-          IF (ISPPH == 1 ) THEN
+          IF (ISPPH > 0 ) THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'SURFCON'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
@@ -437,23 +440,25 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 ! call check( nf90_put_att(ncid, nf90_global, "HISTORY"))  
 ! add details to file on variables
 ! 1) u velocity details
-    call check_nf90( nf90_def_var(ncid, uvel_name, NF90_REAL, dimids, uvel_varid) )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, "long_name", "u_velocity") )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, "standard_name", "eastward_water_velocity") )
-    call check_nf90( nf90_put_att(ncid, uvel_varid, UNITS, uvel_units) )
+    IF (ISVPH > 1) THEN
+        call check_nf90( nf90_def_var(ncid, uvel_name, NF90_REAL, dimids, uvel_varid) )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, "_FillValue", FillValue_real) )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, "coordinates", "X Y Depth time") )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, "grid_mapping", "transverse_mercator") )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, "long_name", "u_velocity") )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, "standard_name", "eastward_water_velocity") )
+        call check_nf90( nf90_put_att(ncid, uvel_varid, UNITS, uvel_units) )
 
-    call check_nf90( nf90_def_var(ncid, VVEL_NAME, NF90_REAL, dimids, vvel_varid) )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, "_FillValue", FillValue_real) )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, "coordinates", "X Y Depth time") )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, "grid_mapping", "transverse_mercator") )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, "long_name", "v_velocity") )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
-    call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
+        call check_nf90( nf90_def_var(ncid, VVEL_NAME, NF90_REAL, dimids, vvel_varid) )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, "_FillValue", FillValue_real) )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, "coordinates", "X Y Depth time") )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, "grid_mapping", "transverse_mercator") )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, "long_name", "v_velocity") )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
+        call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
+    END IF
 
-    IF (ISTRAN(1) == 1 .AND. ISSPH(1) ==1) THEN
+    IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0) THEN
       call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
       call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
       call check_nf90( nf90_put_att(ncid, salinity_varid, "coordinates", "X Y Depth time") )
@@ -462,7 +467,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       call check_nf90( nf90_put_att(ncid, salinity_varid, "standard_name", "salinity") )
       call check_nf90( nf90_put_att(ncid, salinity_varid, UNITS, "PSU") )
     END IF
-    IF (ISTRAN(2) == 1 .AND. ISSPH(2) ==1) THEN
+    IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0) THEN
       call check_nf90( nf90_def_var(ncid, temp_name, nf90_real, dimids, temp_varid) )
       call check_nf90( nf90_put_att(ncid, temp_varid, "_FillValue", FillValue_real) )
       call check_nf90( nf90_put_att(ncid, temp_varid, "coordinates", "X Y Depth time") )
@@ -471,7 +476,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       call check_nf90( nf90_put_att(ncid, temp_varid, "standard_name", "water_temperature") )
       call check_nf90( nf90_put_att(ncid, temp_varid, UNITS, temp_units) )
     END IF
-    IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 ) THEN
+    IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0 ) THEN
       call check_nf90( nf90_def_var(ncid, dye_name, nf90_real, dimids, dye_varid) )
       call check_nf90( nf90_put_att(ncid, dye_varid, "_FillValue", FillValue_real) )
       call check_nf90( nf90_put_att(ncid, dye_varid, "coordinates", "X Y Depth time") )
@@ -480,7 +485,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       call check_nf90( nf90_put_att(ncid, dye_varid, "standard_name", "Solute_concentration") )
       call check_nf90( nf90_put_att(ncid, dye_varid, UNITS, dye_units) )
     END IF 
-    IF (ISPPH == 1 ) THEN
+    IF (ISPPH > 0) THEN
       call check_nf90( nf90_def_var(ncid, elev_name, nf90_real, dimids_2d, elev_varid) )
       call check_nf90( nf90_put_att(ncid, elev_varid, "_FillValue", FillValue_real) )
       call check_nf90( nf90_put_att(ncid, elev_varid, "coordinates", "X Y time") )
@@ -545,10 +550,10 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
     call check_nf90( nf90_put_var(ncid, uvel_varid, map_u_vel))    ! u velocity
     call check_nf90( nf90_put_var(ncid, vvel_varid, map_v_vel))    ! v velocity
-    IF (ISTRAN(1) == 1 .AND. ISSPH(1) == 1 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
-    IF (ISTRAN(2) == 1 .AND. ISSPH(2) == 1 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
-    IF (ISTRAN(3) == 1 .AND. ISSPH(3) == 1 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
-    IF (ISPPH == 1) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
+    IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
+    IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
+    IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
+    IF (ISPPH > 0) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
 
     dimlocs(1)=1; dimlocs(2)=2; dimlocs(3) = 3; dimlocs(4) = 4
 ! Close the file. This causes netCDF to flush all buffers and make
