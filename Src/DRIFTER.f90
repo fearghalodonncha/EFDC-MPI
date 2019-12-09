@@ -195,6 +195,7 @@ CONTAINS
 
 
         !  MAKE CHECK WHETHER PARTICLE IS WITHIN GHOST ZONE AND IS MOVE
+#ifdef key_mpi
         IF (MPI_PAR_FLAG == 1) THEN
           INIT_COMMUNICATE=0; INIT_COMMUNICATE_ALL=0
           DO NP=1,NPD
@@ -210,9 +211,12 @@ CONTAINS
           ! exited the domain and redistribute accordingly
 
         END IF
+#endif
 
         ! *** WRITE THE CURRENT TRACK POSITION
         IF (TIMEDAY>=TIMENEXT_WRITE_DR) THEN
+#ifdef key_mpi
+
            IF (MPI_PAR_FLAG == 1) THEN
               CALL COMMUNICATE_DRIFTERS  ! We need to update global arrays if MPI
               IF (PARTID == MASTER_TASK) THEN ! Only master processor needs to update
@@ -222,6 +226,7 @@ CONTAINS
            ELSE  ! Serial so we just write the computed local variables and don't need any MPI communication
               WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
            END IF
+#endif
            IF (PARTID == MASTER_TASK) FLUSH(ULGR)  ! Will throw error if I try flush for all processes
            TIMENEXT_WRITE_DR = TIMENEXT_WRITE_DR+LA_FREQ
         ENDIF
@@ -380,8 +385,6 @@ CONTAINS
                     !IF (INSIDECELL(L,NI)) THEN
         
                     IF (INSIDECELL(L,XLA(NI),YLA(NI))) THEN
-        
-        
                         IF (PRESENT(NP)) THEN
                             ! *** PARTICLE IS INSIDE CURRENT CELL
                             !DEALING WITH THE WALLS
