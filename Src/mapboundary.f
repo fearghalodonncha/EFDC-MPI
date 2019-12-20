@@ -30,6 +30,7 @@ C ** to child partition
          II = II + 1
          IPBW(II) = I
          JPBW(II) = J
+         ISPBW(II) = ISPBW_GL(LL)
          NPSERW(II) = NPSERW_GL(LL)
          DO M = 1,MTIDE
            PCBW(II,M) = PCBW_GL(LL,M)
@@ -50,11 +51,12 @@ C ** to child partition
          II = II + 1
          IPBS(II) = I
          JPBS(II) = J
+         ISPBS(II) = ISPBS_GL(LL)
+         NPSERS(II) = NPSERS_GL(LL)
          DO M =1,MTIDE
            PCBS(II,M) = PCBS_GL(LL,M)
            PSBS(II,M) = PSBS_GL(LL,M)
          END DO 
-         NPSERS(II) = NPSERS_GL(LL)
          NPBS = NPBS  + 1
       END IF
       END IF
@@ -71,6 +73,7 @@ C ** to child partition
          II = II + 1
          IPBE(II) = I
          JPBE(II) = J
+         ISPBE(LL) = ISPBE_GL(LL)
          NPSERE(II) = NPSERE_GL(LL)
          DO M = 1, MTIDE
            PCBE(II,M) = PCBE_GL(LL,M)
@@ -92,6 +95,7 @@ C ** to child partition
          II = II + 1
          IPBN(II) = I
          JPBN(II) = J
+         ISPBN(II) = ISPBN_GL(LL)
          NPSERN(II) = NPSERN_GL(LL)
          DO M = 1,MTIDE
            PCBN(II,M) = PCBN_GL(LL,M)
