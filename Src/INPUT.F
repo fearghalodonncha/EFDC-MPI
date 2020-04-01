@@ -404,9 +404,9 @@ C     ON SOUTH OPEN BOUNDARIES
             IF(ISO.GT.0) GOTO 100  
             DO M=1,MTIDE  
 	        IF(NPFORS.EQ.0) EXIT
-              RAD=PI2*PFPH(NPFORS,M)/TCP(M)  
-              AMP=G*PFAM(NPFORS,M)  
-              PCBS_GL(L,M)=AMP*COS(RAD)  
+              RAD=PI2*PFPH(NPFORS,M)/TCP(M)  ! 2*pi*Tidal_Phase/Tidal_Period (or multiplication by Tidal_Frequency, 1/P)
+              AMP=G*PFAM(NPFORS,M)           ! gravity * Tidal_Amplitude
+              PCBS_GL(L,M)=AMP*COS(RAD)      !
               PSBS_GL(L,M)=AMP*SIN(RAD)  
             ENDDO  
           ENDDO  
