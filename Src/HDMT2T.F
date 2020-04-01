@@ -57,7 +57,7 @@ C
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::MNR  
 
       REAL, DIMENSION(2):: DYNAMIC_TIME_STEP_ARRAY_LOCAL, DYNAMIC_TIME_STEP_ARRAY_REDUCE
-
+      REAL SAL_CELL
 C
 !      INTERFACE TO FUNCTION KBHIT  
 !     &    [C,ALIAS:'__kbhit']  
@@ -70,11 +70,12 @@ C
 !      INTEGER GETCH*1  
 !      END  
 C
-      KINVARA_MC = .FALSE.
+      KINVARA_MC = .TRUE.
       IF (KINVARA_MC) THEN
          OPEN(777, FILE='CheckFreshwaterMassBal.txt', status='unknown')
          VFW2 = 0.
          IFLPRINT = 0
+         VSW_BOUNDARY = 0
       END IF
       IF(.NOT.ALLOCATED(WCOREW))THEN
         ALLOCATE(WCOREW(LCM))
@@ -771,6 +772,9 @@ C
 C----------------------------------------------------------------------C
 C
       IF(ISWSEDA.GT.0.OR.ISUVDA.GT.0) CALL PUVDASM(ISTL,2)
+
+
+
 C
 C  
 C**********************************************************************C  
@@ -1607,22 +1611,32 @@ C**********************************************************************C
           VFW00=0.0
           VFW1=0.0
           DO L = 2, LA
-            TOTVOL=TOTVOL+((1.*(HP(L)))*DXYP(L))
-            VFW1= VFW1+((1.*( HP(L)))*DXYP(L)*(1-(SAL(L,1)/35)))
-            VSW= VSW+((1.*( HP(L)))*DXYP(L)*((SAL(L,1)/35)))
-            if (1-(SAL(L,1)/35) .NE. 0.) THEN
-               WRITE(*,*) IL(L), JL(L), SAL(L,1)
+            TOTVOL=TOTVOL+((.5*(HU(L) + HV(L)))*DXYP(L))
+            SAL_CELL = SUM(SAL(L,:))/(1. * KC)
+            if (SAL_CELL .NE. 35 ) writE(*,*) N, IL(L), JL(L), SAL(L,:)
+            VFW1= VFW1+((.5*( HU(L) + HV(L)))*DXYP(L)*(1-( SAL_CELL/35)))
+
+          !  write(*,*) VFW1 ,SAL_CELL, HP(L), DXYP(L)
+            VSW= VSW+((.5*( HU(L) + HV(L)))*DXYP(L)*(SAL_CELL/35))
+            if (1-(SAL_CELL/35) .NE. 0.) THEN
+               WRITE(*,*) timesec/86400, IL(L), JL(L), SAL_CELL
              end if
           END DO
-          VFW2= VFW2  + (QSS(1,1)*DT)
+          VFW2= VFW2  + (SUM(QSUME)*DT)
 !            write(*,*) QSS(1,1), DXP(10), HU(10), HV(10), BELV(10), IL(10), JL(10), DT
 !     c              write(*,*) totvol0,totvol00,vsw0,vsw00,vfw0,vfw00
           IFLPRINT = IFLPRINT + 1
           if (IFLPRINT.eq.50) then
-                write(777,*) timesec/3600,totvol,(totvol-vsw-vfw1),vfw1, VSW,vfw2
+                write(777,777) timesec/86400,totvol,(totvol-vsw-vfw1),vfw1, VSW,vfw2, VSW_BOUNDARY
                 IFLPRINT = 0
           end if
       END IF
+!      L = LIJ(XLOC(248), XLOC(29))
+!      SAL_CELL = SUM(SAL(L,:))/KC
+!      VFW_TEMP= ((1.*( HP(L)))*DXYP(L)*(1-( SAL_CELL/35)))
+!      write(*,*) XLOC(248), XLOC(29), VFW_TEMP, HU(L), HV(L), HP(L)
+
+ 777  FORMAT(F13.5, 7E13.4)
 C**************************************************************
 
 C  
