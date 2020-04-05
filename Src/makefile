@@ -1,4 +1,4 @@
-#EFDC_MPI  Makefile
+#Deep Current Makefile
 #Fearghal O'Donncha <feardonn@ie.ibm.com>
 #August 2nd 2017
 
@@ -6,52 +6,139 @@
 #Compile but don't link (-c)
 CFLAGS = -c
 #Command to create directory for object and executable 
+MKDIR_P = mkdir -p
 
 CPPFLAGS =-cpp
-MPIFLAGS =key_mpi#   # define key_mpi to activate mpi compilation
-OMP_FLAGS=key_omp#          # define key_omp to activate open MP compilation
-NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
-DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
+MPIFLAGS =key_mpi#          # prescribe key_mpi to activate mpi compilation
+OMP_FLAGS=#  #prescribe key_omp to activate open MP compilation
+HYD_FLAG=key_hyd#    #prescribe key_hyd to activate hybrid MPI/OpenMP compilations
+COMPILER=NXT#      #define XLF or GNU compiler
+NCFLAGS=key_ncdf#   #define key_ncdf to activate netcdf read/write
 
-F90 = gfortran
-CPPFLAGS =-cpp
+ifeq ($(COMPILER),XLF)
+   MPICHDIR = /usr/bin
+   CPPFLAGS =-WF,-DXLF
+   FC = /opt/ibmcmp/xlf/14.1/bin/xlf90_r
+   CDIR = /opt/ibmcmp/xlf/14.1
+   F_INC +=-I$(CDIR)/include
+   F_LIB +=-L$(CDIR)/lib
 
-# Path to relevant libraries
-# 1) MPI library
-MPICHDIR=/usr
-# 2) NetCDF path   
-NCDIR=/usr/local/netcdf
-# 3) Blas library  ! required if DAFLAG defined for data assimilation routines
-BLAS_PATH=/usr
+   ifdef MPIFLAGS
+     FC=$(MPICHDIR)/mpfort
+     CPPFLAGS += -WF,-D$(MPIFLAGS)
+   endif
+   ifdef OMP_FLAGS
+     CPPFLAGS += -WF,-D$(OMP_FLAGS) 
+#     F_LIB +=-L$(CDIR)/lib64 -lxlf90_r -lxlopt -lxl -lxlomp_ser -L/opt/ibmcmp/xlsmp/3.1/lib64 -L/opt/ibmcmp/xlsmp/3.1/lib      F_LIB +=-L$(CDIR)/lib64
+   endif
+   ifdef NCFLAGS
+     NCDIR=/gpfs/gpfs01/tjpu/feardonn/local
+     CPPFLAGS +=-WF,-D$(NCFLAGS)
+     F_INC += -I$(NCDIR)/include
+     F_LIB += -L$(NCDIR)/lib -lnetcdff
+   endif
+
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
-ifdef MPIFLAGS
-  FC=$(MPICHDIR)/bin/mpif90
-  F_LIB = -L$(MPICHDIR)/lib
-  F_INC = -I$(MPICHDIR)/include 
-  CPPFLAGS +=-D$(MPIFLAGS)
-endif
-ifdef NCFLAGS
-  CPPFLAGS +=-D$(NCFLAGS)
-  F_INC += -I$(NCDIR)/include
-  F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
-endif
-ifdef OMPFLAGS
-  FC += -fopenmp
-  CPPFLAGS +=-D$(OMP_FLAGS) 
-endif
-# This is for Data Assimilation operations
-# Only need it if we invoke data assimilation
-ifdef DAFLAG
-  F_LIB += -L$(BLAS_PATH)/lib -lblas -L/usr/lib64 -llapack
-  F_INC += -I$(BLAS_PATH)/include
-  CPPFLAGS +=-D$(DAFLAG)
+
+   OPTMZ = -O2 -qfixed=132 -q32 -qflag=i:i -qarch=pwr7 -qtune=pwr7 $(CPPFLAGS) $(F_INC)
+   OPTMZ2 = -O0 -qstrict -q32 -qfixed=132 -qflag=i:i  -qarch=pwr7 -qtune=pwr7 $(CPPFLAGS) $(F_INC)
+   OPTMZ_OMP = $(OPTMZ)
+   OPTMZ_OMP2 = $(OPTMZ) 
+   OPTMZ_OMP3 = $(OPTMZ) 
+   ifdef OMP_FLAGS 
+     OPTMZ_OMP = $(OPTMZ) -qsmp=omp  -qnosave
+     OPTMZ_OMP2 = $(OPTMZ)
+     OPTMZ_OMP3 = $(OPTMZ) -qsmp=omp
+   endif
+   OPTMZ90  = -O2 -q32 -qstrict -qfree=f90 -qarch=pwr7 -qtune=pwr7 $(CPPFLAGS) $(F_INC)
+   OPTMZ902  = -O0 -q32 -qstrict -qfree=f90 -qarch=pwr7 -qtune=pwr7  $(CPPFLAGS) $(F_INC)
+
+###########################
+#####  LINKING FLAGS  #####
+###########################
+   LFLAGS =$(F_LIB)
 endif
 
-# optimisation flags
-OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
-OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
+ifeq ($(COMPILER),GNU)
+   F90 = gfortran44
+   F77 = gfortran44
+   CPPFLAGS =-cpp
+
+###########################
+####  COMPILING FLAGS  ####
+###########################
+
+
+   ifdef MPIFLAGS
+     MPICHDIR = /home/feardonn/local
+     FC=$(MPICHDIR)/bin/mpif90
+     MPE_INCDIR = $(MPICHDIR)/include 
+     MPE_LIBDIR = $(MPICHDIR)/libs
+     F_INCS = -I$(MPE_INCDIR)
+     CPPFLAGS +=-D$(MPIFLAGS)
+   endif
+
+
+   OPTMZ = -O3 -ffixed-line-length-132 $(F_INCS) $(CPPFLAGS)  
+   OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INCS) $(CPPFLAGS)
+   OPTMZ_OMP = $(OPTMZ)
+   OPTMZ90  = $(OPTMZ)
+   OPTMZ902  = $(OPTMZ2)
+
+   ifdef OMP_FLAGS
+     F_INCS +=-I/usr/lib/gcc/x86_64-redhat-linux6E/4.4.7/finclude
+     OPTMZ_OMP = $(OPTMZ) -fopenmp 
+   endif
+
+
+###########################
+#####  LINKING FLAGS  #####
+###########################
+
+LFLAGS = -L$(MPE_LIBDIR)
+
+endif
+
+
+ifeq ($(COMPILER),NXT)
+   F90 = ifort
+   F77 = ifort
+   CPPFLAGS =-cpp
+
+###########################
+####  COMPILING FLAGS  ####
+###########################
+   ifdef MPIFLAGS
+     MPICHDIR = /opt/intel/compilers_and_libraries_2016.1.150/linux/mpi/intel64
+     FC=$(MPICHDIR)/bin/mpiifort
+     MPE_INCDIR = $(MPICHDIR)/include 
+     F_LIB = -L$(MPICHDIR)/lib
+     F_INC = -I$(MPE_INCDIR)
+     MPIFC_FLAGS = $(F_INC)
+     CPPFLAGS +=-D$(MPIFLAGS)
+   endif
+    ifdef NCFLAGS
+     NCDIR=/usr/local/netcdf
+     CPPFLAGS +=-D$(NCFLAGS)
+     F_INC += -I$(NCDIR)/include
+     F_LIB += -L$(NCDIR)/lib -lnetcdf -lnetcdff 
+  endif
+# We need openblas only if DA active
+#    F_LIB += -L/usr/lib64/ -lopenblas
+
+   OPTMZ = -O3 -132 $(F_INC) $(CPPFLAGS)  
+   OPTMZ2 = -O0 -132 $(F_INC) $(CPPFLAGS)
+   OPTMZ_OMP = $(OPTMZ)
+   OPTMZ_OMP2 = $(OPTMZ2)
+   OPTMZ90  = $(OPTMZ)
+   OPTMZ902  = $(OPTMZ2)
+   ifdef OMP_FLAGS
+     F_INCS +=-I/usr/lib/gcc/x86_64-redhat-linux6E/4.4.7/finclude
+     OPTMZ_OMP = $(OPTMZ) -fopenmp 
+   endif
+
 
 ###########################
 #####  LINKING FLAGS
@@ -59,6 +146,47 @@ OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
 
 LFLAGS = $(F_LIB)
 
+endif
+
+ifeq ($(COMPILER),REL)
+   F90 = gfortran
+   CPPFLAGS =-cpp
+
+###########################
+####  COMPILING FLAGS  ####
+###########################
+   ifdef MPIFLAGS
+     MPICHDIR=/home/fearghal/local/mpich
+     FC=$(MPICHDIR)/bin/mpif90
+     MPE_INCDIR = $(MPICHDIR)/include 
+     F_LIB = -L$(MPICHDIR)/lib
+     F_INC = -I$(MPE_INCDIR)
+     CPPFLAGS +=-D$(MPIFLAGS)
+   endif
+    ifdef NCFLAGS
+     NCDIR=/home/fearghal/local/netcdf
+     CPPFLAGS +=-D$(NCFLAGS)
+     F_INC += -I$(NCDIR)/include
+     F_LIB += -L$(NCDIR)/lib -lnetcdf -lnetcdff 
+  endif
+
+   OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
+   OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
+
+# This is for Data Assimilation operations
+   F_LIB += -L/usr/local/usr/lib64 -larmadillo
+   
+###########################
+#####  LINKING FLAGS
+###########################
+
+LFLAGS = $(F_LIB)
+
+endif
+
+#OUT_DIR=bin
+#${OUT_DIR}: 
+#	${MKDIR_P} ${OUT_DIR}
 
 #Program name
 PROG=EFDC
@@ -67,6 +195,7 @@ PROG=EFDC
 #Name of modules
 MODULESF90 = Var_Global_Mod.o DRIFTER.o WINDWAVE.o
 MODULESF902 = parallel_mpi.o netcdf_iom.o
+MODULESFOR = 
 
 #Files with .f90 extension
 OBJS1 = diagnostics.o \
@@ -94,11 +223,11 @@ OBJS1 = diagnostics.o \
         date_time.o \
         time2year.o \
         codarname.o \
-        data_assim_init.o \
-        data_assim.o \
-        data_assim_submodules.o
+# comment these           data_assim_init.o \
+# files as Openblas       data_assim.o \
+# not available on JPNX2       data_assim_library.o
+#Files with .F90 extension
 
-#Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \
 	CALUVW.o \
@@ -108,8 +237,7 @@ OBJS2 = VARINIT.o \
 	EFDC.o \
 	CONGRAD_MPI.o \
         CALHDMF.o \
-	INPUT.o \
-        CALWQC.o 
+	INPUT.o
 
 #Files with .f extension
 OBJS3 = ACON.o AINIT.o \
@@ -132,7 +260,7 @@ OBJS3 = ACON.o AINIT.o \
 	CALBAL1.o CALTSXY.o initbin0.o RWQSTL.o WASP5.o \
 	CALBAL2.o initbin2.o RWQSUN.o WASP6.o \
 	CALBAL3.o CALVEGSER.o INITBIN3.o SALPLTH.o WASP7EPA.o \
-	CALBAL4.o INITBIN4.o SALPLTV.o WASP7.o \
+	CALBAL4.o CALWQC.o INITBIN4.o SALPLTV.o WASP7.o \
 	CALBAL5.o CBALEV1.o initbin.o SALTSMTH.o WAVEBL.o \
 	CALBED9.o CBALEV2.o SCANASER.o WAVESXY.o \
 	CALBED.o CBALEV3.o JPEFDC.o SCANDSER.o WQ3D.o \
@@ -157,14 +285,13 @@ OBJS3 = ACON.o AINIT.o \
 	CSEDVIS.o RESTOUT.o SMINIT.o ZBRENT.o \
 	CALPUV9C.o CSNDEQC.o RESTRAN.o SMMBE.o \
         SCANLORP.o mpi_util.o CALAVBOLD.o CALEXP.o CALPGCORR.o \
-	CALQQ2TOLD.o CALQVS.o CONGRAD.o \
+	CALPUVTT.o CALQQ2TOLD.o CALQVS.o CONGRAD.o \
 	SCANWQ.o SETBCS.o SETOPENBC2.o SETOPENBC.o \
-	mapboundary.o SECNDS.o VARALLOC.o puvdasm.o
-
+	mapboundary.o SECNDS.o VARALLOC.o
 
 #Link all objects
-$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS2) $(OBJS3)
-	$(FC) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS2) $(OBJS3)  $(LFLAGS) -o $(PROG)
+$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)
+	$(FC) $(LFLAGS) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  -o $(PROG)
 
 #Compile subroutines and modules
 $(MODULESF90): %.o: %.f90
@@ -172,13 +299,19 @@ $(MODULESF90): %.o: %.f90
 $(MODULESF902): %.o: %.F90
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@
 
-$(OBJS1): %.o: %.f90 $(MODULESF90) $(MODULESF902)
+$(MODULESFOR): %.o: %.f
+	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@
+
+$(OBJS1): %.o: %.f90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
-$(OBJS2): %.o: %.F $(MODULESF90) $(MODULESF902)
+$(OBJS11): %.o: %.F90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
-$(OBJS3): %.o: %.f $(MODULESF90) $(MODULESF902)
+$(OBJS2): %.o: %.F $(MODULESF90) $(MODULESFOR) $(MODULESF902)
+	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
+
+$(OBJS3): %.o: %.f $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
 #Clean up after yourself

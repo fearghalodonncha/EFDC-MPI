@@ -8,7 +8,7 @@ C
       
       CHARACTER*11 FNWQSR(40)
       CHARACTER*2  SNUM
-      INTEGER*4    NT,NW,IS,NS,ISO,ISTYP,K,M
+      INTEGER*4    NT,NW,IS,NS,ISO,ISTYP,K,M,L
       REAL         RMULADJ,ADDADJ,CSERTMP
         
       PRINT *,'WQ: READING CWQSRxx.INP - WQ CONCENTRATION TIME SERIES'
@@ -72,7 +72,33 @@ C
     1 FORMAT(120X)  
   601 FORMAT(' READ ERROR WQ TIME SERIES, NWQ,NSER,MDATA = ',3I5)  
   602 FORMAT(' READ OF FILES CWQSRNN.INP SUCCESSFUL'/)  
-
+C**********************************************************************C
+C
+C **  SET HORIZONTALLY HOMOGENEOUS, VERTICALLY VARYING INITIAL CONDITIONS
+C **  FROM FIRST TIME IN FIRST CONCENTRATION TIME SERIES
+C**   Greg Rocheleau Feb 2019 - inserted and modified from Makai & Tetratech EFDC
+C      IF(IWQICI.EQ.3)THEN
+C 
+C        NS=1   ! SET TO FIRST TIME SERIES FOR EACH STATE VARIABLE
+C        M=1    ! SET TO FIRST ENTRY FOR EACH TIME SERIES
+C       
+C        DO NW=1,NWQV
+C          IF(NWQCSR(NW).EQ.0)THEN
+C            DO K=1,KC
+C              DO L=2,LA
+C                WQV(L,K,NW)=0.0
+C              ENDDO
+C            ENDDO 
+C          ELSE       
+C            NT=4+NTOX+NSED+NSND+NW
+C            DO K=1,KC
+C              DO L=2,LA
+C                WQV(L,K,NW)=CSER(M,K,NS,NT)
+C              ENDDO
+C            ENDDO 
+C          ENDIF
+C       ENDDO
+C      ENDIF
       RETURN  
       END  
 

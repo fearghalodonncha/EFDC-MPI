@@ -41,6 +41,14 @@ MODULE GLOBAL
     CHARACTER*12 FNDUUU
     CHARACTER*12 FNDVVV
     CHARACTER*12 FNDWWW
+    CHARACTER*12 FNDWQAS      !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQAL      !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQD       !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQN       !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQO       !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQNH      !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQPON     !Greg Rocheleau Feb 2019
+    CHARACTER*12 FNDWQDON     !Greg Rocheleau Feb 2019
     CHARACTER*50 ICIFN
     CHARACTER*50 NCOFN
     CHARACTER*50 NPLFN
@@ -3723,6 +3731,7 @@ MODULE GLOBAL
     INTEGER,ALLOCATABLE,DIMENSION(:)::LWEST
     INTEGER,ALLOCATABLE,DIMENSION (:)::L_CONG
     INTEGER::CONGDOM
+
     REAL(wp),ALLOCATABLE,DIMENSION (:,:)::DUM_COM1
     REAL(wp),ALLOCATABLE,DIMENSION (:,:)::DUM_COM2
 
@@ -3797,7 +3806,7 @@ MODULE GLOBAL
     INTEGER INIT_DT  ! Flag to initialize deep thunder grid structures
     INTEGER NSTEP_CALLDT ! counter to flag DT file read call
     INTEGER NSTEPS   ! number of timesteps between DT file read
-    INTEGER*8 YREF,MREF,DREF   ! use this for output file namings
+    INTEGER YREF,MREF,DREF   ! use this for output file namings
     LOGICAL DTFLAG
     LOGICAL NCWMS
     CHARACTER(LEN=1024) PATHDT,PATHNCWMS
@@ -3838,8 +3847,6 @@ MODULE GLOBAL
     INTEGER,ALLOCATABLE,DIMENSION(:)::ICUVDA_GL,JCUVDA_GL,NUVSERA_GL,IWUVDA_GL,IRVUDA_GL !C21C
     REAL,ALLOCATABLE,DIMENSION(:)::TSUUDA,TSVVDA,NORMDIR,FSUVDA,RRUVDA,TSUVDA !C21C
     REAL,ALLOCATABLE,DIMENSION(:)::TSUUDA_GL,TSVVDA_GL,NORMDIR_GL,FSUVDA_GL,RRUVDA_GL,TSUVDA_GL !C21C
-    REAL,ALLOCATABLE, DIMENSION(:):: UROTTMP,VROTTMP
-    REAL,ALLOCATABLE, DIMENSION(:):: RFBODYFXI,RFBODYFYI
     INTEGER::ISACDA !In C66A
     INTEGER::KCSERPOW !C66A
     REAL,ALLOCATABLE,DIMENSION(:)::IDIRCDA !In C66B
@@ -3863,9 +3870,12 @@ MODULE GLOBAL
     REAL,ALLOCATABLE,DIMENSION(:)::WINDSXY
     REAL,ALLOCATABLE,DIMENSION(:)::WINDSYX
     REAL,ALLOCATABLE,DIMENSION(:)::WINDSYY
-    
-          ! Begin MACROALGAE variables
+    REAL,ALLOCATABLE,DIMENSION(:)::UROTTMP,VROTTMP
+    REAL,ALLOCATABLE,DIMENSION(:)::RFBODYFXI,RFBODYFYI
+    ! Begin MACROALGAE variables
     INTEGER::MCOUNT !number of different types of macroalgae
+    LOGICAL::LOGMAC
+    REAL,ALLOCATABLE,DIMENSION(:,:)::RMAC !How much are macroalgae present in a layer
     REAL,ALLOCATABLE,DIMENSION(:)::ZMAXMAC  ! (LCM) maximum macroalgae height
     REAL,ALLOCATABLE,DIMENSION(:)::ZMINMAC  ! (LCM) starting macroalgae height
     REAL,ALLOCATABLE,DIMENSION(:)::MACDEN   ! (LCM) macroalgae density
@@ -3874,8 +3884,10 @@ MODULE GLOBAL
     REAL,ALLOCATABLE,DIMENSION(:)::MACAD    ! (LCM) Macroalgae flow-facing area times diameter
     REAL,ALLOCATABLE,DIMENSION(:)::MVEGZ  ! Porosity factor in Z
     REAL,ALLOCATABLE,DIMENSION(:,:,:)::MACLIM
-          ! End MACROALGAE variables
-          ! Begin variables related to WQ write
+    INTEGER,ALLOCATABLE,DIMENSION(:,:)::IJLMAC !(MCOUNT,3) # of cells with macroalgae:1=I-loc, 2=J-loc, 3=L-loc
+    LOGICAL,ALLOCATABLE,DIMENSION(:,:)::KMAC !Macroalgae in layer
+    ! End MACROALGAE variables
+    ! Begin variables related to WQ write
    INTEGER,ALLOCATABLE,DIMENSION(:)::IC_STRID  ! Provides starting I coordinate related to global domain
    INTEGER,ALLOCATABLE,DIMENSION(:)::JC_STRID  ! Provides starting j coordinate related to global domain
 

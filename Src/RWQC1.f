@@ -1,4 +1,4 @@
-      SUBROUTINE RWQC1
+      SUBROUTINE RWQC1 
 C  
 C CHANGE RECORD  
 C   Merged SNL and DSINTL codes
@@ -8,7 +8,7 @@ C: SPATIALLY AND TEMPORALLY CONSTANT REAL PARAMETERS
 C  
       USE GLOBAL
 C  
-      IMPLICIT NONE
+ 	IMPLICIT NONE
 
       CHARACTER TITLE(5)*79, CCMRM*1  
       CHARACTER LINE*255
@@ -30,6 +30,7 @@ C
       REAL      XMRM1, XMRM2, XMRM3,XMRM4,XMRMA,XMRMB,XMRMC,XMRMD,  ! MACROALGAE
      &          XMRME  
       REAL      XPSQ,XDSQ,XMUD
+      REAL      FRACLAY,FRACLAYKM1,FHLAYC,FHLAYCKM1,WQVMTMP
       INTEGER   M,N1,II,JJ,KK,NT,ISSKIP,NW,ND,LF,LL,L
       INTEGER   IWQDT,IWQKIN,ITMP,IZ,IN,IJKC,IWQZX,IZMUD,IZSAND
       INTEGER   I,J,K,MM
@@ -61,7 +62,8 @@ C
       READ(1,'(A1)') CCMRM  
       BACKSPACE(1)  
       IF(CCMRM .EQ. '#') ISSKIP = 1  
-      CCMRM = '#'  
+      CCMRM = '#'
+C *** C01 
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       READ(1,90) (TITLE(M), M=1,3)  
       WRITE(2,90) (TITLE(M), M=1,3)  
@@ -69,7 +71,8 @@ C
 C I/O CONTROL VARIABLES  
 C      READ(1,999)  
 C  
-      WRITE(2,999)  
+      WRITE(2,999)
+C *** C02
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       READ(1,90) TITLE(1)  
       WRITE(2,90) TITLE(1)  
@@ -85,12 +88,10 @@ C *** C02A
       ! *** ONLY USED WHEN ISWQLVL=1-3
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) (ISTRWQ(NW),NW=1,NWQV)  
+      READ(1,*)  (ISTRWQ(NW),NW=1,NWQV)  
       WRITE(2,*) (ISTRWQ(NW),NW=1,NWQV) 
       IF(ISWQLVL.EQ.0)THEN
-        DO NW=1,NWQV
-          ISTRWQ(NW)=0 
-        ENDDO
+        ISTRWQ(1:NWQV)=0 
         ISTRWQ(6)=1
         ISTRWQ(14)=1 
         ISTRWQ(19)=1 
@@ -98,22 +99,18 @@ C *** C02A
 C *** C03
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) IWQDT,IWQM,IWQBEN,IWQSI,IWQFCB,IWQSRP,IWQSTOX,  
-     &    IWQKA(1), IWQVLIM  
-      WRITE(2,*) IWQDT,IWQM,IWQBEN,IWQSI,IWQFCB,IWQSRP,IWQSTOX,  
-     &    IWQKA(1), IWQVLIM  
+      READ(1,*)  IWQDT,IWQM,IWQBEN,IWQSI,IWQFCB,IWQSRP,IWQSTOX,IWQKA(1),IWQVLIM  
+      WRITE(2,*) IWQDT,IWQM,IWQBEN,IWQSI,IWQFCB,IWQSRP,IWQSTOX,IWQKA(1),IWQVLIM  
 C *** C04  
-      IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
-      IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) IWQZ,IWQNC,IWQRST,NDMWQ,LDMWQ,NDDOAVG,NDLTAVG,IDNOTRVA  
+      IF(ISSKIP .GT. 0)CALL SKIPCOMM(1,CCMRM)  
+      IF(ISSKIP .EQ. 0)READ(1,999)  
+      READ(1,*)  IWQZ,IWQNC,IWQRST,NDMWQ,LDMWQ,NDDOAVG,NDLTAVG,IDNOTRVA  
       WRITE(2,*) IWQZ,IWQNC,IWQRST,NDMWQ,LDMWQ,NDDOAVG,NDLTAVG,IDNOTRVA  
 C *** C05
-      IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
-      IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) IWQICI,IWQAGR,IWQSTL,IWQSUN,IWQPSL,IWQNPL, ISDIURDO,  
-     &    WQDIUDT, IWQKIN  
-      WRITE(2,*) IWQICI,IWQAGR,IWQSTL,IWQSUN,IWQPSL,IWQNPL, ISDIURDO,  
-     &    WQDIUDT, IWQKIN  
+      IF(ISSKIP .GT. 0)CALL SKIPCOMM(1,CCMRM)  
+      IF(ISSKIP .EQ. 0)READ(1,999)  
+      READ(1,*)  IWQICI,IWQAGR,IWQSTL,IWQSUN,IWQPSL,IWQNPL,ISDIURDO,WQDIUDT,IWQKIN  
+      WRITE(2,*) IWQICI,IWQAGR,IWQSTL,IWQSUN,IWQPSL,IWQNPL,ISDIURDO,WQDIUDT,IWQKIN  
       IWQDIUDT = NINT(WQDIUDT*3600.0/DT)  
       WRITE(2,83)': FREQUENCY OF DIURNAL DO OUTPUT (IN DT UNIT) =',  
      &    IWQDIUDT  
@@ -131,107 +128,104 @@ C      DTWQ = DTD*REAL(IWQDT)*REAL(NWQKDPT)  PMC
       !STOP '** ERROR!!! INVALID IWQM VALUE **'  
       !ENDIF  
       IF(IWQBEN.EQ.1)THEN  
-      WRITE(2,80)'* SEDIMENT PROCESS MODEL IS ACTIVATED             '  
-      ELSE IF(IWQBEN.EQ.0)THEN  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT BF IS SPECIFIED   '  
-      ELSE IF(IWQBEN.EQ.2)THEN  
-      WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING BF SPECIFIED'  
+        WRITE(2,80)'* SEDIMENT PROCESS MODEL IS ACTIVATED             '  
+      ELSEIF(IWQBEN.EQ.0)THEN  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT BF IS SPECIFIED   '  
+      ELSEIF(IWQBEN.EQ.2)THEN  
+        WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING BF SPECIFIED'  
       ELSE  
-      STOP '** ERROR!!! INVALID IWQBEN VALUE **'  
+        STOP '** ERROR!!! INVALID IWQBEN VALUE **'  
       ENDIF  
       IF(IWQSI.EQ.1)THEN  
-      WRITE(2,80)'* SILICA STATE VARIABLES (SU & SA) ARE MODELED    '  
+        WRITE(2,80)'* SILICA STATE VARIABLES (SU & SA) ARE MODELED    '  
       ELSE  
-      WRITE(2,80)'* NO SILICA (SU & SU) LIMITATION                  '  
+        WRITE(2,80)'* NO SILICA (SU & SU) LIMITATION                  '  
       ENDIF  
       IF(IWQFCB.EQ.1)THEN  
-      WRITE(2,80)'* FCB (FECAL COLIFORM BACTERIA) IS MODELED        '  
+        WRITE(2,80)'* FCB (FECAL COLIFORM BACTERIA) IS MODELED        '  
       ELSE  
-      WRITE(2,80)'* FCB (FECAL COLIFORM BACTERIA) IS NOT MODELED    '  
+        WRITE(2,80)'* FCB (FECAL COLIFORM BACTERIA) IS NOT MODELED    '  
       ENDIF  
       IF(IWQSRP.EQ.1)THEN  
-      WRITE(2,80)'* TAM IS USED FOR SORPTION OF PO4T/SA: MODEL TAM  '  
-      ELSE IF(IWQSRP.EQ.2)THEN  
-      WRITE(2,80)'* TSS IS USED FOR SORPTION OF PO4T/SA: MODEL TSS  '  
-      IF(ISTRAN(6).NE.1) STOP 'ERROR! INCOMPATIBLE ISTRAN(6)/IWQSRP'  
+        WRITE(2,80)'* TAM IS USED FOR SORPTION OF PO4T/SA: MODEL TAM  '  
+      ELSEIF(IWQSRP.EQ.2)THEN  
+        WRITE(2,80)'* TSS IS USED FOR SORPTION OF PO4T/SA: MODEL TSS  '  
+      IF(NSED.EQ.0) STOP 'ERROR! INCOMPATIBLE ISTRAN(6)/NSED/IWQSRP'  
+!      IF(ISTRAN(6).NE.1) STOP 'ERROR! INCOMPATIBLE ISTRAN(6)/IWQSRP'  !SCJ changed to work with VEFDC for sorption to TSS
       ELSE  
-      WRITE(2,80)'* NO SORPTION OF PO4T/SA: MAY MODEL TSS & NO TAM  '  
+        WRITE(2,80)'* NO SORPTION OF PO4T/SA: MAY MODEL TSS & NO TAM  '  
       ENDIF  
       IF(IWQSTOX.EQ.1)THEN  
-      WRITE(2,80)'* SALINITY TOXICITY IS APPLIED TO CYANOBACTERIA   '  
+        WRITE(2,80)'* SALINITY TOXICITY IS APPLIED TO CYANOBACTERIA   '  
       ELSE  
-      WRITE(2,80)'* NO SALINITY TOXICITY: SALTWATER CYANOBACTERIA   '  
+        WRITE(2,80)'* NO SALINITY TOXICITY: SALTWATER CYANOBACTERIA   '  
       ENDIF  
       IF(IWQKA(1).EQ.0)THEN  
-      WRITE(2,80)'* USER-SPECIFIED CONSTANT REAERATION SET TO WQKRO '  
-      WRITE(2,80)'*   REAERATION DUE TO WIND SET TO ZERO            '  
-      ENDIF  
-      IF(IWQKA(1).EQ.1)THEN  
-      WRITE(2,80)'* USER-SPECIFIED CONSTANT REAERATION SET TO WQKRO '  
-      WRITE(2,80)'*   REAERATION DUE TO WIND ADDED TO WQKRO         '  
-      ENDIF  
-      IF(IWQKA(1).EQ.2)THEN  
-      WRITE(2,80)'* OCONNOR-DOBBINS REAERATION FORMULA IS USED      '  
-      ENDIF  
-      IF(IWQKA(1).EQ.3)THEN  
-      WRITE(2,80)'* OWENS & GIBBS (1964) REAERATION FORMULA IS USED '  
-      ENDIF  
-      IF(IWQKA(1).EQ.4)THEN  
-      WRITE(2,80)'* MODIFIED OWENS & GIBBS REAERATION IS USED       '  
+        WRITE(2,80)'* USER-SPECIFIED CONSTANT REAERATION SET TO WQKRO '  
+        WRITE(2,80)'*   REAERATION DUE TO WIND SET TO ZERO            '  
+      ELSEIF(IWQKA(1).EQ.1)THEN  
+        WRITE(2,80)'* USER-SPECIFIED CONSTANT REAERATION SET TO WQKRO '  
+        WRITE(2,80)'*   REAERATION DUE TO WIND ADDED TO WQKRO         '  
+      ELSEIF(IWQKA(1).EQ.2)THEN  
+        WRITE(2,80)'* OCONNOR-DOBBINS REAERATION FORMULA IS USED      '  
+      ELSEIF(IWQKA(1).EQ.3)THEN  
+        WRITE(2,80)'* OWENS & GIBBS (1964) REAERATION FORMULA IS USED '  
+      ELSEIF(IWQKA(1).EQ.4)THEN  
+        WRITE(2,80)'* MODIFIED OWENS & GIBBS REAERATION IS USED       '  
       ENDIF  
       IF(IWQVLIM.EQ.0)THEN  
-      WRITE(2,80)'* MACROALGAE GROWTH IS NOT LIMITED BY VELOCITY    '  
-      ENDIF  
-      IF(IWQVLIM.EQ.1)THEN  
-      WRITE(2,80)'* MACROALGAE VELOCITY LIMIT, MICHAELIS-MENTON EQU.'  
-      ENDIF  
-      IF(IWQVLIM.EQ.2)THEN  
-      WRITE(2,80)'*MACROALGAE VEL. LIMIT, 5-PARAM LOGISTIC FUNCTION'  
+        WRITE(2,80)'* MACROALGAE GROWTH IS NOT LIMITED BY VELOCITY    '  
+      ELSEIF(IWQVLIM.EQ.1)THEN  
+        WRITE(2,80)'* MACROALGAE VELOCITY LIMIT, MICHAELIS-MENTON EQN.'  
+      ELSEIF(IWQVLIM.EQ.2)THEN  
+        WRITE(2,80)'*MACROALGAE VEL. LIMIT, 5-PARAM LOGISTIC FUNCTION'  
       ENDIF  
       WRITE(2,83)'* # OF ZONES FOR SPATIALLY VARYING PARAMETERS =',IWQZ  
       IF(IWQZ.GT.NWQZ) STOP 'ERROR!! IWQZ SHOULD BE <= NWQZ'  
       IF(IWQNC.EQ.1)THEN  
-      WRITE(2,80)'* WRITE NEGATIVE CONC. INFORMATION TO NEG-CONC.LOG'  
+        WRITE(2,80)'* WRITE NEGATIVE CONC. INFORMATION TO NEG-CONC.LOG'  
       ELSE  
-      WRITE(2,80)'* NO WRTING OF NEGATIVE CONCENTRATION INFORMATION '  
+        WRITE(2,80)'* NO WRTING OF NEGATIVE CONCENTRATION INFORMATION '  
       ENDIF  
       IF(IWQRST.EQ.1)THEN  
-      WRITE(2,80)'* WRITE SPATIAL DISTRIBUTIONS TO IWQORST          '  
+        WRITE(2,80)'* WRITE SPATIAL DISTRIBUTIONS TO IWQORST          '  
       ELSE  
-      WRITE(2,80)'* NO WRITING TO IWQORST                           '  
+        WRITE(2,80)'* NO WRITING TO IWQORST                           '  
       ENDIF  
       WRITE(2,999)  
       IF(IWQICI.EQ.1)THEN  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY-VARYING ICS FROM INWQICI   '  
-      ELSE IF(IWQICI.EQ.2)THEN  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY-VARYING ICS FROM INWQRST   '  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY-VARYING ICS FROM INWQICI   '  
+      ELSEIF(IWQICI.EQ.2)THEN  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY-VARYING ICS FROM INWQRST   '  
+      ELSEIF(IWQICI.EQ.3)THEN  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT FROM FIRST TIME SERIES   '  
       ELSE  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT INITIAL CONDITIONS'  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT C44 INITIAL CONDITIONS'  
       ENDIF  
       IF(IWQAGR.EQ.1)THEN  
-      WRITE(2,80)'* SPATIALLY A/O TEMPORALLY-VARYING ALGAL KINETICS '  
+        WRITE(2,80)'* SPATIALLY A/O TEMPORALLY-VARYING ALGAL KINETICS '  
       ELSE  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT ALGAL KINETICS    '  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT ALGAL KINETICS    '  
       ENDIF  
       IF(IWQSTL.EQ.1)THEN  
-      WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING SETTLING VEL'  
+        WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING SETTLING VEL'  
       ELSE  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT SETTLING VELOCITY '  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT SETTLING VELOCITY '  
       ENDIF  
       IF(IWQSUN.GE.1)THEN  
-      WRITE(2,80)'* TEMPORALLY-VARYING IO & FD                      '  
+        WRITE(2,80)'* TEMPORALLY-VARYING IO & FD                      '  
       ELSE  
-      WRITE(2,80)'* TEMPORALLY CONSTANT IO & FD                     '  
+        WRITE(2,80)'* TEMPORALLY CONSTANT IO & FD                     '  
       ENDIF  
       IF(IWQNPL.EQ.1)THEN  
-      WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING NPS INPUT   '  
+        WRITE(2,80)'* SPATIALLY AND/OR TEMPORALLY-VARYING NPS INPUT   '  
       ELSE  
-      WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT NPS INPUT         '  
+        WRITE(2,80)'* SPATIALLY/TEMPORALLY CONSTANT NPS INPUT         '  
       ENDIF  
       IF(IWQKIN.EQ.1)THEN  
-      WRITE(2,80)'* SPATIALLY VARYING KINETICS FROM KINETICS.INP    '  
+        WRITE(2,80)'* SPATIALLY VARYING KINETICS FROM KINETICS.INP    '  
       ELSE  
-      WRITE(2,80)'* FILE KINETICS.INP NOT USED                      '  
+        WRITE(2,80)'* FILE KINETICS.INP NOT USED                      '  
       ENDIF  
       WRITE(2,999)  
 C *** C06  
@@ -272,8 +266,8 @@ C *** C07
         READ(1,90) TITLE(M)  
       ENDDO  
       IF(IWQTS.GE.1)THEN  
-      WRITE(2,80)': ICWQTS(I)=1, TIME-SERIES OUTPUT FOR VARIABLE I  '  
-      WRITE(2,80)': ICWQTS(I)\=1, NO TIME-SERIES OUTPUT FOR VAR. I  '  
+        WRITE(2,80)': ICWQTS(I)=1, TIME-SERIES OUTPUT FOR VARIABLE I  '  
+        WRITE(2,80)': ICWQTS(I)\=1, NO TIME-SERIES OUTPUT FOR VAR. I  '  
         WRITE(2,999)  
         DO M=1,2  
           WRITE(2,90) TITLE(M)  
@@ -320,7 +314,7 @@ C PMC     &    STOP 'ERROR!! IWQTSDT SHOULD BE MULTIPLE OF IWQDT'
    95 FORMAT(A254)  
    80 FORMAT(A50)  
    81 FORMAT(A27, 4(F8.4,2X))  
-   82 FORMAT((A45, F8.4))  
+   82 FORMAT((A45, F8.3))  
    83 FORMAT(A47, I10)  
    84 FORMAT(3(A26,F10.4,A5,/), 5(A26,I8,A10,/))  
    86 FORMAT(' I,J,M = ',3I10)  
@@ -771,34 +765,34 @@ C
 C        WTEMP =0.25*REAL(M)-30.25
         WQTDTEMP(M)=WTEMP
 
-        WQTDGC(M)=1.  
         IF(WTEMP.LT.WQTMC1)THEN  
-          WQTDGC(M) = EXP(-WQKG1C*(WTEMP-WQTMC1)*(WTEMP-WQTMC1) )  
+          WQTDGC(M) = EXP( -WQKG1C*(WTEMP-WQTMC1)*(WTEMP-WQTMC1) )
+        ELSEIF(WTEMP.GT.WQTMC2)THEN  
+          WQTDGC(M) = EXP( -WQKG2C*(WTEMP-WQTMC2)*(WTEMP-WQTMC2) )
+        ELSE
+          WQTDGC(M)=1.0
         ENDIF  
-        IF(WTEMP.GT.WQTMC2)THEN  
-          WQTDGC(M) = EXP(-WQKG2C*(WTEMP-WQTMC2)*(WTEMP-WQTMC2) )  
-        ENDIF  
-        WQTDGD(M)=1.  
         IF(WTEMP.LT.WQTMD1)THEN  
-          WQTDGD(M) = EXP(-WQKG1D*(WTEMP-WQTMD1)*(WTEMP-WQTMD1) )  
-        ENDIF  
-        IF(WTEMP.GT.WQTMD2)THEN  
-          WQTDGD(M) = EXP(-WQKG2D*(WTEMP-WQTMD2)*(WTEMP-WQTMD2) )  
-        ENDIF  
-        WQTDGG(M)=1.  
+          WQTDGD(M) = EXP( -WQKG1D*(WTEMP-WQTMD1)*(WTEMP-WQTMD1) )
+        ELSEIF(WTEMP.GT.WQTMD2)THEN  
+          WQTDGD(M) = EXP( -WQKG2D*(WTEMP-WQTMD2)*(WTEMP-WQTMD2) )
+        ELSE
+          WQTDGD(M)=1.0
+        ENDIF    
         IF(WTEMP.LT.WQTMG1)THEN  
-          WQTDGG(M) = EXP(-WQKG1G*(WTEMP-WQTMG1)*(WTEMP-WQTMG1) )  
-        ENDIF  
-        IF(WTEMP.GT.WQTMG2)THEN  
-          WQTDGG(M) = EXP(-WQKG2G*(WTEMP-WQTMG2)*(WTEMP-WQTMG2) )  
+          WQTDGG(M) = EXP( -WQKG1G*(WTEMP-WQTMG1)*(WTEMP-WQTMG1) )
+        ELSEIF(WTEMP.GT.WQTMG2)THEN  
+          WQTDGG(M) = EXP( -WQKG2G*(WTEMP-WQTMG2)*(WTEMP-WQTMG2) )
+        ELSE
+          WQTDGG(M)=1.0
         ENDIF  
         IF(IDNOTRVA.GT.0)THEN  
           IF(WTEMP.LT.WQTMM1)THEN  
-            WQTDGM(M) = EXP(-WQKG1M*(WTEMP-WQTMM1)*(WTEMP-WQTMM1) )  
+            WQTDGM(M) = EXP( -WQKG1M*(WTEMP-WQTMM1)*(WTEMP-WQTMM1) )  
           ELSEIF(WTEMP.GT.WQTMM2)THEN  
-            WQTDGM(M) = EXP(-WQKG2M*(WTEMP-WQTMM2)*(WTEMP-WQTMM2) )  
+            WQTDGM(M) = EXP( -WQKG2M*(WTEMP-WQTMM2)*(WTEMP-WQTMM2) )  
           ELSE
-            WQTDGM(M)=1.  
+            WQTDGM(M)=1.0
           ENDIF  
           WQTDRM(M) = EXP( WQKTBM*(WTEMP-WQTRM) )  
         ENDIF  
@@ -839,8 +833,7 @@ C
       ENDDO  
 C  
 C  *** C30
-C READ SECOND PART: RWQC2  
-C PARAMETERS FOR WATER QUALITY STATE VARIABLE TIME SERIES  
+C PARAMETERS FOR WATER-QUALITY STATE-VARIABLE TIME SERIES  
 C  
       WRITE(2,999)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
@@ -860,7 +853,6 @@ C
       ENDDO
 C  
 C  *** C31
-C READ SECOND PART: RWQC2  
 C PARAMETERS FOR OPEN BOUNDARY CONDITIONS  
 C  
       WRITE(2,999)  
@@ -884,8 +876,7 @@ C
       WRITE(2,80)': READ TIME-SERIES OBCS IWQOBX TIMES IF IWQOBX > 0'  
 C  
 C  *** C32
-C SOUTH BDRY  
-C       READ(1,90) TITLE(M)  
+C SOUTH BOUNDARY  
 C  
       WRITE(2,999)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
@@ -994,8 +985,7 @@ C  *** C34
       ENDIF  
 C  
 C  *** C35
-C WEST BDRY  
-C       READ(1,90) TITLE(M)  
+C WEST BOUNDARY  
 C  
       WRITE(2,999)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
@@ -1104,8 +1094,7 @@ C  *** C37
       ENDIF  
 C  
 C  *** C38
-C EAST BDRY  
-C       READ(1,90) TITLE(M)  
+C EAST BOUNDARY 
 C  
       WRITE(2,999)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
@@ -1347,7 +1336,7 @@ C
         READ(1,*) (WQV(1,1,NW), NW=14,NWQV) 
         WRITE(2,*) (WQV(1,1,NW), NW=14,NWQV)
       ENDIF
-      IF(IWQICI.NE.1)THEN  
+      IF(IWQICI.NE.1.AND.IWQICI.NE.3)THEN  !SCJ IWQICI.NE.3 not needed if PSLs used
         WRITE(2,999)  
         WRITE(2,90) TITLE(1)  
         WRITE(2,21)' : (BC, BD, BG)         = ', (WQV(1,1,NW),NW=1,3)  
@@ -1367,7 +1356,7 @@ C
           WQTAMP(1,1) = WQV(1,1,20) - WQTAMD  
           WQPO4D(1,1) = WQV(1,1,10) / (1.0 + WQKPO4P*WQTAMP(1,1))  
           WQSAD(1,1)  = WQV(1,1,17) / (1.0 + WQKSAP*WQTAMP(1,1))  
-        ELSE IF(IWQSRP.EQ.2)THEN  
+        ELSEIF(IWQSRP.EQ.2)THEN  
           WQPO4D(1,1) = WQV(1,1,10) / (1.0 + WQKPO4P*SEDT(1,1))  
           WQSAD(1,1)  = WQV(1,1,17) / (1.0 + WQKSAP*SEDT(1,1))  
         ELSE  
@@ -1395,9 +1384,9 @@ C
             ENDDO  
           ENDDO  
         ENDDO
-        DO NW=1,NWQV
+        DO NW=1,NWQV !These are required to initialize WQ variables along boundaries so that concentration discontinuities can be smoothed. 
           M=4+NTOX+NSED+NSND+NW
-          DO K=1,KC  
+          DO K=1,KC  !If there are data on EFDC.INP C47, C52, C57, C62 and WQ is active, these need to be initialized
             DO LL=1,NWQOBS  
               CLOS(LL,K,M)=WQV(1,1,NW)  
               NLOS(LL,K,M)=N  
@@ -1449,38 +1438,23 @@ C MACROALGAE WILL RESIDE ONLY IN THE BOTTOM LAYER.
 C 09/02/99 M.MORTON: ADDED KMV VELOCITY HALF-SATURATION, KBP DENSITY  
 C   HALF SATURATION, AND PSHADE FACTOR TO BETTER CONTROL MACROALGAE  
 C   GROWTH.  
-C SCJ - Macroalgae allowed in all layers now. MACALGMP.INP only read if there is growth-limitation due to velocities or biomass.
+C SCJ - Macroalgae allowed in all layers (not just bottom). MACALGMP.INP only read if there is growth-limitation due to velocities or biomass.
 C  
       
-      IF(IDNOTRVA.GT.0)THEN
-        DO ND=1,NDMWQ
-          LF=2+(ND-1)*LDMWQ
-          LL=LF+LDM-1
-          DO K=1,KC !Make sure it is in more than the bottom layer
-            DO L=LF,LL
-              IF((MVEGL(L)>0.AND.MVEGL(L)<90).AND. !From DXDY.INP macroalgae here
-     &HP(L)*Z(K)>=ZMINMAC(L).AND.HP(L)*Z(K)<=ZMAXMAC(L))THEN !Skip if no macroalgae in this layer
-                WQV(L,K,IDNOTRVA)=WQV(1,1,IDNOTRVA)  
-                WQVO(L,K,IDNOTRVA)=WQV(1,1,IDNOTRVA)
-                SMAC(L)=1.0
-              ENDIF
-            ENDDO
-          ENDDO
-        ENDDO
-        IF(IWQVLIM>0)THEN  
-          DO L=1,LCM  
-            SMAC(L)=0.0  
-            PSHADE(L)=1.0  
-            WQKMV(L)=0.25  
-            WQKMVMIN(L)=0.15  
-            WQKBP(L)=6.5  
-            WQKMVA(L)=1.0  
-            WQKMVB(L)=12.0  
-            WQKMVC(L)=0.3  
-            WQKMVD(L)=0.25  
-            WQKMVE(L)=2.0  
-          ENDDO  
-          WRITE(2,9003)  
+      IF(IWQVLIM>0)THEN  
+        DO L=1,LCM  
+          SMAC(L)=0.0  
+          PSHADE(L)=1.0  
+          WQKMV(L)=0.25  
+          WQKMVMIN(L)=0.15  
+          WQKBP(L)=6.5  
+          WQKMVA(L)=1.0  
+          WQKMVB(L)=12.0  
+          WQKMVC(L)=0.3  
+          WQKMVD(L)=0.25  
+          WQKMVE(L)=2.0  
+        ENDDO  
+        WRITE(2,9003)  
  9003 FORMAT(/,' MACALGMP.INP - MACROALGAE MAP FILE',/,  
      &    ' PSHADE = SHADE FACTOR FOR TREE CANOPY (1.0=NO CANOPY)',/,  
      &    ' KMV    = MACROALGAE HALF-SATURATION VELOCITY (M/SEC)',/,  
@@ -1493,20 +1467,20 @@ C
      &    ' KMVE   = MACROALGAE VEL. LIMIT LOGISTIC FUNC. PARAM. E',/,  
      &    '   I   J   L PSHADE    KMV KMVMIN    KBP   KMVA   KMVB',  
      &    '   KMVC   KMVD   KMVE')  
-          PRINT *,'WQ: MACALGMP.INP'
-          OPEN(3,FILE='MACALGMP.INP',STATUS='UNKNOWN')  
-          CALL SKIPCOMM(3, CCMRM)  
- 9001     READ(3,*,END=9002) I, J, XMRM1, XMRM2, XMRM3, XMRM4,  
+        PRINT *,'WQ: MACALGMP.INP'
+        OPEN(3,FILE='MACALGMP.INP',STATUS='UNKNOWN')  
+        CALL SKIPCOMM(3, CCMRM)  
+ 9001   READ(3,*,END=9002) I, J, XMRM1, XMRM2, XMRM3, XMRM4,  
      &      XMRMA, XMRMB, XMRMC, XMRMD, XMRME  
-          II = XLOC(I)
-          JJ = YLOC(J)
-          LL=LIJ(II,JJ)  
-          IF(II .LE. 0) GOTO 9002
-          IF (CELL_INSIDE_DOMAIN(LL)) THEN
-            IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
-              PRINT*, 'I, J, IJCT(I,J) = ', II,JJ,IJCT(II,JJ)  
-              STOP 'ERROR!! INVALID (I,J) IN FILE MACALGMP.INP' 
-            ENDIF
+        II = XLOC(I)
+        JJ = YLOC(J)
+        LL=LIJ(II,JJ)  
+        IF(II .LE. 0) GOTO 9002
+        IF (CELL_INSIDE_DOMAIN(LL)) THEN
+          IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
+            PRINT*, 'I, J, IJCT(I,J) = ', II,JJ,IJCT(II,JJ)  
+            STOP 'ERROR!! INVALID (I,J) IN FILE MACALGMP.INP' 
+          ENDIF
           SMAC(LL)=1.0  
           PSHADE(LL)=XMRM1    ! *** PMC-This overwrites the Heat Module Shading 
           WQKMV(LL)=XMRM2  
@@ -1522,11 +1496,46 @@ C
      &      WQKMVE(LL)  
  9004 FORMAT(' ',I3,' ',I3,' ',I5, 9F7.3)  
           GOTO 9001  
-          ENDIF  
  9002     CLOSE(3)  
         ENDIF 
       ENDIF
-      WQV(1,1,IDNOTRVA)=0.0  
+      !INITIALIZE MACROALGAE CONCENTRATIONS TO VEGE.INP PRESCRIBED CONDITIONS
+      IF(LOGMAC)THEN
+        DO M=1,MCOUNT
+          L=IJLMAC(M,3)
+          DO K=1,KC !Make sure it is in more than the bottom layer
+            !FRACLAY=FLOAT(K)/FLOAT(KC)  !top of the layer (normalized)
+            FRACLAY=SUM(DZC(1:K)) !top of the layer as a fraction of HP
+            !FRACLAYKM1=FLOAT(K-1)/FLOAT(KC)  !top of the layer (normalized)
+            FRACLAYKM1=SUM(DZC(1:K-1)) !top of the layer as a fraction of HP
+            FHLAYC=FRACLAY*HP(L)  !z location of the normalized top of the sigma layer of the cell
+            FHLAYCKM1=FRACLAYKM1*HP(L)  !z location of the normalized top of the sigma layer of the cell
+            WQVMTMP=(0.25*PI*(MACDIAM(L)*MACDIAM(L)))*RDLPSQ(MVEGL(L))*1027.0*0.14*0.22*1000.0 ! Total grams-Carbon of WQV macroalgae per volume water
+! WQV(C/m3) = [cross-sectional area of single macroalgae branch] x [number of branches per unit area] x [density of seawater in kg x percentage of algae dry weight to total undried weight x percentage of carbon to total dry weight] x [1000 g per kg to convert from kg to g]
+            !PRINT *, 'WQVMTMP, RDLPSQ(M)) = ', WQVMTMP, RDLPSQ(MVEGL(L))
+            !...multiplied by neutral density and 90%/10% water:biomass content and 36% carbon content by dry weight
+            IF(ZMAXMAC(L)>=FHLAYCKM1)THEN 
+              IF(ZMAXMAC(L)<FHLAYC)WQV(L,K,IDNOTRVA)=WQVMTMP*(ZMAXMAC(L)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1) ! scaled by partial fill ratio
+              IF(ZMAXMAC(L)>=FHLAYC)WQV(L,K,IDNOTRVA)=WQVMTMP
+            ELSE
+              WQV(L,K,IDNOTRVA)=0.0
+            ENDIF
+            IF(ZMINMAC(L)>FHLAYC)THEN    ! Algae not in this layer
+              WQV(L,K,IDNOTRVA)=0.0 
+            ELSE
+              IF(ZMINMAC(L)>=FHLAYCKM1)THEN    !This single layer completely filled with macroalgae
+                IF(ZMAXMAC(L)>=FHLAYC)THEN
+                  WQV(L,K,IDNOTRVA)=WQVMTMP*(FHLAYC-ZMINMAC(L))/(FHLAYC-FHLAYCKM1)
+                ELSEIF(ZMAXMAC(L)<FHLAYC)THEN
+                  WQV(L,K,IDNOTRVA)=WQVMTMP*(ZMAXMAC(L)-ZMINMAC(L))/(FHLAYC-FHLAYCKM1)
+                ENDIF
+              ENDIF
+            ENDIF 
+            WQVO(L,K,IDNOTRVA)=WQV(L,K,IDNOTRVA)
+          ENDDO
+        ENDDO
+      ENDIF
+C
 C  
 C  *** C45
 C SPATIALLY/TEMPORALLY CONSTANT ALGAL GROWTH, RESPIRATION & PREDATION RA  
@@ -1644,51 +1653,68 @@ C
       WRITE(2,999)  
       WRITE(2,90) TITLE(1)  
 C *** C48
+C     This is where constant point source loads are specified.
+C     The code was updated to be on a layer-wise basis for macroalgae "irrigation."
+C     Original code ignored K, but it is used for irrigating macroalgae.
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) IWQPS,NPSTMSR  
+      READ(1,*) IWQPS,NPSTMSR
+      IF(NQSIJ/=0)THEN
+        IF(MOD(IWQPS,NQSIJ)/=0)THEN !Allows distinct layers to be different, not just assigned by column.
+          PRINT*,'IWQPS is not an integer multiple of NQSIJ'
+          PAUSE
+          STOP
+        ENDIF
+      ENDIF
       WRITE(2,*) IWQPS,NPSTMSR  
       WRITE(2,23)'* NUMBER OF CELLS FOR POINT SOURCE INPUT  = ',IWQPS  
-      WRITE(2,23)'* NUMBER WITH VARIABLE POINT SOURCE INPUT = ',NPSTMSR  
+      WRITE(2,23)'* NUMBER WITH VARIABLE POINT SOURCE INPUT = ',NPSTMSR
       IF(IWQPS.GT.NWQPS) STOP 'ERROR!! IWQPS SHOULD BE <= NWQPS'  
       DO M=1,3  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
       M=0
-      DO MM=1,IWQPS  
-        READ(1,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  
-        WRITE(2,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  
+      WQPSLs: DO MM=1,IWQPS  
+        READ(1,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  !GR changed ITMP to be indexed value CSER in CWQSRxx.INP, K is sigma layer for inflow corresponding to QSER.INP. XPSQ is not used.
+        WRITE(2,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6) !SCJ ITMP is the flow series index in QSER.INP, but C32, C35, C38, and C41 already do this for BCs (not irrigation)
         READ(1,*) (XPSL(NW),NW=7,13)  
         WRITE(2,*) (XPSL(NW),NW=7,13)  
         READ(1,*) (XPSL(NW),NW=14,NWQV)  
         WRITE(2,*) (XPSL(NW),NW=14,NWQV)  
         WRITE(2,294) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,NWQV)  
-        II = XLOC(I); JJ=YLOC(J)
+        II = XLOC(I)
+        JJ = YLOC(J)
         L = LIJ(II,JJ)
-        IF (CELL_INSIDE_DOMAIN(L)) THEN
+        !*********************************NOTE
+        !If we want to use C48 to specify irrigation, we ned to make sure CSER is only applied at layer K in C48.
+        !Presently it is assigned to all layers in CALCSER.
+        IF(CELL_INSIDE_DOMAIN(L))THEN
           M=M+1
+          IF(MOD(M,NQSIJ+1)==0)M=1 !Reset M to allow distinct layers to be different (not assigned to the entire water column)
           IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
             WRITE(*,911) I,J  
             STOP 'ERROR!! INVALID (I,J) IN FILE WQ3DWC.INP FOR PSL'  
           ENDIF  
-        ! *** HANDLE CONCENTRATION BASED POINT SOURCE
-          IF(IWQPSL.EQ.2)THEN
+        ! *** HANDLE CONCENTRATION-BASED POINT SOURCE
+          IF(IWQPSL.EQ.2.OR.IWQPSL.EQ.3)THEN !GR Feb 2019 - added L,K indexed time series volume capabilities to WQV using C48 inupts and IWQPSL=3    
             IF(L.NE.LQS(M))THEN
               STOP ' MISMATCH NQSIJ BETWEEN EFDC.INP & WQ3DWC.INP'
             ENDIF
-          
           ! *** ASSIGN GLOBAL CONCENTRATION TIME SERIES INDEX
             DO NW=1,NWQV
               N1=4+NTOX+NSED+NSND+NW
-              NCSERQ(M,N1)=ITMP  ! *** ALL WQ VARIABLES USE SAME TIME SERIES
+! NCSERQ is referenced in CALFQC during standard volume source/sinks *** SCJ set WQ time series
+              NCSERQ(M,N1)=ITMP  ! *** For macroalgae irrigation, use the flow time series in QSER.INP. All WQ variables use the same flow time series.
             ! *** CONVERT FROM Kmol TO moles  
             !WQWPSLC(M,20) = XPSL(20) * CONV1   PMC?     
             ! *** CONVERT FROM MPN/L TO MPN/DAY
             !WQWPSLC(M,NWQV) = XPSL(NWQV) * WQTT * CONV1   PMC?
-              DO K =1,KC
-                CQS(K,M,N1)=XPSL(NW)
-              ENDDO
+              IF(IWQPSL==2)THEN
+                CQS(1:KC,M,N1)=XPSL(NW)  !Existing EFDC code where K was ignored in C48
+              ELSE !K is read from C48
+                CQS(K   ,M,N1)=XPSL(NW)!Set constant point load contribution. Set to XPSL values in WQ3DWC.INP to 0 if you want to only use time series in CWQSRxx.INP
+              ENDIF
             ENDDO
           ENDIF
 C  
@@ -1714,12 +1740,17 @@ C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
         ! *** CONVERT FROM Kmol TO moles
           WQWPSLC(M,20) = XPSL(20) * CONV1      
         ! *** CONVERT FROM MPN/L TO MPN/DAY
-          WQWPSLC(M,21:NWQV) = XPSL(21:NWQV) * WQTT * CONV1
-	    IF(IWQPSL==0)
-     &FORALL(K=1:KC)WQWPSL(L,K,1:NWQV)
-     &         =WQWPSL(L,K,1:NWQV)+WQWPSLC(M,1:NWQV)*DZC(K)/HP(L) !SCJ changed to have constant point source loads added correctly  
+          WQWPSLC(M,21) = XPSL(21) * WQTT * CONV1
+        ! *** CO2
+          WQWPSLC(M,22) = XPSL(22) * CONV1 * WQTT
+	    IF(IWQPSL==2)THEN
+            FORALL(KK=1:KC)WQWPSL(L,KK,1:NWQV) !Be careful, this assumes that the layer was not specified in C48, but we may be changing this.
+     &         =WQWPSL(L,KK,1:NWQV)+WQWPSLC(M,1:NWQV)*DZC(KK)/HP(L) !SCJ changed to have constant point source loads added correctly
+          ELSE
+             WQWPSL(L,KCPSL(M),1:NWQV)=WQWPSL(L,KCPSL(M),1:NWQV)+WQWPSLC(M,1:NWQV) !This is appropriate when K in C48 is used as the layer number
+          ENDIF
         ENDIF
-      ENDDO  
+      ENDDO WQPSLs
   911 FORMAT(/,' I,J = ', 2I5)  
 C  
 C *** C49
@@ -1761,7 +1792,7 @@ C
       WRITE(2,*) (XDSL(NW),NW=7,13)  
       READ(1,*) (XDSL(NW),NW=14,NWQV)  
       WRITE(2,*) (XDSL(NW),NW=14,NWQV)  
-      IF(IWQNPL.NE.1)THEN  
+      IF(IWQNPL.NE.1)THEN  !SPATIALLY/TEMPORALLY CONSTANT NPS INPUT
         WRITE(2,999)  
         WRITE(2,90) TITLE(1)  
         WRITE(2, 21)' : (DSQ, CHC, CHD, CHG)  = ',XDSQ,(XDSL(NW),NW=1,3)  
@@ -1845,37 +1876,34 @@ C ***     MG/L FOR 1-19, TAM-MOLES/L, AND FCB-MPN/L
      & NO3','          SU          SA         COD          O2        
      & TAM','         FCB			CO2			MAC')  
       READ(1,295) ICIFN  
-      WRITE(2,85)'* FILE FOR INITIAL CONDITIONS             = ', ICIFN  
-      IF(IWQICI.EQ.1)THEN  
-      ELSE IF(IWQICI.EQ.2)THEN  
+      IF(IWQICI.EQ.1)THEN
+        WRITE(2,"('SPATIALLY CONSTANT INITIAL CONDITIONS FROM C44')")
+      ELSEIF(IWQICI.EQ.2)THEN  
+        WRITE(2,85)'* FILE FOR INITIAL CONDITIONS             = ', ICIFN  
       ELSE  
-        IF(ICIFN(1:4).NE.'NONE'.AND.ICIFN(1:4).NE.'none')
-     &     STOP 'ERROR!! INVALID IWQICI/ICIFN'  
+        IF(ICIFN(1:4).NE.'NONE'.AND.ICIFN(1:4).NE.'none')STOP 'ERROR!! INVALID IWQICI/ICIFN'  
       ENDIF  
 
       READ(1,295) AGRFN  
       WRITE(2,85)'* FILE FOR ALGAL GROWTH, RESP., PREDATAT. = ', AGRFN  
-      IF(IWQAGR.EQ.1)THEN  
-      ELSE  
+      IF(IWQAGR.NE.1)THEN  
         IF(AGRFN(1:4).NE.'NONE'.AND.AGRFN(1:4).NE.'none')
      &     STOP 'ERROR!! INVALID IWQAGR/AGRFN'  
       ENDIF  
 
       READ(1,295) STLFN  
       WRITE(2,85)'* FILE FOR SETTLING RATES OF ALGAE, PART. = ', STLFN  
-      IF(IWQSTL.EQ.1)THEN  
-      ELSE  
+      IF(IWQSTL.NE.1)THEN  
         IF(STLFN(1:4).NE.'NONE'.AND.STLFN(1:4).NE.'none')
      &     STOP 'ERROR!! INVALID IWQSTL/STLFN'  
       ENDIF  
 
       READ(1,295) SUNFN  
       WRITE(2,85)'* FILE FOR IO, FD, TE, KT                 = ', SUNFN  
-      IF(IWQSUN.EQ.1)THEN  
-      ELSE  
+      !IF(IWQSUN.NE.1)THEN  
       !   IF(SUNFN(1:4).NE.'NONE'.AND.SUNFN(1:4).NE.'none')
       !&     STOP 'ERROR!! INVALID IWQSUN/SUNFN'  
-      ENDIF  
+      !ENDIF  
 
       READ(1,295) BENFN  
       WRITE(2,85)'* FILE FOR BENTHIC FLUX                   = ', BENFN  
@@ -1890,8 +1918,7 @@ C ***     MG/L FOR 1-19, TAM-MOLES/L, AND FCB-MPN/L
 
       READ(1,295) NPLFN  
       WRITE(2,85)'* FILE FOR NPS INPUT INCLUDING ATM. INPUT = ', NPLFN  
-      IF(IWQNPL.EQ.1)THEN  
-      ELSE  
+      IF(IWQNPL.NE.1)THEN
         IF(NPLFN(1:4).NE.'NONE'.AND.NPLFN(1:4).NE.'none')
      &     STOP 'ERROR!! INVALID IWQNPL/NPLFN'  
       ENDIF  

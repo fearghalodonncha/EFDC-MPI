@@ -103,7 +103,7 @@ C **  UPDATE POINT SOURCE LOADINGS
 C  
       IF(IWQPSL.EQ.1)THEN
         CALL RWQPSL  
-      ELSEIF(IWQPSL.EQ.2) THEN
+      ELSEIF(IWQPSL.GE.2) THEN !GR modified to be G.E.2 for option IWQPSL.EQ.3
         CALL CALCSER(ISTL_)
       ENDIF
 C
@@ -175,7 +175,8 @@ C
             SUNDAY1 = SUNDAY2
             SUNSOL1 = SUNSOL2
             SUNFRC1 = SUNFRC2
-            
+          ! *** FIND 1ST POINT
+            !IF(M==0)M = 1 !If NASER = 0, the first time through M=0 so TASER(0,1) is not defined (this means there is an error in the INP files)
             ! *** BUILD THE AVERAGE DAILY SOLAR RADIATION       
             M1 = 0
             M2 = 0
@@ -260,11 +261,12 @@ C
         IF(IDNOTRVA.GT.0) NMALG=1  
         DO NW=1,NWQV+NMALG  
           IF(ISTRWQ(NW).NE.0)THEN  
-            DO K=1,KC  
-              DO L=2,LA  
-                WQVO(L,K,NW)=WQV(L,K,NW)  
-              ENDDO  
-            ENDDO
+!            DO K=1,KC  
+!              DO L=2,LA  
+!                WQVO(L,K,NW)=WQV(L,K,NW)  
+!              ENDDO  
+!            ENDDO
+            WQVO(2:LA,1:KC,NW)=WQV(2:LA,1:KC,NW)
           ENDIF  
         ENDDO  
 C  

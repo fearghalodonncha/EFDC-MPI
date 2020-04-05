@@ -79,6 +79,21 @@
       IF(EXIST)THEN
           CALL SEEK('C21A')
           READ(1,*,ERR=10,END=30)ISWSEDA,NLWSEDA,ISUVDA,NLUVDA,NUVSER
+          IF(ISUVDA>0.AND..NOT.EXIST)PRINT*,'ISUVDA>0, but UVSER.INP not present',PAUSE
+          IF(NUVSER>0)THEN
+            OPEN(2,FILE='UVSER.INP',STATUS='OLD')
+            DO I=1,19
+              READ(2,*) !Skip header lines
+            ENDDO
+            DO NS=1,NUVSER
+              READ(2,*)foo,MUVSERNS
+              DO I=1,MUVSERNS
+                  READ(2,*)
+              ENDDO
+              MUVSERMAX=MAX(1,MUVSERNS)
+            ENDDO
+            CLOSE(2)
+          ENDIF
       ENDIF
       CALL SEEK('C22')  
       READ(1,*,ERR=10,END=30)NTOX,NSED,NSND,NCSER1,NCSER2,NCSER3,  
@@ -171,6 +186,14 @@
         READ(1,*,ERR=10,END=30)MVEGTYP,MVEGOW,NVEGSER,UVEGSCL  
         NVEGTPM=MAX(NVEGTPM,MVEGTYP)
         NVEGSERM=MAX(NVEGSERM,NVEGSER)
+        DO M=1,MVEGTYP  !Search for macroalge, which are assigned when GAMVEG(M) or R6TMP /= 0
+          READ(1,*,ERR=10)ITMP,JTMP,R1TMP,R2TMP,R3TMP,R4TMP,R5TMP,R6TMP
+!         READ(1,*,ERR=10)IDUM,NVEG,RDLPS,VEGDI,VEGHP,ALPVE,BETVE,GAMVEG(M)
+          IF(R6TMP/=0)THEN
+            LOGMAC=.TRUE.
+            EXIT
+          ENDIF
+        ENDDO
         CLOSE(1)
 
         IF(NVEGSER.GE.1)THEN  
@@ -194,12 +217,13 @@
           READ(1,*)
         ENDDO
         TCOUNT=0
-        MCOUNT=0
         DO I=1,LVC
           READ(1,*)IITMP,IITMP,R1TMP,R2TMP,R3TMP,R4TMP,R5TMP,IJTMP
           IF(IJTMP > 90)THEN
             LMHK=.TRUE.
             TCOUNT=TCOUNT+1
+          ELSEIF(IJTMP>0)THEN
+            MCOUNT=MCOUNT+1 !This counts both macroalgae and vegetation (used to allocate macroalgae arrays)
           ENDIF
         ENDDO
         CLOSE(1)
@@ -216,7 +240,7 @@
       RETURN  
    10 WRITE(*,20)  
       WRITE(8,20)  
-   20 FORMAT('READ ERRDOR IN INPUT FILE')  
+   20 FORMAT('READ ERROR IN INPUT FILE')  
       STOP  
    30 WRITE(*,40)  
       WRITE(8,40)  

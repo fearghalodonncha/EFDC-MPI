@@ -118,71 +118,60 @@ C ** to child partition
       NQSIJ_GL = NQSIJ
       NQSIJ = 0
       II = 0
-      DO LL =1,NQSIJ_GL
-         III = XLOC(IQS_GL(LL))
-         JJJ = YLOC(JQS_GL(LL))
-      IF ( III.GT.0. AND. III .LE. IC) THEN
-        IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-         II = ii +1
-         IQS(ii) = III
-         JQS(ii) = JJJ
-         NQSMUL(ii) = NQSMUL_GL(LL)
-         NQSMF(ii) = NQSMF_GL(LL)
-         NQSERQ(ii) = NQSERQ_GL(LL)
-         NCSERQ(ii,1) = NCSERQ_GL(LL,1)
-         NCSERQ(ii,2) = NCSERQ_GL(LL,2)
-         NCSERQ(ii,3) = NCSERQ_GL(LL,3)
-         NCSERQ(ii,4) = NCSERQ_GL(LL,4)
-         QFACTOR(II) = QFACTOR_GL(LL)
-         QSSE(II) = QSSE_GL(LL)
-         NQSIJ = NQSIJ + 1
-         NTOXSRQ(II) = NTOXSRQ_GL(LL)
-         NSEDSRQ(II) = NSEDSRQ_GL(LL)
-         NSNDSRQ(II) = NSNDSRQ_GL(LL)
-         MMAX = 4 + NTOX
-         DO MS = 1,MMAX
-           DO K =1,KC
-             CQS(K,II,MS) = CQSE_GL(LL,MS)
-           END DO
-         END DO
+      GLBL: DO LL =1,NQSIJ_GL
+        III = XLOC(IQS_GL(LL))
+        JJJ = YLOC(JQS_GL(LL))
+        I: IF( III.GT.0. AND. III .LE. IC)THEN
+          J: IF( JJJ.GT.0. AND. JJJ .LE. JC)THEN
+            II = II + 1
+            IQS(II) = III
+            JQS(II) = JJJ
+            NQSMUL(II) = NQSMUL_GL(LL)
+            NQSMF(II) = NQSMF_GL(LL)
+            NQSERQ(II) = NQSERQ_GL(LL)
+            NCSERQ(II,1) = NCSERQ_GL(LL,1)
+            NCSERQ(II,2) = NCSERQ_GL(LL,2)
+            NCSERQ(II,3) = NCSERQ_GL(LL,3)
+            NCSERQ(II,4) = NCSERQ_GL(LL,4)
+            QFACTOR(II) = QFACTOR_GL(LL)
+            QSSE(II) = QSSE_GL(LL)
+            NQSIJ = NQSIJ + 1
+            NTOXSRQ(II) = NTOXSRQ_GL(LL)
+            NSEDSRQ(II) = NSEDSRQ_GL(LL)
+            NSNDSRQ(II) = NSNDSRQ_GL(LL)
+            MMAX = 4 + NTOX
+            DO MS = 1,MMAX
+              CQS(1:KC,II,MS) = CQSE_GL(LL,MS)
+            ENDDO  
 
-          MMIN = MMAX + 1
-          MMAX = MMAX+NSED+NSND
-          DO MS = MMIN,MMAX
-            DO K =1,KC
-              CQS(K,II,MS) = CQSE_GL(LL,MS)
-            END DO
-          END DO   
-        END IF
-      END IF
-      END DO 
+            MMIN = MMAX + 1
+            MMAX = MMAX+NSED+NSND
+            DO MS = MMIN,MMAX
+              CQS(1:KC,II,MS) = CQSE_GL(LL,MS)
+            ENDDO   
+          ENDIF J
+        ENDIF I
+      ENDDO GLBL 
 
-
-       DO L =1,NQSIJ
-         DO K=1,KC
-           QSS(K,L)=QSSE(L)*DZC(K)
-         ENDDO
-         DO N=1,NTOX
+      DO L = 1,NQSIJ
+        QSS(1:KC,L)=QSSE(L)*DZC(1:KC)
+        DO N=1,NTOX
           M=MSVTOX(N)
           NCSERQ(L,M)=NTOXSRQ(L)
-         ENDDO
-         DO N=1,NSED
-           M=MSVSED(N)
-           NCSERQ(L,M)=NSEDSRQ(L)
-         ENDDO
-         DO N=1,NSND
-           M=MSVSND(N)
-           NCSERQ(L,M)=NSNDSRQ(L)
-         ENDDO
-       END DO
-       RETURN
-       END
-
-
-
+        ENDDO
+        DO N=1,NSED
+          M=MSVSED(N)
+          NCSERQ(L,M)=NSEDSRQ(L)
+        ENDDO
+        DO N=1,NSND
+          M=MSVSND(N)
+          NCSERQ(L,M)=NSNDSRQ(L)
+        ENDDO
+      ENDDO
+      RETURN
+      END
 
        SUBROUTINE MAPCONC
-
        USE GLOBAL
        NCBS_GL = NCBS
        NCBS = 0
@@ -192,18 +181,18 @@ C ** to child partition
          JJJ = YLOC(JCBS_GL(LL))
          IF ( III.GT.0. AND. III .LE. IC) THEN
            IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-             II = ii +1
+             II = II + 1
              NCBS = NCBS + 1
-             ICBS(ii) = III
-             JCBS(ii) = JJJ
-             NTSCRS(ii) = NTSCRS_GL(LL)
-             NCSERS(ii,1) = NCSERS_GL(LL,1)
-             NCSERS(ii,2) = NCSERS_GL(LL,2)
-             NCSERS(ii,3) = NCSERS_GL(LL,3)
-             NCSERS(ii,4) = NCSERS_GL(LL,4)
+             ICBS(II) = III
+             JCBS(II) = JJJ
+             NTSCRS(II) = NTSCRS_GL(LL)
+             NCSERS(II,1) = NCSERS_GL(LL,1)
+             NCSERS(II,2) = NCSERS_GL(LL,2)
+             NCSERS(II,3) = NCSERS_GL(LL,3)
+             NCSERS(II,4) = NCSERS_GL(LL,4)
              DO N=1,NTOX
                M=MSVTOX(N)
-               NCSERS(ii,M)=NCSERS_GL(LL,M)
+               NCSERS(II,M)=NCSERS_GL(LL,M)
              ENDDO
              DO N=1,NSED
                M=MSVSED(N)
@@ -215,7 +204,7 @@ C ** to child partition
              ENDDO
              MMAX = 4 + NTOX
              DO MS = 1,MMAX
-               CBS(ii,1,MS) = CBS_GL(LL,1,MS)
+               CBS(II,1,MS) = CBS_GL(LL,1,MS)
              END DO
              MMIN = MMAX + 1
              MMAX = MMAX+NSED+NSND
@@ -243,18 +232,18 @@ C ** to child partition
         JJJ = YLOC(JCBW_GL(LL))
         IF ( III.GT.0. AND. III .LE. IC) THEN
           IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-            II = ii +1
+            II = II + 1
             NCBW = NCBW + 1
-            ICBW(ii) = III
-            JCBW(ii) = JJJ
-            NTSCRW(ii) = NTSCRW_GL(LL)
-            NCSERW(ii,1) = NCSERW_GL(LL,1)
-            NCSERW(ii,2) = NCSERW_GL(LL,2)
-            NCSERW(ii,3) = NCSERW_GL(LL,3)
-            NCSERW(ii,4) = NCSERW_GL(LL,4)
+            ICBW(II) = III
+            JCBW(II) = JJJ
+            NTSCRW(II) = NTSCRW_GL(LL)
+            NCSERW(II,1) = NCSERW_GL(LL,1)
+            NCSERW(II,2) = NCSERW_GL(LL,2)
+            NCSERW(II,3) = NCSERW_GL(LL,3)
+            NCSERW(II,4) = NCSERW_GL(LL,4)
             DO N=1,NTOX
               M=MSVTOX(N)
-              NCSERW(ii,M)=NCSERW_GL(LL,M)
+              NCSERW(II,M)=NCSERW_GL(LL,M)
             ENDDO
             DO N=1,NSED
               M=MSVSED(N)
@@ -266,7 +255,7 @@ C ** to child partition
             ENDDO
             MMAX = 4 + NTOX
             DO MS = 1,MMAX
-              CBW(ii,1,MS) = CBW_GL(LL,1,MS)
+              CBW(II,1,MS) = CBW_GL(LL,1,MS)
             END DO
             MMIN = MMAX + 1
             MMAX = MMAX+NSED+NSND
@@ -294,18 +283,18 @@ C ** to child partition
         JJJ = YLOC(JCBE_GL(LL))
         IF ( III.GT.0. AND. III .LE. IC) THEN
           IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-            II = ii +1
+            II = II + 1
             NCBE = NCBE + 1
-            ICBE(ii) = III
-            JCBE(ii) = JJJ
-            NTSCRE(ii) = NTSCRE_GL(LL)
-            NCSERE(ii,1) = NCSERE_GL(LL,1)
-            NCSERE(ii,2) = NCSERE_GL(LL,2)
-            NCSERE(ii,3) = NCSERE_GL(LL,3)
-            NCSERE(ii,4) = NCSERE_GL(LL,4)
+            ICBE(II) = III
+            JCBE(II) = JJJ
+            NTSCRE(II) = NTSCRE_GL(LL)
+            NCSERE(II,1) = NCSERE_GL(LL,1)
+            NCSERE(II,2) = NCSERE_GL(LL,2)
+            NCSERE(II,3) = NCSERE_GL(LL,3)
+            NCSERE(II,4) = NCSERE_GL(LL,4)
             DO N=1,NTOX
               M=MSVTOX(N)
-              NCSERE(ii,M)=NCSERE_GL(LL,M)
+              NCSERE(II,M)=NCSERE_GL(LL,M)
             ENDDO
             DO N=1,NSED
               M=MSVSED(N)
@@ -318,7 +307,7 @@ C ** to child partition
 
             MMAX = 4 + NTOX
             DO MS = 1,MMAX
-              CBE(ii,1,MS) = CBE_GL(LL,1,MS)
+              CBE(II,1,MS) = CBE_GL(LL,1,MS)
             END DO
             MMIN = MMAX + 1
             MMAX = MMAX+NSED+NSND
@@ -346,18 +335,18 @@ C ** to child partition
         JJJ = YLOC(JCBN_GL(LL))
         IF ( III.GT.0. AND. III .LE. IC) THEN
           IF ( JJJ.GT.0. AND. JJJ .LE. JC) THEN
-            II = ii +1
+            II = II + 1
             NCBN = NCBN + 1
-            ICBN(ii) = III
-            JCBN(ii) = JJJ
-            NTSCRN(ii) = NTSCRN_GL(LL)
-            NCSERN(ii,1) = NCSERN_GL(LL,1)
-            NCSERN(ii,2) = NCSERN_GL(LL,2)
-            NCSERN(ii,3) = NCSERN_GL(LL,3)
-            NCSERN(ii,4) = NCSERN_GL(LL,4)
+            ICBN(II) = III
+            JCBN(II) = JJJ
+            NTSCRN(II) = NTSCRN_GL(LL)
+            NCSERN(II,1) = NCSERN_GL(LL,1)
+            NCSERN(II,2) = NCSERN_GL(LL,2)
+            NCSERN(II,3) = NCSERN_GL(LL,3)
+            NCSERN(II,4) = NCSERN_GL(LL,4)
             DO N=1,NTOX
               M=MSVTOX(N)
-              NCSERN(ii,M)=NCSERN_GL(LL,M)
+              NCSERN(II,M)=NCSERN_GL(LL,M)
             ENDDO
             DO N=1,NSED
               M=MSVSED(N)
@@ -369,7 +358,7 @@ C ** to child partition
             ENDDO
             MMAX = 4 + NTOX
             DO MS = 1,MMAX
-              CBN(ii,1,MS) = CBN_GL(LL,1,MS)
+              CBN(II,1,MS) = CBN_GL(LL,1,MS)
             END DO
             MMIN = MMAX + 1
             MMAX = MMAX+NSED+NSND
@@ -405,20 +394,20 @@ C ** to child partition
         JJJ = YLOC(JLTMSR_GL(LL))
         IF ( III.GT.2. AND. III .LT. (IC-1)) THEN
           IF ( JJJ.GT.2. AND. JJJ .LT. (JC-1)) THEN
-            II = ii +1
+            II = II + 1
             MLTMSR = MLTMSR + 1
-            ILTMSR(ii) = III
-            JLTMSR(ii) = JJJ
-            NTSSSS(ii) = NTSSSS_GL(LL)
-            MTMSRP(ii) = MTMSRP_GL(LL)
-            MTMSRC(ii) = MTMSRC_GL(LL)
-            MTMSRA(ii) = MTMSRA_GL(LL)
-            MTMSRUE(ii) = MTMSRUE_GL(LL)
-            MTMSRUT(ii) = MTMSRUT_GL(LL)
-            MTMSRU(ii) = MTMSRU_GL(LL)
-            MTMSRQE(ii) = MTMSRQE_GL(LL)
-            MTMSRQ(ii) = MTMSRQ_GL(LL)
-            CLTMSR(ii) = CLTMSR_GL(LL)
+            ILTMSR(II) = III
+            JLTMSR(II) = JJJ
+            NTSSSS(II) = NTSSSS_GL(LL)
+            MTMSRP(II) = MTMSRP_GL(LL)
+            MTMSRC(II) = MTMSRC_GL(LL)
+            MTMSRA(II) = MTMSRA_GL(LL)
+            MTMSRUE(II) = MTMSRUE_GL(LL)
+            MTMSRUT(II) = MTMSRUT_GL(LL)
+            MTMSRU(II) = MTMSRU_GL(LL)
+            MTMSRQE(II) = MTMSRQE_GL(LL)
+            MTMSRQ(II) = MTMSRQ_GL(LL)
+            CLTMSR(II) = CLTMSR_GL(LL)
             MLTM_GL(II) = LL
           END IF
         END IF
@@ -498,15 +487,14 @@ C ** to child partition
       END DO
       CALL MPI_ALLREDUCE(ASSIMPOINTS,ASSIMTOTAL,1,MPI_INTEGER,MPI_SUM,EFDC_COMM,IERR)
 
-
       OPEN(333,File='assimmapping'//ans(partid2)//'.csv',status='unknown')
       DO L =1  , Assimpoints
         I = IBLUE(L)
         J = JBLUE(L)
       WRITE(333,*) I,J,LBLUE(L),XPAR(I),YPAR(J),ASSIMPOINTS,ASSIMTOTAL
       END DO
-      CLOSE(333)
-      
+      CLOSE(333)   
 #endif
+      RETURN
       END SUBROUTINE MAPASSIMPOINTS
 

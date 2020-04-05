@@ -39,7 +39,7 @@
       REAL::LAYRATIO !Used to not consider vegetation in a layer unless it occupies more than 10% of the layer
       REAL::LAYTHRESH !Threshhold for when vegetation is considered to enter a layer
       REAL::BLOCKAGE_RATIO !Ensure flow acceleration below macroalgae
-      LAYTHRESH=0.01 !If less than 1% of a layer is occupied by macroalgae, it is considered absent in this layer
+      LAYTHRESH=0.01!If less than 1% of a layer is occupied by macroalgae, it is considered absent in that layer
       BLOCKAGE_RATIO=1.0 !initialization
       DELT=DT2  
       ISUD=1  
@@ -84,14 +84,10 @@
         OPEN(1,FILE='CBOT.LOG',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')  
       ENDIF  
-!      DO L=2,LA  
-        STBXO(2:LA)=STBX(2:LA)  !initialization
-        STBYO(2:LA)=STBY(2:LA)  
-!      ENDDO  
-!      DO L=1,LC  
-        STBX(1:LC)=0.  
-        STBY(1:LC)=0.  
-!      ENDDO  
+      STBXO(2:LA)=STBX(2:LA)  !initialization
+      STBYO(2:LA)=STBY(2:LA)  
+      STBX(1:LC)=0.  
+      STBY(1:LC)=0.  
 !      DO K=1,KC  
 !        DO L=1,LC  
 !          FXVEG(L,K)=0.  
@@ -161,7 +157,7 @@
       ENDDO  
 !$OMP END PARALLEL
       IF(ISVEG.GE.1)THEN  
-        K=1  !Sigle layer
+        K=1  !Single layer
         DO L=2,LA  
           IF(LMASKDRY(L))THEN  
             M=MVEGL(L)
@@ -318,17 +314,104 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
 ! **  END ROUGH DRAG FORMULATION  
 !  
-      IF(ISVEG.GE.1)THEN  
+      IF(ISVEG.GE.1)THEN
+        RMAC=0.0
+        IF(LOGMAC)THEN
+          DO M=1,MCOUNT
+            L=IJLMAC(M,3)
+            LW=LWEST(L)  
+            LS=LSC(L)  
+            CPVEGU=SCVEG(MVEGL(L))  
+            CPVEGV=SCVEG(MVEGL(L))  !drag coefficient 
+            DO K=1,KC
+!              FRACLAY=FLOAT(K)/FLOAT(KC)  !top of the layer (normalized)
+              FRACLAY=SUM(DZC(1:K)) !top of the layer as a fraction of HP
+              FHLAYC=FRACLAY*HP(L)  !z location of the normalized top of the sigma layer of the cell
+              FHLAYW=FRACLAY*HP(LW) !z location of the normalized top of the sigma layer of the cell to the west
+              FHLAYS=FRACLAY*HP(LS) !z location of the normalized top of the sigma layer of the cell to the south 
+! SCJ: New code to account for partial filling of a layer by vegetation, previously it was binary, if the vegetation penetrated the layer at all, it was assumed to fully penetrate
+! SCJ: Also, I think that there is a bug in that the multiplier was either the water depth, HP(X), or 0.0. Instead, I think it should be the fraction of the layer that the vegetation occupies between 0 and 1.
+! SCJ: To be consistent with JMH, I left the total depth multiplier, HP(L), in place, but multiply by DZC(K) in CALEXP2T
+!              FRACLAYKM1=FLOAT(K-1)/FLOAT(KC) !top of the next layer down (normalized)
+              FRACLAYKM1=SUM(DZC(1:K-1))   !top of the next layers down as a fraction of HP
+              FHLAYCKM1=FRACLAYKM1*HP(L)   !z location of the normalized top of the next sigma layer down of the cell
+              FHLAYWKM1=FRACLAYKM1*HP(LW)  !z location of the normalized top of the next sigma layer down of the cell to the west
+              FHLAYSKM1=FRACLAYKM1*HP(LS)  !z location of the normalized top of the next sigma layer down of the cell to the south
+              IF(ZMAXMAC(L)>FHLAYC)THEN !is the vegetation fully penetrating this layer?
+!set the height equal to the water column depth, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                LAYRATIO=1.0
+                HVGTC=HP(L)
+              ELSEIF(ZMAXMAC(L)>FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
+                LAYRATIO=(ZMAXMAC(L)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1)
+                IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTC=HP(L)*LAYRATIO !account for fractional layer in this cell 
+              ELSE
+                LAYRATIO=0.0
+                HVGTC=0.0 !absent in this layer
+              ENDIF
+              RMAC(L,K)=LAYRATIO
+              IF(ZMAXMAC(LW)>FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
+!set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                HVGTW=HP(LW)
+              ELSEIF(ZMAXMAC(LW)>FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
+                LAYRATIO=(ZMAXMAC(LW)-FHLAYWKM1)/(FHLAYW-FHLAYWKM1)
+                IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTW=HP(LW)*LAYRATIO !account for fractional layer to the west
+              ELSE
+                HVGTW=0.0 !absent in this layer
+              ENDIF
+              IF(ZMAXMAC(LS)>FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
+!set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
+                HVGTS=HP(LS)
+              ELSEIF(ZMAXMAC(LS)>FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
+                LAYRATIO=(ZMAXMAC(LS)-FHLAYSKM1)/(FHLAYS-FHLAYSKM1)
+                IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTS=HP(LS)*LAYRATIO !account for fractional layer to the south
+              ELSE
+                HVGTS=0.0 !absent in this layer
+              ENDIF
+              IF(ZMINMAC(L)>=FHLAYC)THEN !Macroalgae do not necessarily start at the bottom of the model
+                LAYRATIO=0.0
+                HVGTC=0.0
+              ELSEIF(ZMINMAC(L)>FHLAYCKM1)THEN
+                LAYRATIO=(FHLAYC-ZMINMAC(L))/(FHLAYC-FHLAYCKM1)
+                IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTC=HP(L)*LAYRATIO
+              ENDIF
+              RMAC(L,K)=LAYRATIO
+              IF(ZMINMAC(LW)>=FHLAYW)THEN !Macroalgae do not necessarily start at the bottom of the model
+                HVGTW=0.0
+              ELSEIF(ZMINMAC(LW)>FHLAYWKM1)THEN
+                LAYRATIO=(FHLAYW-ZMINMAC(LW))/(FHLAYW-FHLAYWKM1)
+                IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTW=HP(LW)*LAYRATIO
+              ENDIF
+              IF(ZMINMAC(LS)>=FHLAYS)THEN !Macroalgae do not necessarily start at the bottom of the model
+                HVGTS=0.0
+              ELSEIF(ZMINMAC(LS)>FHLAYSKM1)THEN
+                LAYRATIO=(FHLAYS-ZMINMAC(LS))/(FHLAYS-FHLAYSKM1)
+              IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
+                HVGTS=HP(LS)*LAYRATIO
+              ENDIF
+!This augments the internal-mode causing vertical shear drag force according to the vertical blockage ratio
+              BLOCKAGE_RATIO=1.0!+ALPVEG(MVEGL(L))*(ZMAXMAC(L)-ZMINMAC(L))/HP(L)
+              FXVEG(L,K)=MIN(CDMAXU,BLOCKAGE_RATIO*0.25*CPVEGU*(DXP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                          +DXP(LW)*(MACAD(LW)*HVGTW/(MVEGZ(LW)+1.0E-18)) )*DXIU(L))
+              FYVEG(L,K)=MIN(CDMAXV,BLOCKAGE_RATIO*0.25*CPVEGV*(DYP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                          +DYP(LS)*(MACAD(LS)*HVGTS/(MVEGZ(LS)+1.0E-18)) )*DYIV(L))
+            ENDDO
+          ENDDO
+        ENDIF 
         DO K=1,KC  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
               M=MVEGL(L)
-              FXVEG(L,K)=0.  
-              FYVEG(L,K)=0.  
 !  
 ! *** DSLLC BEGIN BLOCK  
 !  
-              IF(M.NE.MVEGOW.AND.M.NE.0.AND.M<=90)THEN ! *** M=0 FOR OPEN WATER  
+              IF(M.NE.MVEGOW.AND.M.NE.0.AND.M<=90.AND.MAXVAL(RMAC(L,1:KC))==0.0)THEN ! *** M=0 FOR OPEN WATER  RMAC determines if there is macroalgae in this I,J cell and if so, skips vegetative resistance
+                FXVEG(L,K)=0.  
+                FYVEG(L,K)=0.  
                 LW=LWEST(L)  
                 LE=LEAST(L)  
                 LS=LSC(L)  
@@ -356,122 +439,19 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
                 CPVEGU=1.0
                 CPVEGV=1.0
                 IF(ISVEGL.EQ.1)THEN
-                  CPVEGU=CPVEGU + 10.E-6/((BPVEG(MW)+BPVEG(M))*UMAGTMP)-0.5 !            CALCULATE R FOR LAMINAR FLOW
+                  CPVEGU=CPVEGU + 10.E-6/((BPVEG(MW)+BPVEG(M))*UMAGTMP)-0.5 !          CALCULATE R FOR LAMINAR FLOW
 !                  CPVEGU=CPVEGU-0.5  
                   RVEGUM=0.  
-                  CPVEGV=CPVEGV + 10.E-6/((BPVEG(MS)+BPVEG(M))*VMAGTMP)-0.5!            CALCULATE R FOR LAMINAR FLOW
+                  CPVEGV=CPVEGV + 10.E-6/((BPVEG(MS)+BPVEG(M))*VMAGTMP)-0.5!           CALCULATE R FOR LAMINAR FLOW
 !                  CPVEGV=CPVEGV-0.5  
                   RVEGVM=0.  
                 ENDIF
                 CPVEGU=SCVEG(M)*CPVEGU  
                 CPVEGV=SCVEG(M)*CPVEGV  !shape-factor times 1 or laminar-flow drag coefficient 
-                FRACLAY=FLOAT(K)/FLOAT(KC)  !top of the layer (normalized)
-                FHLAYC=FRACLAY*HP(L)  !z location of the normalized top of the sigma layer of the cell
-                FHLAYW=FRACLAY*HP(LW) !z location of the normalized top of the sigma layer of the cell to the west
-                FHLAYS=FRACLAY*HP(LS) !z location of the normalized top of the sigma layer of the cell to the south 
-!                HVGTC=HP(L);HVGTW=HP(L-1);HVGTS=HP(LS) !SCJ old code
-!                IF(HPVEG(M).LT.FHLAYC)HVGTC=0.0;IF(HPVEG(MW).LT.FHLAYW)HVGTW=0.0;IF(HPVEG(MS).LT.FHLAYS) HVGTS=0.0  !SCJ old code
-! SCJ: New code to account for partial filling of a layer by vegetation, previously it was binary, if the vegetation penetrated the layer at all, it was assumed to fully penetrate
-! SCJ: Also, I think that there is a bug in that the multiplier was either the water depth, HP(X), or 0.0. Instead, I think it should be the fraction of the layer that the vegetation occupies between 0 and 1.
-! SCJ: To be consistent with JMH, I left the total depth multiplier, HP(L), in place, but multiply by DZC(K) in CALEXP2T
-                FRACLAYKM1=FLOAT(K-1)/FLOAT(KC) !top of the next layer down (normalized)
-                FHLAYCKM1=FRACLAYKM1*HP(L)   !z location of the normalized top of the next sigma layer down of the cell
-                FHLAYWKM1=FRACLAYKM1*HP(LW)  !z location of the normalized top of the next sigma layer down of the cell to the west
-                FHLAYSKM1=FRACLAYKM1*HP(LS)  !z location of the normalized top of the next sigma layer down of the cell to the south
-                IF(GAMVEG(M)==0.0)THEN !Flag for regular vegetation
-                  IF(HPVEG(M)>FHLAYC)THEN !is the vegetation fully penetrating this layer?
-!set the height equal to the water column depth, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTC=HP(L)
-                  ELSEIF(HPVEG(M)>FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
-                    LAYRATIO=(HPVEG(M)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTC=HP(L)*LAYRATIO !account for fractional layer in this cell
-                  ELSE
-                    HVGTC=0.0 !absent in this layer
-                  ENDIF
-                  IF(HPVEG(MW)>FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
-!set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTW=HP(LW)
-                  ELSEIF(HPVEG(MW)>FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
-                    LAYRATIO=(HPVEG(MW)-FHLAYWKM1)/(FHLAYW-FHLAYWKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTW=HP(LW)*LAYRATIO !account for fractional layer to the west
-                  ELSE
-                    HVGTW=0.0 !absent in this layer
-                  ENDIF
-                  IF(HPVEG(MS)>FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
-!set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTS=HP(LS)
-                  ELSEIF(HPVEG(MS)>FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
-                    LAYRATIO=(HPVEG(MS)-FHLAYSKM1)/(FHLAYS-FHLAYSKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTS=HP(LS)*LAYRATIO !account for fractional layer to the south
-                  ELSE
-                    HVGTS=0.0 !absent in this layer
-                  ENDIF
-                  FXVEG(L,K)=0.25*CPVEGU*(DXP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))
-     &                                   +DXP(LW)*(BDLPSQ(MW)*HVGTW/PVEGZ(MW)) )*DXIU(L) 
-                  FYVEG(L,K)=0.25*CPVEGV*(DYP(L )*(BDLPSQ(M )*HVGTC/PVEGZ(M ))
-     &                                   +DYP(LS)*(BDLPSQ(MS)*HVGTS/PVEGZ(MS)) )*DYIV(L) 
-                ELSE !GAMVEG(M)/=0.0 for macroalgae
-                  IF(ZMAXMAC(L)>FHLAYC)THEN !is the vegetation fully penetrating this layer?
-!set the height equal to the water column depth, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTC=HP(L)
-                  ELSEIF(ZMAXMAC(L)>FHLAYCKM1)THEN !is the vegetation partially penetrating this layer of this cell?
-                    LAYRATIO=(ZMAXMAC(L)-FHLAYCKM1)/(FHLAYC-FHLAYCKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTC=HP(L)*LAYRATIO !account for fractional layer in this cell
-                  ELSE
-                    HVGTC=0.0 !absent in this layer
-                  ENDIF
-                  IF(ZMAXMAC(LW)>FHLAYW)THEN !is the vegetation fully penetrating this layer to the west?
-!set the height equal to the water column depth to the west, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTW=HP(LW)
-                  ELSEIF(ZMAXMAC(LW)>FHLAYWKM1)THEN !is the vegetation partially penetrating this layer of the cell to the west?
-                    LAYRATIO=(ZMAXMAC(LW)-FHLAYWKM1)/(FHLAYW-FHLAYWKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTW=HP(LW)*LAYRATIO !account for fractional layer to the west
-                  ELSE
-                    HVGTW=0.0 !absent in this layer
-                  ENDIF
-                  IF(ZMAXMAC(LS)>FHLAYS)THEN !is the vegetation fully penetrating the underlying layer to the south?
-!set the height equal to the water column depth to the south, this will be adjusted later by multiplying by DZC(K) in CALEXP2T
-                    HVGTS=HP(LS)
-                  ELSEIF(ZMAXMAC(LS)>FHLAYSKM1)THEN !is the vegetation partially penetrating this layer of the cell to the south?
-                    LAYRATIO=(ZMAXMAC(LS)-FHLAYSKM1)/(FHLAYS-FHLAYSKM1)
-                    IF(LAYRATIO<LAYTHRESH)LAYRATIO=0.0
-                    HVGTS=HP(LS)*LAYRATIO !account for fractional layer to the south
-                  ELSE
-                    HVGTS=0.0 !absent in this layer
-                  ENDIF
-                  IF(ZMINMAC(L)>=FHLAYC)THEN !Macroalgae do not necessarily start at the bottom of the model
-                    HVGTC=0.0
-                  ELSEIF(ZMINMAC(L)>FHLAYCKM1)THEN
-                    LAYRATIO=(FHLAYC-ZMINMAC(L))/(FHLAYC-FHLAYCKM1)
-                    IF(LAYRATIO<0.1)LAYRATIO=0.0
-                    HVGTC=HP(L)*LAYRATIO
-                  ENDIF
-                  IF(ZMINMAC(LW)>=FHLAYW)THEN !Macroalgae do not necessarily start at the bottom of the model
-                    HVGTW=0.0
-                  ELSEIF(ZMINMAC(LW)>FHLAYWKM1)THEN
-                    LAYRATIO=(FHLAYW-ZMINMAC(LW))/(FHLAYW-FHLAYWKM1)
-                    IF(LAYRATIO<0.1)LAYRATIO=0.0
-                    HVGTW=HP(LW)*LAYRATIO
-                  ENDIF
-                  IF(ZMINMAC(LS)>=FHLAYS)THEN !Macroalgae do not necessarily start at the bottom of the model
-                    HVGTS=0.0
-                  ELSEIF(ZMINMAC(LS)>FHLAYSKM1)THEN
-                    LAYRATIO=(FHLAYS-ZMINMAC(LS))/(FHLAYS-FHLAYSKM1)
-                    IF(LAYRATIO<0.1)LAYRATIO=0.0
-                    HVGTS=HP(LS)*LAYRATIO
-                  ENDIF
-!This augments the internal-mode causing vertical shear drag force according to the vertical blockage ratio
-                  BLOCKAGE_RATIO=1.0+ALPVEG(M)*(ZMAXMAC(L)-ZMINMAC(L))/HP(L)
-                  FXVEG(L,K)=BLOCKAGE_RATIO*0.25*CPVEGU*(DXP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
-     &                                                  +DXP(LW)*(MACAD(LW)*HVGTW/(MVEGZ(LW)+1.0E-18)) )*DXIU(L) 
-                  FYVEG(L,K)=BLOCKAGE_RATIO*0.25*CPVEGV*(DYP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
-     &                                                  +DYP(LS)*(MACAD(LS)*HVGTS/(MVEGZ(LS)+1.0E-18)) )*DYIV(L) 
-                ENDIF
+                FXVEG(L,K)=0.25*CPVEGU*(DXP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                +DXP(LW)*(MACAD(LW)*HVGTW/(MVEGZ(LW)+1.0E-18)) )*DXIU(L) 
+                FYVEG(L,K)=0.25*CPVEGV*(DYP(L )*(MACAD(L )*HVGTC/(MVEGZ(L )+1.0E-18))
+     &                                                +DYP(LS)*(MACAD(LS)*HVGTS/(MVEGZ(LS)+1.0E-18)) )*DYIV(L) 
                 FXVEG(L,K)=MIN(FXVEG(L,K),CDMAXU)  
                 FYVEG(L,K)=MIN(FYVEG(L,K),CDMAXU)
               ENDIF  
@@ -564,10 +544,8 @@ CHH           CPVEGV=0.5 ! CHANGED DEFINITION
 !  
  1947 CONTINUE  
       IF(JSTBXY.EQ.0)THEN  
-!        DO L=2,LA  
-          STBXO(2:LA)=STBX(2:LA)  
-          STBYO(2:LA)=STBY(2:LA)  
-!        ENDDO  
+        STBXO(:)=STBX(:)
+        STBYO(:)=STBY(:)
         N=0  
         JSTBXY=1  
         IF(ISDZBR.GE.1)THEN  

@@ -479,10 +479,12 @@ C
           ENDIF  
         ENDDO  
       ENDDO  
-        
+      VSW_BOUNDARY = 0
+      SAL_CELL = 0
       ! *** WEST OPEN BC
-      DO K=1,KC  
         DO LL=1,NCBW  
+              DO K=1,KC
+
           NSID=NCSERW(LL,M)  
           L=LCBW(LL)
           LE=LEAST(L)
@@ -506,6 +508,8 @@ C
             IF(M.EQ.1.AND.CON(L,K).GT.CBWTMP) CON(L,K)=CBWTMP  
             CLOW(LL,K,M)=CON(L,K)  
             NLOW(LL,K,M)=N  
+            SAL_CELL = SAL_CELL + (CTMP*(-1.)/KC)
+
           ELSE  
             ! *** FLOWING INTO DOMAIN
             IF(ISUD.EQ.1) CON1(L,K)=CON(L,K)  
@@ -516,10 +520,14 @@ C
               CON(L,K)=CBT  
             ELSE  
               CON(L,K)=CLOW(LL,K,M)  
-     &            +(CBT-CLOW(LL,K,M))*FLOAT(NMNLO)/FLOAT(NTSCRW(LL))  
+     &            +(CBT-CLOW(LL,K,M))*FLOAT(NMNLO)/FLOAT(NTSCRW(LL))
+
             ENDIF  
+            SAL_CELL = SAL_CELL + CON(L,K)/KC
           ENDIF  
         ENDDO  
+        VSW_BOUNDARY= VSW_BOUNDARY+((.5*( HU(L) + HV(L)))*DXYP(L)*(1 - (SAL_CELL/35)))
+        SAL_CELL = 0
       ENDDO
       
       ! *** EAST OPEN BC

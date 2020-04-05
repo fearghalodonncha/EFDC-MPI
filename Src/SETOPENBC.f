@@ -15,12 +15,12 @@ C
       IF(ISDYNSTP.EQ.0)THEN  
         TN=DT*FLOAT(N)+TCON*TBEGIN  
       ELSE  
-        TN=TIMESEC  
+        TN=TIMESEC  ! Time in seconds relative to beginning of year (simulation time + tbegin)
       ENDIF  
       DO M=1,MTIDE  
-        TM=MOD(TN,TCP(M))  
-        TM=PI2*TM/TCP(M)  
-        CCCOS(M)=COS(TM)  
+        TM=MOD(TN,TCP(M))   ! TCP is tidal period; remainder of division of TN by TCP(M)
+        TM=PI2*TM/TCP(M)    ! PI2 = 2*PI(); 2*PI*(tn/Tp)
+        CCCOS(M)=COS(TM)
         SSSIN(M)=SIN(TM)  
       ENDDO  
 

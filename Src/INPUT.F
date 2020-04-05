@@ -60,7 +60,7 @@ C
       ADDADS=0.
 C 
       G=9.81  
-      PI=3.1415926535898  
+      PI=ACOS(-1.0) !3.1415926535898  
       PI2=2.*PI  
     2 FORMAT(A80)  
 C  
@@ -392,7 +392,7 @@ C
       ENDIF  
 C  
       IF(NPBS.GT.0)THEN  
-C18*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDTIONS 
+C18*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDITIONS 
 C     ON SOUTH OPEN BOUNDARIES
         NCARD='18'  
         CALL SEEK('C18')  
@@ -404,9 +404,9 @@ C     ON SOUTH OPEN BOUNDARIES
             IF(ISO.GT.0) GOTO 100  
             DO M=1,MTIDE  
 	        IF(NPFORS.EQ.0) EXIT
-              RAD=PI2*PFPH(NPFORS,M)/TCP(M)  ! 2*pi*Tidal_Phase/Tidal_Period (or multiplication by Tidal_Frequency, 1/P)
-              AMP=G*PFAM(NPFORS,M)           ! gravity * Tidal_Amplitude
-              PCBS_GL(L,M)=AMP*COS(RAD)      !
+              RAD=PI2*PFPH(NPFORS,M)/TCP(M)  
+              AMP=G*PFAM(NPFORS,M)  
+              PCBS_GL(L,M)=AMP*COS(RAD)  
               PSBS_GL(L,M)=AMP*SIN(RAD)  
             ENDDO  
           ENDDO  
@@ -434,7 +434,7 @@ C     ON SOUTH OPEN BOUNDARIES
       ENDIF  
 C  
       IF(NPBW.GT.0)THEN  
-C19*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDTIONS
+C19*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDITIONS
 C     ON WEST OPEN BOUNDARIES
         NCARD='19'  
         CALL SEEK('C19')  
@@ -474,7 +474,7 @@ C     ON WEST OPEN BOUNDARIES
       ENDIF  
 C  
       IF(NPBE.GT.0)THEN  
-C20*  READ PERIODIC FORCING (TIDAL)ELEVATION BOUNDARY CONDTIONS
+C20*  READ PERIODIC FORCING (TIDAL)ELEVATION BOUNDARY CONDITIONS
 C     ON EAST OPEN BOUNDARIES
         NCARD='20'  
         CALL SEEK('C20')  
@@ -514,7 +514,7 @@ C     ON EAST OPEN BOUNDARIES
       ENDIF  
 C  
       IF(NPBN.GT.0)THEN  
-C21*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDTIONS
+C21*  READ PERIODIC FORCING (TIDAL) ELEVATION BOUNDARY CONDITIONS
 C     ON NORTH OPEN BOUNDARIES
         NCARD='21'  
         CALL SEEK('C21')  
@@ -602,19 +602,19 @@ CGR  4/7/10  CREATED SEPERATE ASSIMILATION FACTORS FOR U AND V COMPONENTS, TSUUD
           WRITE(7,1002)NCARD
 	    DO N=1,NLUVDA                                            
             WRITE(7,*)ICUVDA_GL(N),JCUVDA_GL(N),NUVSERA_GL(N),
-     &        TSUUDA(N),TSVVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+     &        TSUUDA_GL(N),TSVVDA_GL(N),NORMDIR_GL(N),FSUVDA_GL(N),IWUVDA_GL(N),
+     &        IRVUDA_GL(N),RRUVDA_GL(N)
           ENDDO
           IF(ISO.GT.0) GOTO 100
-	  ENDIF
-	  IF(NLUVDA.GT.0.AND.NUVSER.EQ.0)THEN
-          ALLOCATE(TSUVDA(1))
+	  ELSEIF(NLUVDA.GT.0.AND.NUVSER.EQ.0)THEN
+          ALLOCATE(TSUVDA(1),TSUVDA_GL(1))
 	    N=1                                            
           READ(1,*,IOSTAT=ISO)IDUM,JDUM,NUVSERA_GL(N),
-     &        TSUVDA(N),FSUVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+     &        TSUVDA_GL(N),FSUVDA_GL(N),IWUVDA_GL(N),IRVUDA_GL(N),RRUVDA_GL(N)
           NUVSERA(N)=NUVSERA_GL(N)
           WRITE(7,1002)NCARD
           WRITE(7,*)IDUM,JDUM,NUVSERA_GL(N),
-     &        TSUVDA(N),FSUVDA(N),IWUVDA(N),IRVUDA(N),RRUVDA(N)
+     &        TSUVDA_GL(N),FSUVDA_GL(N),IWUVDA_GL(N),IRVUDA_GL(N),RRUVDA_GL(N)
           IF(ISO.GT.0) GOTO 100
 	  ENDIF
       ENDIF
@@ -1620,13 +1620,14 @@ C      SERIES IDENTIFIERS
         WRITE(7,1002)NCARD
         DO L=1,NLCDA
          READ(1,*,IOSTAT=ISO) ITPCDA(L),ICDA(L),JCDA(L),
-     &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7) !Makai added variables KCSERDA,KCSERPOW here
+     &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7) !Makai added variables KCSERDA,KCSERPOW K=1->salinity, K=2->temperature, K=3->dye, K=4->shellfish, K=5->toxics, K=6->cohesive sediment, K=7->noncohesive sediment
          KCSERDA=0
          KCSERPOW=0
          WRITE(7,*)  ITPCDA(L),ICDA(L),JCDA(L),
      &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7)
          IF(ISO.GT.0) GOTO 100
         ENDDO
+        PRINT*,'Needs to be updated for MPI',PAUSE
       ENDIF
 C
 C67*  READ NEUTRALLY BUOYANT PARTICLE DRIFTER DATA
@@ -1744,6 +1745,12 @@ C73*  CONTROLS FOR HORIZONTAL PLANE VELOCITY PLOTTING
       IVPHXY=1
       IPPHXY=1
       ISPHXY(:) = 1
+      !IF(LCM==2753)THEN !Just to get a model to spit out EE SCJ SCJ Delete otherwise
+      !    IVPHXY=3
+      !    IPPHXY=3
+      !    ISPHKY=3
+      !ENDIF
+      
 #endif
 C  
 C74*  CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING 
@@ -2340,7 +2347,7 @@ C
             BELV1(L)=BELADJ + BELCVRT*BELVIJ  
             ZBR(L)=ZBRADJ + ZBRCVRT*ZBRIJ  
             MVEGL(L)=MVEGIJT
-		  IF(MVEGIJT>90)THEN !SCJ IF STATEMENT
+		  IF(MVEGIJT>90)THEN !MHK IF STATEMENT
               LMHK=.TRUE.
               ITURB=ITURB+1
 		    IJLTURB(ITURB,1)=I
@@ -3766,9 +3773,16 @@ C **  FILE UVSER.INP
 C
 C----------------------------------------------------------------------C
 C
-      INQUIRE(FILE='UVSER.INP', EXIST=EXIST)
-      IF(NUVSER.GE.1.AND.EXIST)THEN
-        OPEN(1,FILE='UVSER.INP',STATUS='UNKNOWN')
+      IF(NUVSER.GE.1)THEN
+        INQUIRE(FILE='UVSER.INP', EXIST=EXIST)
+        IF(EXIST)THEN
+          OPEN(1,FILE='UVSER.INP',STATUS='UNKNOWN')
+        ELSE
+          PRINT*,"NUVSER>=1, BUT NO NUVSER.INP FILE"
+          PAUSE
+          STOP
+        ENDIF
+      
 C
 C **  SKIP OVER TITLE AND AND HEADER LINES
 C 
@@ -3786,7 +3800,6 @@ C
           IF(ITYPE.EQ.-1)THEN
             READ(1,*,IOSTAT=ISO) (WKQ(K),K=1,KC)
             IF(ISO.GT.0) GOTO 860
-            IF(MUVSER(NS)>1000)print*,'TUVSER,USER,VSER under allocated';pause
             DO M=1,MUVSER(NS)
               READ(1,*,IOSTAT=ISO)TUVSER(M,NS),USERTMP,VSERTMP
               IF(ISO.GT.0) GOTO 860
@@ -3796,8 +3809,7 @@ C
 	        USER(M,1:KC,NS)=USERTMP*WKQ(1:KC)
 		    VSER(M,1:KC,NS)=VSERTMP*WKQ(1:KC)
             ENDDO
-          ENDIF
-          IF(ITYPE.EQ.0)THEN
+          ELSEIF(ITYPE.EQ.0)THEN
             DO M=1,MUVSER(NS)
               READ(1,*,IOSTAT=ISO)TUVSER(M,NS),(USER(M,K,NS),K=1,KC),
      &                                      (VSER(M,K,NS),K=1,KC)
@@ -3806,8 +3818,7 @@ C
               USER(M,1:KC,NS)=RMULADJ*(USER(M,1:KC,NS)+ADDADJ)
               VSER(M,1:KC,NS)=RMULADJ*(VSER(M,1:KC,NS)+ADDADJ)
             ENDDO
-          ENDIF
-          IF(ITYPE.GE.1)THEN
+          ELSEIF(ITYPE.GE.1)THEN
             DO M=1,MUVSER(NS)
               READ(1,*,IOSTAT=ISO)TUVSER(M,NS),USERTMP,VSERTMP
               IF(ISO.GT.0) GOTO 860
@@ -4794,7 +4805,8 @@ C
         DO NS=1,12  
           READ(1,*)  
         ENDDO  
-        READ(1,*)MVEGTYP,MVEGOW,NVEGSER,UVEGSCL  
+        READ(1,*)MVEGTYP,MVEGOW,NVEGSER,UVEGSCL
+        MCOUNT=0 !Reset macroalgae count
         DO M=1,MVEGTYP  
          READ(1,*,ERR=3120)IDUM,NVEGSERV(M),RDLPSQ(M),VEGDIAMTMP,VEGHPTMP,  
      &        ALPVEG(M),BETVEG(M),GAMVEG(M),SCVEG(M)
@@ -4814,9 +4826,20 @@ C
               MACDIAM(L)=VEGDIAMTMP !Kelp diameter changes with growth
               ZMAXMAC(L)=VEGHPTMP !Kelp length changes with growth
               ZMINMAC(L)=GAMVEG(M) !Bottom of kelp farm doesn't change, but L dimension kept for consistency (unused GAMVEG variable used for this)
-              BDLTMP=MACDIAM(L)*MACDIAM(L)*RDLPSQ(M)!Normalized area of MACROAGAE in this cell (-)
+              IF(ZMAXMAC(L)<=ZMINMAC(L))THEN
+                  PRINT*,'MacMax (HPVEG)<MacMin (GAMVEG) in VEGE.INP',L
+                  PAUSE
+              ENDIF
+              BDLTMP=MACDIAM(L)*MACDIAM(L)*RDLPSQ(M)!Normalized area of MACROALGAE in this cell (-)
+              IF(ALPVEG(M)*BDLTMP>1.0)THEN
+                  PRINT*,'Macroalgae (including blocking factor) area exceeds cell area. Check VEGE.INP: RDLPSQ, BPVEG, ALPVEG ',PAUSE
+              ENDIF
               MVEGZ(L)=MAX(0.0,1.0-ALPVEG(M)*BDLTMP)!Blockage ratio in Z (-)
               MACAD(L)=RDLPSQ(M)*MACDIAM(L)        !a*d (m) used to calculate drag, see papers written on this James and O'Donncha EFM 2019 BDLPSQ
+              MCOUNT=MCOUNT+1
+              IJLMAC(MCOUNT,1)=IL(L) !Not used
+              IJLMAC(MCOUNT,2)=JL(L) !Not used
+              IJLMAC(MCOUNT,3)=L
             ENDDO
           ENDIF
         ENDDO  
@@ -4826,77 +4849,77 @@ C
             MVEGTLAST(M)=1  
           ENDDO  
         ENDIF
+      ENDIF
 	!!!BEGIN SCJ BLOCK
-        IF(LMHK)THEN !MHK devices
-          PRINT *,'READING MHK.INP'
-          OPEN(1,FILE='MHK.INP',STATUS='UNKNOWN')  
-          DO NS=1,29  
-            READ(1,*)  
-          ENDDO  
-          READ(1,*,ERR=3122)MHKTYP,NFLAGPWR,UPSTREAM,OUTPUTFLAG
-          IF(NFLAGPWR==1)THEN
-            DO M=1,MHKTYP  
-              READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
+      IF(LMHK)THEN !MHK devices
+        PRINT *,'READING MHK.INP'
+        OPEN(1,FILE='MHK.INP',STATUS='UNKNOWN')  
+        DO NS=1,29  
+          READ(1,*)  
+        ENDDO  
+        READ(1,*,ERR=3122)MHKTYP,NFLAGPWR,UPSTREAM,OUTPUTFLAG
+        IF(NFLAGPWR==1)THEN
+          DO M=1,MHKTYP  
+            READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
      &BOFFMHK(M),BOFFSUP(M),TOFFMHK(M),TOFFSUP(M),
      &CTMHK(M),CDSUP(M),VMINCUT(M),VMAXCUT(M),DENMHK(M)
-              CTMHK(M)=CTMHK(M)*DENMHK(M)
-		    CDSUP(M)=CDSUP(M)*DENMHK(M)
-		    DO L=2,LA
-		      IF(M+90==MVEGL(L))THEN      ! Can have number of different MHK types (dimensions etc.) here we have 5 MHK devices but all are equivalent, so only need to scan across cells containing MHK devices with the same MHK parameters
-		        ZMINMHK(M,L)=BELV(L)+BOFFMHK(M)
-		        ZMAXMHK(M,L)=BELV(L)+TOFFMHK(M)
-		        ZMINSUP(M,L)=BELV(L)+BOFFSUP(M)
-		        ZMAXSUP(M,L)=BELV(L)+TOFFSUP(M)
-	            DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
-                  IF(DIAMMHK<0.0)THEN
-		          PRINT*,'MHK ZMIN > ZMAX'
-	              STOP
-	            ENDIF
+            CTMHK(M)=CTMHK(M)*DENMHK(M)
+            CDSUP(M)=CDSUP(M)*DENMHK(M)
+		  DO L=2,LA
+		    IF(M+90==MVEGL(L))THEN      ! Can have number of different MHK types (dimensions etc.) here we have 5 MHK devices but all are equivalent, so only need to scan across cells containing MHK devices with the same MHK parameters
+		      ZMINMHK(M,L)=BELV(L)+BOFFMHK(M)
+		      ZMAXMHK(M,L)=BELV(L)+TOFFMHK(M)
+		      ZMINSUP(M,L)=BELV(L)+BOFFSUP(M)
+		      ZMAXSUP(M,L)=BELV(L)+TOFFSUP(M)
+	          DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
+                IF(DIAMMHK<0.0)THEN
+		        PRINT*,'MHK ZMIN > ZMAX'
+	            STOP
 	          ENDIF
-		    ENDDO
-            ENDDO
-            READ(1,*) !skip the header line
-            READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
-          ELSEIF(NFLAGPWR==2)THEN
-            PRINT*,'Not available yet'
-          ELSEIF(NFLAGPWR==3)THEN
-            DO M=1,MHKTYP
-              READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
+	        ENDIF
+		  ENDDO
+          ENDDO
+          READ(1,*) !skip the header line
+          READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
+        ELSEIF(NFLAGPWR==2)THEN
+          PRINT*,'Not available yet'
+        ELSEIF(NFLAGPWR==3)THEN
+          DO M=1,MHKTYP
+            READ(1,*,ERR=3122)WIDTHMHK(M),WIDTHSUP(M),
      &BOFFMHK(M),HEIGHTMHK(M),HEIGHTSUP(M),REFELEV(M),
      &CTMHK(M),CDSUP(M),VMINCUT(M),VMAXCUT(M),DENMHK(M)
-		    CTMHK(M)=CTMHK(M)*DENMHK(M)
-		    CDSUP(M)=CDSUP(M)*DENMHK(M)
-		    DO L=2,LA
-		      IF(M+90==MVEGL(L))THEN 
-		        ZMINMHK(M,L)=BELV(L)+REFELEV(M)
-		        ZMAXMHK(M,L)=BELV(L)+REFELEV(M)+HEIGHTMHK(M)
-		        ZMINSUP(M,L)=BELV(L)
-		        ZMAXSUP(M,L)=BELV(L)+REFELEV(M)+HEIGHTSUP(M)
-	            DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
-                  IF(DIAMMHK<0.0)THEN
-		          PRINT*,'MHK ZMIN > ZMAX'
-	              STOP
-	            ENDIF
+		  CTMHK(M)=CTMHK(M)*DENMHK(M)
+		  CDSUP(M)=CDSUP(M)*DENMHK(M)
+		  DO L=2,LA
+		    IF(M+90==MVEGL(L))THEN 
+		      ZMINMHK(M,L)=BELV(L)+REFELEV(M)
+		      ZMAXMHK(M,L)=BELV(L)+REFELEV(M)+HEIGHTMHK(M)
+		      ZMINSUP(M,L)=BELV(L)
+		      ZMAXSUP(M,L)=BELV(L)+REFELEV(M)+HEIGHTSUP(M)
+	          DIAMMHK=ZMAXMHK(M,L)-ZMINMHK(M,L)
+                IF(DIAMMHK<0.0)THEN
+		        PRINT*,'MHK ZMIN > ZMAX'
+	            STOP
 	          ENDIF
-		    ENDDO
-              READ(1,*) !skip the header line
-              READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
-            ENDDO
-          ENDIF
-          CLOSE(1)    
-          DO L=2,LA
-	      IF(MVEGL(L)>90)THEN
-		    IF((DIAMMHK>DXP(L).OR.DIAMMHK>DYP(L))
-     &.AND.DENMHK(MVEGL(L)-90)>1.0)THEN
-	          PRINT*,'MHK DIAMETER EXCEEDS CELL SIZE'
-	          PRINT*,'AND DENSITY >= 1'
-	          STOP
 	        ENDIF
-	      ENDIF
-          ENDDO 
+		  ENDDO
+            READ(1,*) !skip the header line
+            READ(1,*)BETAMHK_D,BETAMHK_P,CE4MHK,PB_COEF
+          ENDDO
         ENDIF
+        CLOSE(1)    
+        DO L=2,LA
+	    IF(MVEGL(L)>90)THEN
+	      IF((DIAMMHK>DXP(L).OR.DIAMMHK>DYP(L))
+     &.AND.DENMHK(MVEGL(L)-90)>1.0)THEN
+	        PRINT*,'MHK DIAMETER EXCEEDS CELL SIZE'
+	        PRINT*,'AND DENSITY >= 1'
+	        STOP
+	      ENDIF
+	    ENDIF
+        ENDDO 
+      ENDIF
 	!!!END SCJ BLOCK
-      ENDIF  
       GOTO 3124  
  3120 WRITE(6,3121)  
  3121 FORMAT('  READ ERROR FOR FILE VEGE.INP ')  
@@ -5019,7 +5042,6 @@ C
           READ(100, *)  ! Skip 2 lines
           READ(100, *)
           READ(100,*) STRING_DESCR, IBEG_DA    !   \
-!          write(*,*)  STRING_DESCR, IBEG_DA
           READ(100,*) STRING_DESCR, IEND_DA    !    \ SPATIAL EXTENTS OF
           READ(100,*) STRING_DESCR, JBEG_DA    !    / THE DA ROUTINE
           READ(100,*) STRING_DESCR, JEND_DA    !   /  (RECTANGULAR GRID)
@@ -5089,7 +5111,7 @@ C
       STOP  
   850 WRITE(6,851)  
       WRITE(8,851)  
-  851 FORMAT('  READ ERROR FOR FILE PSER.INP ')  
+  851 FORMAT('  READ ERROR FOR FILE PSER.INP OR UVSER.INP ')  
       STOP  
   854 WRITE(6,855)  
       WRITE(8,855)  
@@ -5263,7 +5285,7 @@ C
         END IF
       END IF
       IF (ISPPH > 0) NPVPH = MAX(NPVPH,NPPPH)
-      IF (NPSPH_MAX > 0) THEN ! (i.e. write of solute transport is active
+      IF (NPSPH_MAX > 0) THEN ! (i.e. write if solute transport is active)
         IF (NPVPH /= NPSPH_MAX) THEN
           IF (PARTID == MASTER_TASK ) THEN
             PRINT *, ' USER DEFINED WRITE INTERVAL FORTRANSPORTED VARIABLES AND VEL/EL NOT EQUAL '
@@ -5276,6 +5298,6 @@ C
         PRINT *, ' HORIZONTAL MAPS OF USER DEFINED VARIABLES (VEL, ELEV, TRANSPORT)'
         PRINT *, ' WILL BE WRITTEN', NPVPH, '  TIMES PER REFERENCE PERIOD'
       END IF
+      RETURN
       END SUBROUTINE CHECK_OUTPUT_FREQUENCY
-
 
