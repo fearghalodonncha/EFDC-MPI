@@ -6,7 +6,7 @@ C  OPTIMIZED AND MODIFIED BY J. M. HAMRICK
 C CHANGE RECORD  
 C  
       USE GLOBAL  
-      CHARACTER*3 CWQHDR(NWQVM)  
+      CHARACTER*3 CWQHDR(NWQVM)
 C PMC      CHARACTER*11  HHMMSS  
       DATA IWQTICI,IWQTAGR,IWQTSTL,IWQTSUN,IWQTBEN,IWQTPSL,IWQTNPL/7*0/  
       DATA ISMTICI/0/  
@@ -35,9 +35,11 @@ C
         ENDDO  
       ENDDO  
       ITNWQ = 0  
-      RKCWQ = 1.0/REAL(KC)  
+ !     RKCWQ = 1.0/REAL(KC)  
       DO K=1,KC  
-        WQHT(K)=REAL(KC-K)*RKCWQ  
+       ! WQHT(K)=REAL(KC-K)*RKCWQ  
+        WQHT(K)=1.0-SUM(DZC(1:K)) !SCJ corrected for unequal sigma layer thicknesses
+        IF(WQHT(K)<0.0)WQHT(K)=0.0
       ENDDO  
 C  
 C      WQTSNAME(1)  = 'CHL'  
@@ -116,10 +118,7 @@ C            WQDSQ(L,K)=0.0
         ENDDO  
       ENDDO  
       CALL RWQC1  
-C  
-C      CALL RWQC2  
-C      CALL RWQMAP  
-C  
+ 
       OPEN(1,FILE='WQWCTS.OUT',STATUS='UNKNOWN')  
       CLOSE(1,STATUS='DELETE')  
       OPEN(1,FILE='WQWCTS.OUT',STATUS='UNKNOWN')  
@@ -176,7 +175,7 @@ C
       ENDIF  
 
       ! *** READ WQ TIMESERIES
-      IF(IWQPSL/=0)CALL RWQCSR !SCJ skip reading RWQCSR if there are only constant point source loads
+      IF(IWQPSL>=2)CALL RWQCSR !SCJ skip reading RWQCSR if there are only constant point source loads defined on C48
 C  
   100 FORMAT('  TIME = ',A11,' HH.MM.SS.HH')  
       RETURN  

@@ -162,7 +162,8 @@ C
           END IF  
         ENDDO  
       ENDDO  
-      IF(KC.GT.1)THEN  
+      IF(KC.GT.1)THEN
+       KUPW=0
         DO K=1,KS  
           DO L=2,LA  
             IF(LMASKDRY(L))THEN  
@@ -958,8 +959,7 @@ C
             DO LL=1,NLCDA
               L=LIJ(IDC(LL),JDC(LL))
               NS=CDAWTNS(LL)
-              SAL(L,K)=CDAWT(LL)*CSERT(K,NS,1)*TCSERKC(K) 
-     &  +(1.-CDAWT(LL)*TCSERKC(K))*SAL(L,K)
+              SAL(L,K)=CDAWT(LL)*CSERT(K,NS,1)*TCSERKC(K)+(1.0-CDAWT(LL)*TCSERKC(K))*SAL(L,K)
             ENDDO
           ENDDO
 	  ENDIF
@@ -969,14 +969,13 @@ C
             DO LL=1,NLCDA
               L=LIJ(IDC(LL),JDC(LL))
               NS=CDAWTNS(LL)
-              TEM(L,K)=CDAWT(LL)*CSERT(K,NS,2)*TCSERKC(K) 
-     &  +(1.-CDAWT(LL)*TCSERKC(K))*TEM(L,K)
+              TEM(L,K)=CDAWT(LL)*CSERT(K,NS,2)*TCSERKC(K)+(1.0-CDAWT(LL)*TCSERKC(K))*TEM(L,K)
             ENDDO
           ENDDO
 	  ENDIF
 C------------------------------------------------
 CGR   TEMPERATURE
-      IF(ISCDA(2)==1)THEN
+      IF(ISCDA(2)>=1)THEN
 C
       DO K=1,KC
         DO LL=1,NCBW
@@ -984,8 +983,7 @@ C
             L=LCBW(LL)
             DO NSPNG=1,ISCDA(1) 
               L=L+1
-              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,2)+
-     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,2)+(1.0-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
             ENDDO
           ENDIF
         ENDDO
@@ -997,8 +995,7 @@ C
             L=LCBS(LL)
             DO NSPNG=1,ISCDA(1)      
               L=LNC(L)
-              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,2)+
-     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,2)+(1.0-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
             ENDDO
           ENDIF
         ENDDO
@@ -1010,8 +1007,7 @@ C
             L=LCBE(LL)
             DO NSPNG=1,ISCDA(1) 
               L=L-1
-              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,2)+
-     &       (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,2)+(1.0-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
             ENDDO
           ENDIF
         ENDDO
@@ -1023,8 +1019,7 @@ C
             L=LCBN(LL)
             DO NSPNG=1,ISCDA(1) 
               L=LSC(L)
-              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,2)+
-     &      (1.-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
+              TEM(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,2)+(1.0-R1(NSPNG)*TCSERKC(K))*TEM(L,K))
             ENDDO
           ENDIF
         ENDDO
@@ -1032,7 +1027,7 @@ C
 C      
       ENDIF 
 CGR   SALINITY
-      IF(ISCDA(1)>1)THEN
+      IF(ISCDA(1)>=1)THEN
 C
         DO K=1,KC
           DO LL=1,NCBW
@@ -1040,8 +1035,7 @@ C
               L=LCBW(LL)
               DO NSPNG=1,ISCDA(1) 
                 L=L+1
-                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,1)+
-     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS,1)+(1.0-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1053,8 +1047,7 @@ C
               L=LCBS(LL)
               DO NSPNG=1,ISCDA(1)      
                 L=LNC(L)
-                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,1)+
-     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL,1)+(1.0-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1066,8 +1059,7 @@ C
               L=LCBE(LL)
               DO NSPNG=1,ISCDA(1) 
                 L=L-1
-                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,1)+
-     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW,1)+(1.0-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1079,8 +1071,7 @@ C
               L=LCBN(LL)
               DO NSPNG=1,ISCDA(1) 
                 L=LSC(L)
-                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,1)+
-     &       (1.-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
+                SAL(L,K)=(R1(NSPNG)*TCSERKC(K)*CSERT(K,LL+NCBS+NCBW+NCBE,1)+(1.0-R1(NSPNG)*TCSERKC(K))*SAL(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1096,7 +1087,7 @@ C
               L=LCBW(LL)
               DO NSPNG=1,ISCDA(3) 
                 L=L+1
-                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.0-R1(NSPNG))*DYE(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1108,7 +1099,7 @@ C
               L=LCBS(LL)
               DO NSPNG=1,ISCDA(3)      
                 L=LNC(L)
-                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.0-R1(NSPNG))*DYE(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1120,7 +1111,7 @@ C
               L=LCBE(LL)
               DO NSPNG=1,ISCDA(3) 
                 L=L-1
-                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.0-R1(NSPNG))*DYE(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1132,7 +1123,7 @@ C
               L=LCBN(LL)
               DO NSPNG=1,ISCDA(3) 
                 L=LSC(L)
-                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.-R1(NSPNG))*DYE(L,K))
+                DYE(L,K)=(R1(NSPNG)*CSERT(K,1,3)+(1.0-R1(NSPNG))*DYE(L,K))
               ENDDO
             ENDIF
           ENDDO
@@ -1157,7 +1148,7 @@ C
         IF(ISCDA(1).EQ.1)THEN
           DO K=1,KC
           DO L=2,LA
-           SAL(L,K)=CDAWT(L)*SALINIT(L,K)+(1.-CDAWT(L))*SAL(L,K)
+           SAL(L,K)=CDAWT(L)*SALINIT(L,K)+(1.0-CDAWT(L))*SAL(L,K)
           ENDDO
           ENDDO
 	  ENDIF
@@ -1165,7 +1156,7 @@ C
         IF(ISCDA(2).EQ.1)THEN
           DO K=1,KC
           DO L=2,LA
-           TEM(L,K)=CDAWT(L)*TEMINIT(L,K)+(1.-CDAWT(L))*TEM(L,K)
+           TEM(L,K)=CDAWT(L)*TEMINIT(L,K)+(1.0-CDAWT(L))*TEM(L,K)
           ENDDO
           ENDDO
 	  ENDIF
