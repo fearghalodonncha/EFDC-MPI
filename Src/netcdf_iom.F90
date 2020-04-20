@@ -440,7 +440,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 ! call check( nf90_put_att(ncid, nf90_global, "HISTORY"))  
 ! add details to file on variables
 ! 1) u velocity details
-    IF (ISVPH > 1) THEN
+    IF (ISVPH > 0) THEN
         call check_nf90( nf90_def_var(ncid, uvel_name, NF90_REAL, dimids, uvel_varid) )
         call check_nf90( nf90_put_att(ncid, uvel_varid, "_FillValue", FillValue_real) )
         call check_nf90( nf90_put_att(ncid, uvel_varid, "coordinates", "X Y Depth time") )
@@ -595,8 +595,8 @@ SUBROUTINE WQ_NC_WRITE
    USE GLOBAL
 #ifdef key_mpi
    USE MPI
-   REAL,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
-   REAL,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+   REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+   REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
    INTEGER,ALLOCATABLE,DIMENSION(:)  :: RECBUF,DISP    !(0:NPARTX*NPARTY)
    REAL,ALLOCATABLE,DIMENSION(:) :: RBUFU,RBUFV    ! (PNX*PNY*NPARTX*NPARTY)
    logical :: CELL_INSIDE_DOMAIN
@@ -605,7 +605,8 @@ SUBROUTINE WQ_NC_WRITE
    INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STEP,RCOUNTS_PART, SIZE_ARR_ON_EACH_PARTITION
 #endif
    INTEGER::I,J,K,L,NW
-   REAL,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
+   REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
+
    IF(.NOT.ALLOCATED(WQV_ARRAY_OUT))THEN
       ALLOCATE(WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM))
       WQV_ARRAY_OUT(:,:,:,:)=-9999.0
@@ -629,12 +630,14 @@ SUBROUTINE WQ_NC_WRITE
        DO I = 3,IC-2
          DO J = 3,JC-2
            II = II + 1
+           WQV_LOC_VECTOR(II) = 0. ! Cache efficient way to initiatlise to zero before acting on array
            L = LIJ(I,J)
-           WQV_LOC_VECTOR(II) = WQV(L,K,NW)  !
+           if (L/=0) WQV_LOC_VECTOR(II) = WQV(L,K,NW)  !
          ENDDO
        ENDDO
      ENDDO
    ENDDO
+
    ! We need to compute the size of the strip that is received from each MPI process
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
@@ -649,13 +652,17 @@ SUBROUTINE WQ_NC_WRITE
        IF(TILE2NODE(ID)/=-1)  THEN ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
          I = I + 1
          RCOUNTS_PART(I) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC *  NWQVM        ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION
-         DISPL_STEP(I) = DISPL_STEP(I-1) + RCOUNTS_PART(I-1)
+         IF (I == 1) THEN
+            DISPL_STEP = 0 ! Avoid access of zero array in Rcounts_part
+         ELSE
+            DISPL_STEP(I) = DISPL_STEP(I-1) + RCOUNTS_PART(I-1)
+         END IF
        ENDIF
      ENDDO
    ENDDO
                    !Local data       Local data size            Global data        size on each proc Displacement for packing data
-   CALL MPI_GATHERv(WQV_LOC_VECTOR , LOC_VECTOR_SIZE, MPI_REAL, WQV_GLOBAL_VECTOR, RCOUNTS_PART,     DISPL_STEP, &
-                     MPI_REAL, 0, MPI_COMM_WORLD, ERROR)
+   CALL MPI_GATHERv(WQV_LOC_VECTOR , LOC_VECTOR_SIZE, MPI_REAL8, WQV_GLOBAL_VECTOR, RCOUNTS_PART,     DISPL_STEP, &
+                     MPI_REAL8, 0, MPI_COMM_WORLD, ERROR)
    III = 0
    ID = 0
    IF(PARTID==MASTER_TASK)THEN ! Unpack on MASTER Partition only
@@ -679,7 +686,10 @@ SUBROUTINE WQ_NC_WRITE
        ENDDO   !  \  End do loop through the partitions
      ENDDO     !  /
    ENDIF
+
    CALL WRITE_WQ_NCDF(WQV_ARRAY_OUT)
+
+9999 FORMAT(3I6, 2F12.6)
    RETURN
 #endif
    DO NW = 1,NWQVM
@@ -760,7 +770,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
            WQV7_VARID, WQV8_VARID, WQV9_VARID, WQV10_VARID,WQV11_VARID,WQV12_VARID,&
            WQV13_VARID,WQV14_VARID,WQV15_VARID,WQV16_VARID,WQV17_VARID,WQV18_VARID,&
            WQV19_VARID,WQV20_VARID,WQV21_VARID,WQV22_VARID,WQV23_VARID
-  REAL :: WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM),WQTMP(IC_GLOBAL,JC_GLOBAL,KC) !Full WQ array from WQ_NC_WRITE plus temporary array storing each WQV variable
+  REAL*8 :: WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM),WQTMP(IC_GLOBAL,JC_GLOBAL,KC) !Full WQ array from WQ_NC_WRITE plus temporary array storing each WQV variable
   CHARACTER(LEN=84):: WQFILE_OUT !NetCDF nc output file
   INTEGER,DIMENSION(4) :: DIMIDS !Dimension of WQ variable IC,Jc,KC,NWQV
 !End WQ variables
@@ -788,6 +798,8 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   CHARACTER(8) :: date
   CHARACTER(10) :: time
   CHARACTER(5) :: zone
+  REAL*4,PARAMETER:: FILLVALUE_REAL = -9999.0
+  INTEGER*4,PARAMETER:: FILLVALUE_INT = -9999
 !Integer seconds into the simulation
   IF(ISDYNSTP==0)THEN  
     ITSEC=NINT(DT*FLOAT(N)+TCON*TBEGIN)
@@ -924,7 +936,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV1 definition
   IF(ISTRWQ(1).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV1_NAME, NF90_REAL, DIMIDS, WQV1_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV1_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV1_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV1_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV1_VARID, "long_name", WQV1_NAME) )
@@ -934,7 +946,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV2 definition
   IF(ISTRWQ(2).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV2_NAME, NF90_REAL, DIMIDS, WQV2_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV2_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV2_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV2_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV2_VARID, "long_name", WQV2_NAME) )
@@ -944,7 +956,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV3 definition
   IF(ISTRWQ(3).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV3_NAME, NF90_REAL, DIMIDS, WQV3_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV3_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV3_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV3_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV3_VARID, "long_name", WQV3_NAME) )
@@ -954,7 +966,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV4 definition
   IF(ISTRWQ(4).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV4_NAME, NF90_REAL, DIMIDS, WQV4_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV4_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV4_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV4_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV4_VARID, "long_name", WQV4_NAME) )
@@ -964,7 +976,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV5 definition
   IF(ISTRWQ(5).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV5_NAME, NF90_REAL, DIMIDS, WQV5_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV5_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV5_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV5_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV5_VARID, "long_name", WQV5_NAME) )
@@ -974,7 +986,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV6 definition
   IF(ISTRWQ(6).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV6_NAME, NF90_REAL, DIMIDS, WQV6_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV6_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV6_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV6_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV6_VARID, "long_name", WQV6_NAME) )
@@ -984,7 +996,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV7 definition
   IF(ISTRWQ(7).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV7_NAME, NF90_REAL, DIMIDS, WQV7_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV7_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV7_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV7_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV7_VARID, "long_name", WQV7_NAME) )
@@ -994,7 +1006,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV8 definition
   IF(ISTRWQ(8).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV8_NAME, NF90_REAL, DIMIDS, WQV8_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV8_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV8_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV8_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV8_VARID, "long_name", WQV8_NAME) )
@@ -1004,7 +1016,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV9 definition
   IF(ISTRWQ(9).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV9_NAME, NF90_REAL, DIMIDS, WQV9_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV9_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV9_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV9_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV9_VARID, "long_name", WQV9_NAME) )
@@ -1014,7 +1026,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV10 definition
   IF(ISTRWQ(10).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV10_NAME, NF90_REAL, DIMIDS, WQV10_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV10_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV10_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV10_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV10_VARID, "long_name", WQV10_NAME) )
@@ -1024,7 +1036,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV11 definition
   IF(ISTRWQ(11).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV11_NAME, NF90_REAL, DIMIDS, WQV11_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV11_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV11_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV11_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV11_VARID, "long_name", WQV11_NAME) )
@@ -1034,7 +1046,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV12 definition
   IF(ISTRWQ(12).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV12_NAME, NF90_REAL, DIMIDS, WQV12_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV12_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV12_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV12_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV12_VARID, "long_name", WQV12_NAME) )
@@ -1044,7 +1056,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV13 definition
   IF(ISTRWQ(13).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV13_NAME, NF90_REAL, DIMIDS, WQV13_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV13_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV13_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV13_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV13_VARID, "long_name", WQV13_NAME) )
@@ -1054,7 +1066,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV14 definition
   IF(ISTRWQ(14).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV14_NAME, NF90_REAL, DIMIDS, WQV14_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV14_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV14_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV14_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV14_VARID, "long_name", WQV14_NAME) )
@@ -1064,7 +1076,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV15 definition
   IF(ISTRWQ(15).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV15_NAME, NF90_REAL, DIMIDS, WQV15_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV15_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV15_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV15_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV15_VARID, "long_name", WQV15_NAME) )
@@ -1074,7 +1086,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV16 definition
   IF(ISTRWQ(16).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV16_NAME, NF90_REAL, DIMIDS, WQV16_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV16_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV16_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV16_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV16_VARID, "long_name", WQV16_NAME) )
@@ -1084,7 +1096,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV17 definition
   IF(ISTRWQ(17).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV17_NAME, NF90_REAL, DIMIDS, WQV17_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV17_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV17_VARID, "long_name", WQV17_NAME) )
@@ -1094,7 +1106,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV18 definition
   IF(ISTRWQ(18).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV18_NAME, NF90_REAL, DIMIDS, WQV18_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV18_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV18_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV18_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV18_VARID, "long_name", WQV18_NAME) )
@@ -1104,7 +1116,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV19 definition
   IF(ISTRWQ(19).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV19_NAME, NF90_REAL, DIMIDS, WQV19_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV19_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV19_VARID, "long_name", WQV19_NAME) )
@@ -1114,7 +1126,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV20 definition
   IF(ISTRWQ(20).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV20_NAME, NF90_REAL, DIMIDS, WQV20_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV20_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV20_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV20_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV20_VARID, "long_name", WQV20_NAME) )
@@ -1124,7 +1136,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 !WQV21 definition
   IF(ISTRWQ(21).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV21_NAME, NF90_REAL, DIMIDS, WQV21_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV21_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV21_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV21_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV21_VARID, "long_name", WQV21_NAME) )
@@ -1134,7 +1146,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV22 definition
   IF(ISTRWQ(22).EQ.1)THEN 
     call check_nf90( nf90_def_var(NCID, WQV22_NAME, NF90_REAL, DIMIDS, WQV22_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV22_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV22_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV22_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV22_VARID, "long_name", WQV22_NAME) )
@@ -1144,7 +1156,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! WQV23 definition
   IF(IDNOTRVA.EQ.23)THEN 
     call check_nf90( nf90_def_var(NCID, WQV23_NAME, NF90_REAL, DIMIDS, WQV23_VARID) )
-    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "_FillValue", -9999.0) )
+    call check_nf90( nf90_put_att(NCID, WQV23_VARID, "_FillValue", FILLVALUE_REAL) )
     call check_nf90( nf90_put_att(NCID, WQV23_VARID, "coordinates", "X Y Depth time") )
     call check_nf90( nf90_put_att(NCID, WQV23_VARID, "grid_mapping", "transverse_mercator") )
     call check_nf90( nf90_put_att(NCID, WQV23_VARID, "long_name", WQV23_NAME) )

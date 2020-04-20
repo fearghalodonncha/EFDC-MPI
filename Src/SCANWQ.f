@@ -118,6 +118,7 @@ C
           ENDDO  
           DO NS=1,1000  
    30       READ(1,*,ERR=30,END=40)ISTYP,M,T1,T2,RMULADJ,ADDADJ  
+            if (ISTYP == 1) READ (1,*,ERR=30,END=40)  ! Skip read of weights
             NDWQCSR=MAX(NDWQCSR,M)
             DO J=1,M  
               !READ(1,*)T,(RLDTMP(K),K=1,NWQV)  
