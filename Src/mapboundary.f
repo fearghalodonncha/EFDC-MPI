@@ -386,14 +386,28 @@ C ** to child partition
       SUBROUTINE MAPTS
       USE GLOBAL
       LOGICAL::CELL_INSIDE_DOMAIN
+      INTEGER BEGIN_CELL, END_CELL
       MLTMSR_GL = MLTMSR
       MLTMSR = 0
       II = 0
+
+      ! We need to be careful here to select cells that is inside the
+      ! domain but not in ghost cells (to avoid outputting twice). Particularly
+      ! need to ensure that we take into account MPI (with ghost zones) or
+      ! serial with no ghost zones
       DO LL =1,MLTMSR_GL
         III = XLOC(ILTMSR_GL(LL))
         JJJ = YLOC(JLTMSR_GL(LL))
-        IF ( III.GT.2. AND. III .LT. (IC-1)) THEN
-          IF ( JJJ.GT.2. AND. JJJ .LT. (JC-1)) THEN
+        if (MPI_PAR_FLAG == 1) THEN ! MPI and need to account for ghost zones
+           BEGIN_CELL = 3           ! so we search between 3  <=  I   <= IC - 2
+           END_CELL = 2             !                 and  3  <=  J   <= JC - 2
+        END IF
+        IF (MPI_PAR_FLAG  == 0) THEN
+           BEGIN_CELL = 1
+           END_CELL = 0
+        END IF
+        IF ( III.GE.BEGIN_CELL. AND. III .LT. (IC-END_CELL)) THEN
+          IF ( JJJ.GE.BEGIN_CELL. AND. JJJ .LT. (JC-END_CELL)) THEN
             II = II + 1
             MLTMSR = MLTMSR + 1
             ILTMSR(II) = III

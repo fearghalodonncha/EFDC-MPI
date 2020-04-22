@@ -214,23 +214,19 @@ C
 C WRITE VELVECH.OUT  
 C  
             do k = 1,kc
-              utmps_av(K) = 0.5*STCUV(L)*(RSSBCE(L)*U(LE,K)+
+              UTMPS_AV(K) = 0.5*STCUV(L)*(RSSBCE(L)*U(LE,K)+
      &                      RSSBCW(L)*U(L,K) )
-              vtmps_av(K) = 0.5*STCUV(L)*(RSSBCN(L)*V(LN,K)+
+              VTMPS_AV(K) = 0.5*STCUV(L)*(RSSBCN(L)*V(LN,K)+
      &                      RSSBCS(L)*V(L,K) )
+              WOUT(K)  = 0.5*(W(L,K) + W(L,K-1)) ! Average as per Arakawa grid
+
             end do
             I = IL(L)
             J = JL(L)
             IF(KC.GT.1)WRITE(10,210)XPAR(I),YPAR(J),
-     &        (utmps_av(K),K=1,KC),(vtmps_av(K),K=1,KC)  
-            IF(KC.EQ.1)WRITE(10,200)XPAR(I),YPAR(J),VELEKB,VELNKB
+     &        (utmps_av(K),K=1,KC),(vtmps_av(K),K=1,KC),(WOUT(K),K=1,KC)
+            IF(KC.EQ.1)WRITE(10,200)XPAR(I),YPAR(J),VELEKB,VELNKB,W(L,1)
             
-            IF(DTFLAG) THEN
-               DO K = 1,KC
-                  WOUT(K)  = 0.5*(W(L,K) + W(L,K-1)) ! Average as per Arakawa grid
-               END DO
-               WRITE(101,210)I,J,XPAR(I),YPAR(J),(WOUT(K),K=1,KC)
-            END IF
 C  
 C WRITE VELVECH.COC  
 C  
