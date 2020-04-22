@@ -144,8 +144,8 @@ C6 DISSOLVED AND SUSPENDED CONSTITUENT TRANSPORT SWITCHES
 *  ISCO:    1 TO WRITE CONCENTRATION TO FILE restart.out
 *
 C6  ISTRAN  ISTOPT  ISCDCA  ISADAC   ISFCT  ISPLIT  ISADAH  ISADAV   ISCI    ISCO
-       1       1       0       1       1       0       0       0       1       1  !TURB 0
-       1       1       0       0       0       0       0       0       0       0  !SAL  1
+       0       1       0       0       0       0       0       0       1       1  !TURB 0
+       0       0       0       1       1       0       0       0       0       0  !SAL  1
        0       0       0       1       1       0       0       0       0       0  !TEM  2
        0       0       0       1       1       0       0       0       0       0  !DYE  3
        0       0       0       1       1       0       0       0       0       0  !SFL  4
@@ -172,7 +172,7 @@ C7 TIME-RELATED INTEGER PARAMETERS
 *  NDRYSTP: MIN NO. OF TIME STEPS A CELL REMAINS DRY AFTER INTIAL DRYING
 *           -NDRYSTP FOR ISDRY=-99 TO ACTIVATE WASTING WATER IN DRY CELLS 
 C7   NTC  NTSPTC    NLTC    NTTC   NTCPP  NTSTBC   NTCNB  NTCVB  NTSMMT  NFLTMT NDRYSTP
-      50   10286       0       0      10       0       0       0     0       1      16
+      12   10286       0       0      10       4       0       0     960       1      16
 -------------------------------------------------------------------------------
 C8 TIME-RELATED REAL PARAMETERS
 *
@@ -188,7 +188,7 @@ C8 TIME-RELATED REAL PARAMETERS
 *  DTSSFAC:  DYNAMIC TIME STEPPING IF 0.0.LT.DTSSFAC.LT.1.0
 *
 C8  TCON  TBEGIN    TREF CORIOLIS ISCORV   ISCCA   ISCFL  ISCFLM DTSSFAC
-   86400       0    3600       0       0       1       1       0       0.1
+   86400       0    3600       0       0       1       1       0       0
 -------------------------------------------------------------------------------
 C9 SPACE-RELATED AND SMOOTHING  PARAMETERS
 *
@@ -217,7 +217,7 @@ C9 SPACE-RELATED AND SMOOTHING  PARAMETERS
 * 
 C
 C9   KC   IC   JC   LC  LVC ISCO  NDM  LDM  ISMASK  ISPGNS  NSHMAX  NSBMAX    WSMH    WSMB
-      1   15   55  563  561    1    1  561       0       0       0       0   0.03125 0.06250
+      3   15   55  563  561    1    1  561       0       0       0       0 0.03125 0.06250
 -------------------------------------------------------------------------------
 C10 LAYER THICKNESS IN VERTICAL
 *
@@ -225,7 +225,9 @@ C10 LAYER THICKNESS IN VERTICAL
 *  DZC:  DIMENSIONLESS LAYER THICKNESS (THICKNESSES MUST SUM TO 1.0)
 *
 C10  K   DZC 
-     1   1.0
+     1  0.33333
+     2  0.33333
+     3  0.33333
 -------------------------------------------------------------------------------
 C11 GRID, ROUGHNESS AND DEPTH PARAMETERS
 *
@@ -292,7 +294,7 @@ C12 TURBULENT DIFFUSION PARAMETERS
 *            1 - WRITE COURANT NUMBER DIAGNOSTICS TO CFLMAX.OUT
 *
 C12  AHO     AHD     AVO     ABO    AVMN    ABMN   VISMUD  AVCON ZBRWALL ISAVBMN  ISFAVB  ICHKCOUR
-     10       0     .000001   1E-08    1E-12  1E-12     0       1   1E-30       0       1       0
+       0       1 .000001   1E-08   1E-12   1E-12       0       1   1E-30       0       1       0
 -------------------------------------------------------------------------------
 C13 TURBULENCE CLOSURE PARAMETERS
 *
@@ -351,7 +353,7 @@ C16 SURFACE ELEVATION OR PRESSURE BOUNDARY CONDITION PARAMETERS
 *  PDGINIT: ADD THIS CONSTANT ADJUSTMENT GLOBALLY TO THE SURFACE ELEVATION
 *
 C16  NPBS    NPBW    NPBE    NPBN   NPFOR  NPFORT   NPSER PDGINIT
-      0       0       0       0       0       0       1       0
+      11       0       0       0       0       0       1       0
 -------------------------------------------------------------------------------
 C17 PERIODIC FORCING (TIDAL) SURF ELEV OR PRESSURE BOUNDARY COND. FORCINGS
 *
@@ -380,6 +382,17 @@ C18 PERIODIC FORCING (TIDAL) SURF ELEV OR PRESSURE ON SOUTH OPEN BOUNDARIES
 *  TPCOORDS: TANGENTIAL COORDINATE ALONG BOUNDARY                    (NPFORT.GE.1)
 *
 C18  IPBS    JPBS   ISPBS  NPFORS  NPSERS
+       3       3       0       0       1
+       4       3       0       0       1
+       5       3       0       0       1
+       6       3       0       0       1
+       7       3       0       0       1
+       8       3       0       0       1
+       9       3       0       0       1
+      10       3       0       0       1
+      11       3       0       0       1
+      12       3       0       0       1
+      13       3       0       0       1
 -------------------------------------------------------------------------------
 C19 PERIODIC FORCING (TIDAL) SURF ELEV OR PRESSURE ON WEST OPEN BOUNDARIES
 *
@@ -454,7 +467,7 @@ C23 VELOCITY, VOLUMN SOURCE/SINK, FLOW CONTROL, AND WITHDRAWAL/RETURN DATA
 *  ISDIQ:  SET TO 1 TO WRITE DIAGNOSTIC FILE, DIAQ.OUT
 *
 C23 NVBS    NUBW    NUBE    NVBN   NQSIJ  NQJPIJ   NQSER   NQCTL  NQCTLT    NQWR  NQWRSR   ISDIQ
-       0       0       0       0      0       0       0       0       0       0       0       0
+       0       0       0       0      11       0       0       0       0       0       0       0
 -------------------------------------------------------------------------------
 C24 VOLUMETRIC SOURCE/SINK LOCATIONS, MAGNITUDES, AND CONCENTRATION SERIES
 *
@@ -482,6 +495,17 @@ C24 VOLUMETRIC SOURCE/SINK LOCATIONS, MAGNITUDES, AND CONCENTRATION SERIES
 *  QSFACTOR: FRACTION OF TIME SERIES FLOW NQSERQ ASSIGNED TO THIS CELL
 *  
 C24  IQS     JQS     QSSE     NQSMUL  NQSMFF  IQSERQ  ICSER1  ICSER2  ICSER3  ICSER4  ICSER5  ICSER6  ICSER7   QSFACTOR  ! ID
+       3      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       4      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       5      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       6      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       7      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       8      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+       9      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      10      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      11      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      12      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
+      13      53  9.0000E-01       0       0       0       0       0       0       0       0       0       0  0.0000E+00  ! Inflow
 -------------------------------------------------------------------------------
 C25 TIME CONSTANT INFLOW CONCENTRATIONS FOR TIME CONSTANT VOLUMETRIC SOURCES
 *
@@ -494,6 +518,17 @@ C25 TIME CONSTANT INFLOW CONCENTRATIONS FOR TIME CONSTANT VOLUMETRIC SOURCES
 *       VALUE IS REQUIRED EVEN IF TOXIC TRANSPORT IS NOT ACTIVE
 *
 C25    SAL       TEM       DYE       SFL  ! ID
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
+         0         0         0         0  ! Inflow
 -------------------------------------------------------------------------------
 C26 TIME CONSTANT INFLOW CONCENTRATIONS FOR TIME CONSTANT VOLUMETRIC SOURCES
 *
@@ -507,6 +542,17 @@ C26 TIME CONSTANT INFLOW CONCENTRATIONS FOR TIME CONSTANT VOLUMETRIC SOURCES
 *       REQUIRED EVEN IF NON-COHESIVE SEDIMENT TRANSPORT IS INACTIVE
 *
 C26   SED1    SND1
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
+  ! Inflow
 -------------------------------------------------------------------------------
 C27 JET/PLUME SOURCE LOCATIONS, GEOMETRY AND ENTRAINMENT PARAMETERS
 *
@@ -1063,7 +1109,7 @@ C46 BUOYANCY, TEMPERATURE, DYE DATA AND CONCENTRATION BC DATA
 *               BOUNDARIES
 *
 C46    BSC  TEMO    HEQT       RKDYE NCBS NCBW NCBE NCBN
-         1  -3.0 1.000E-02 1.000E+03    0    0    0    0
+         0  10.0 0.000E+00 0.000E+00    0    0    0    0
 -------------------------------------------------------------------------------
 C47 LOCATION OF CONC BC'S ON SOUTH BOUNDARIES
 *
@@ -1331,7 +1377,7 @@ C67 DRIFTER DATA (FIRST 4 PARAMETER FOR SUB DRIFER, SECOND 6 FOR SUB LAGRES)
 *  IPLRPD    1,2,3 WRITE FILES TO PLOT ALL,EVEN,ODD HORIZ LAG VEL VECTORS
 *
 C67 ISPD NPD NPDRT NWPD ISLRPD ILRPD1 ILRPD2 JLRPD1 JLRPD2 MLRPDRT IPLRPD
-    0    0    0    12     0       3      28       9       7      12       1
+    2    0    0    12     0       3      28       9       7      12       1
 -------------------------------------------------------------------------------
 C68 INITIAL DRIFTER POSITIONS (FOR USE WITH SUB DRIFTER)
 *
@@ -1388,13 +1434,13 @@ C71 CONTROLS FOR HORIZONTAL PLANE SCALAR FIELD CONTOURING
 *  DATA LINE REPEATS 7 TIMES FOR SAL,TEM,DYE,SFL,TOX,SED,SND
 *
 C71 ISSPH NPSPH ISRSPH ISPHXY
-       1       2       0       1    !SAL
-       0       1       0       1    !TEM
-       0       1       0       1    !DYE
-       0       2       0       1 !EE WC/Sediment Top Layer Flag
-       0       1       0       1    !TOX
-       0       1       0       1    !SED
-       0       1       0       1    !SND
+       0       1       0       3    !SAL
+       0       1       0       3    !TEM
+       0       1       0       3    !DYE
+       0       2       0       3 !EE WC/Sediment Top Layer Flag
+       0       1       0       3    !TOX
+       0       1       0       3    !SED
+       0       1       0       3    !SND
 -------------------------------------------------------------------------------
 C71A CONTROLS FOR HORIZONTAL PLANE SEDIMENT BED PROPERTIES CONTOURING
 * 
@@ -1472,7 +1518,7 @@ C74 CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING
 *  ISECSPV IS DETERMINED FOR ALL 7 VARIABLES BY VALUE ON FIRST DATA LINE
 *
 C74 ISECSPV NPSPV ISSPV ISRSPV ISHPLTV
-       0       0       0       0       0    !SAL
+       0       1       0       0       0    !SAL
        0       0       0       0       0    !TEM
        0       0       0       0       0    !DYE
        0       0       0       0       0    !SFL
@@ -1628,7 +1674,7 @@ C84 CONTROLS FOR WRITING TO TIME SERIES FILES
 *
 *
 C84 ISTMSR MLTMSR  NBTMSR  NSTMSR  NWTMSR NTSSTSP TCTMSR
-       1       10       0       0       120       1   86400
+       1       2       0       0       120       1   86400
 -------------------------------------------------------------------------------
 C85 CONTROLS FOR WRITING TO TIME SERIES FILES
 *
@@ -1664,14 +1710,6 @@ C87 CONTROLS FOR WRITING TO TIME SERIES FILES
 *  CLTS:    LOCATION AS A CHARACTER VARIALBLE
 *
 C87 ILTS JLTS NTSSSS MTSP MTSC MTSA MTSUE MTSUT MTSU MTSQE MTSQ CLTS
-     8     3    1      1    1   1    0     0     1    0     0   'Point 1'
-     8    53    1      1    1   1    0     0     1    0     0   'Point 1'
-     3     3    1      1    1   1    0     0     1    0     0   'Point 1'
-    13     3    1      1    1   1    0     0     1    0     0   'Point 1'
-     3    53    1      1    1   1    0     0     1    0     0   'Point 1'
-    13    53    1      1    1   1    0     0     1    0     0   'Point 1'
-     3    30    1      1    1   1    0     0     1    0     0   'Point 1'
-    13    30    1      1    1   1    0     0     1    0     0   'Point 1'
      8    20    1      1    1   1    0     0     1    0     0   'Point 1'
      8    40    1      1    1   1    0     0     1    0     0   'Point 1'
 -------------------------------------------------------------------------------
