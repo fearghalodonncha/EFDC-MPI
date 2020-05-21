@@ -95,11 +95,11 @@ OBJS1 = diagnostics.o \
         date_time.o \
         time2year.o \
         codarname.o \
-# comment these           data_assim_init.o \
-# files as Openblas       data_assim.o \
-# not available on JPNX2       data_assim_library.o
-#Files with .F90 extension
+        data_assim_init.o \
+        data_assim.o \
+        data_assim_submodules.o
 
+#Files with .F extension
 OBJS2 = VARINIT.o \
 	HDMT2T.o \
 	CALUVW.o \
@@ -109,7 +109,8 @@ OBJS2 = VARINIT.o \
 	EFDC.o \
 	CONGRAD_MPI.o \
         CALHDMF.o \
-	INPUT.o
+	INPUT.o \
+        CALWQC.o
 
 #Files with .f extension
 OBJS3 = ACON.o AINIT.o \
@@ -132,7 +133,7 @@ OBJS3 = ACON.o AINIT.o \
 	CALBAL1.o CALTSXY.o initbin0.o RWQSTL.o WASP5.o \
 	CALBAL2.o initbin2.o RWQSUN.o WASP6.o \
 	CALBAL3.o CALVEGSER.o INITBIN3.o SALPLTH.o WASP7EPA.o \
-	CALBAL4.o CALWQC.o INITBIN4.o SALPLTV.o WASP7.o \
+	CALBAL4.o INITBIN4.o SALPLTV.o WASP7.o \
 	CALBAL5.o CBALEV1.o initbin.o SALTSMTH.o WAVEBL.o \
 	CALBED9.o CBALEV2.o SCANASER.o WAVESXY.o \
 	CALBED.o CBALEV3.o JPEFDC.o SCANDSER.o WQ3D.o \
@@ -157,13 +158,13 @@ OBJS3 = ACON.o AINIT.o \
 	CSEDVIS.o RESTOUT.o SMINIT.o ZBRENT.o \
 	CALPUV9C.o CSNDEQC.o RESTRAN.o SMMBE.o \
         SCANLORP.o mpi_util.o CALAVBOLD.o CALEXP.o CALPGCORR.o \
-	CALPUVTT.o CALQQ2TOLD.o CALQVS.o CONGRAD.o \
+	CALQQ2TOLD.o CALQVS.o CONGRAD.o \
 	SCANWQ.o SETBCS.o SETOPENBC2.o SETOPENBC.o \
-	mapboundary.o SECNDS.o VARALLOC.o
+	mapboundary.o SECNDS.o VARALLOC.o puvdasm.o
 
 #Link all objects
-$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)
-	$(FC) $(LFLAGS) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  -o $(PROG)
+$(PROG): $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS2) $(OBJS3)
+	$(FC) $(MODULESF90) $(MODULESF902) $(OBJS1) $(OBJS11) $(OBJS2) $(OBJS3)  $(LFLAGS) -o $(PROG)
 
 #Compile subroutines and modules
 $(MODULESF90): %.o: %.f90
@@ -175,9 +176,6 @@ $(MODULESFOR): %.o: %.f
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@
 
 $(OBJS1): %.o: %.f90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
-	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
-
-$(OBJS11): %.o: %.F90 $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
 $(OBJS2): %.o: %.F $(MODULESF90) $(MODULESFOR) $(MODULESF902)
@@ -215,6 +213,7 @@ WQSKE3.o: WQSKE3.f
 	$(FC) $(CFLAGS) $(OPTMZ2)  WQSKE3.f
 WQSKE4.o: WQSKE4.f
 	$(FC) $(CFLAGS) $(OPTMZ2)  WQSKE4.f
+
 
 
 
