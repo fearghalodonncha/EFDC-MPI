@@ -1643,7 +1643,6 @@ C**********************************************************************C
 
 
           if (IFLPRINT.eq.50) then
-                write(*,*) PARTID, VFW1, VFW1_OUT
                 write(777,777) timesec/86400,TOTVOL_OUT,(TOTVOL_OUT-VFW1_OUT-VFW2_OUT),VFW1_OUT, VSW_OUT,VFW2_OUT, VSW_BOUNDARY
                 IFLPRINT = 0
           end if

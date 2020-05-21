@@ -30,11 +30,10 @@ C **  SKIP OVER TITLE AND AND HEADER LINES
 C  
           DO IS=1,15  
             READ(1,1)  
-          ENDDO  
-          
+          ENDDO   
           NT=4+NTOX+NSED+NSND+NW
           DO NS=1,NWQCSR(NW)  
-            MCTLAST(NS,NT)=1  
+            MCTLAST(NS,NT)=1
             READ(1,*,IOSTAT=ISO)ISTYP,MCSER(NS,NT),TCCSER(NS,NT),  
      &          TACSER(NS,NT),RMULADJ,ADDADJ  
             IF(ISO.GT.0) GOTO 900  
