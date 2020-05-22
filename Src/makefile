@@ -13,34 +13,54 @@ OMP_FLAGS=key_omp#          # define key_omp to activate open MP compilation
 NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
 DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
 
+DEBUG ?= 0 # Let's use the DEBUG flag to denote DEBUG build
+           # make DEBUG=0   | for release build
+           # make DEBUG=1   | for Debug build
+
 F90 = gfortran
 CPPFLAGS =-cpp
 
 # Path to relevant libraries
-# 1) MPI library
-MPICHDIR=/usr
-# 2) NetCDF path   
+# 1) MPI library if we wish to use MPI
+MPICHDIR=/usr 
+# 2) NetCDF library path if we wish to use netcdf    
 NCDIR=/usr/
 # 3) Blas library  ! required if DAFLAG defined for data assimilation routines
 BLAS_PATH=/usr
 ###########################
 ####  COMPILING FLAGS  ####
 ###########################
+
+## Specify our optimisation flags
+ifeq ($(DEBUG), 1)
+  OPTMZ = -O0 -g -fbacktrace -finit-local-zero -fdefault-real-8 -ffixed-line-length-132   
+  OPTMZ2 = $(OPTMZ)
+else
+  OPTMZ = -O3 -ffixed-line-length-132 -fdefault-real-8 $(F_INCS) $(CPPFLAGS)  
+  OPTMZ2 = -O0 -ffixed-line-length-132 -fdefault-real-8 $(F_INCS) $(CPPFLAGS)
+endif
+
+# Specify the MPI dependencies
 ifdef MPIFLAGS
   FC=$(MPICHDIR)/bin/mpif90
   F_LIB = -L$(MPICHDIR)/lib
   F_INC = -I$(MPICHDIR)/include 
   CPPFLAGS +=-D$(MPIFLAGS)
 endif
+
+# Specify the netcdf dependencies
 ifdef NCFLAGS
   CPPFLAGS +=-D$(NCFLAGS)
   F_INC += -I$(NCDIR)/include
   F_LIB += -L$(NCDIR)/lib -lnetcdff -lnetcdf
 endif
+
+# specify the OpenMP dependencies
 ifdef OMPFLAGS
   FC += -fopenmp
   CPPFLAGS +=-D$(OMP_FLAGS) 
 endif
+
 # This is for Data Assimilation operations
 # Only need it if we invoke data assimilation
 ifdef DAFLAG
@@ -49,9 +69,9 @@ ifdef DAFLAG
   CPPFLAGS +=-D$(DAFLAG)
 endif
 
-# optimisation flags
-OPTMZ = -O3 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)  
-OPTMZ2 = -O0 -ffixed-line-length-132 $(F_INC) $(CPPFLAGS)
+# Bring together for the optimisation
+OPTMZ +=  $(F_INCS) $(CPPFLAGS)  
+OPTMZ2 +=  $(F_INCS) $(CPPFLAGS)
 
 ###########################
 #####  LINKING FLAGS
@@ -184,13 +204,9 @@ $(OBJS2): %.o: %.F $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 $(OBJS3): %.o: %.f $(MODULESF90) $(MODULESFOR) $(MODULESF902)
 	$(FC) $(CFLAGS) $(OPTMZ)  $< -o $@	
 
-#Clean up after yourself
-clean:
-	rm *.o
-	rm *.mod
-	rm $(PROG)
 
-#TAKES TOO LONG TO COMPILE; ONLY 1.5 SECONDS EXECUTION
+# TAKES TOO LONG TO COMPILE; ONLY 1.5 SECONDS EXECUTION
+# WE CAN SIMPLY COMPILE LOW OPTIMISATION
 VARZEROInt.o: VARZEROInt.f90
 	$(FC) $(CFLAGS) $(OPTMZ2)  VARZEROInt.f90
 
@@ -215,5 +231,10 @@ WQSKE4.o: WQSKE4.f
 	$(FC) $(CFLAGS) $(OPTMZ2)  WQSKE4.f
 
 
+#Clean up after yourself
+clean:
+	rm *.o
+	rm *.mod
+	rm $(PROG)
 
 
