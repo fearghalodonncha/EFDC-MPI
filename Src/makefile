@@ -14,7 +14,7 @@ NCFLAGS=key_ncdf#    # define key_ncdf to activate netcdf read/write
 DAFLAG=key_da#       # define key_da to activate data assimilation and Blas/Lapack dependencies
 
 DEBUG ?= 0 # Let's use the DEBUG flag to denote DEBUG build
-           # make DEBUG=0   | for release build
+           # make DEBUG=0   | for release build (default)
            # make DEBUG=1   | for Debug build
 
 F90 = gfortran
@@ -36,8 +36,8 @@ ifeq ($(DEBUG), 1)
   OPTMZ = -O0 -g -fbacktrace -finit-local-zero -fdefault-real-8 -ffixed-line-length-132   
   OPTMZ2 = $(OPTMZ)
 else
-  OPTMZ = -O3 -ffixed-line-length-132 -fdefault-real-8 $(F_INCS) $(CPPFLAGS)  
-  OPTMZ2 = -O0 -ffixed-line-length-132 -fdefault-real-8 $(F_INCS) $(CPPFLAGS)
+  OPTMZ = -O3 -ffixed-line-length-132 -fdefault-real-8   
+  OPTMZ2 = -O0 -ffixed-line-length-132 -fdefault-real-8
 endif
 
 # Specify the MPI dependencies
@@ -70,8 +70,8 @@ ifdef DAFLAG
 endif
 
 # Bring together for the optimisation
-OPTMZ +=  $(F_INCS) $(CPPFLAGS)  
-OPTMZ2 +=  $(F_INCS) $(CPPFLAGS)
+OPTMZ +=  $(F_INC) $(CPPFLAGS)  
+OPTMZ2 +=  $(F_INC) $(CPPFLAGS)
 
 ###########################
 #####  LINKING FLAGS
