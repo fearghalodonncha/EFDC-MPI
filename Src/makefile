@@ -22,9 +22,9 @@ CPPFLAGS =-cpp
 
 # Path to relevant libraries
 # 1) MPI library if we wish to use MPI
-MPICHDIR=/usr 
+MPICHDIR=/usr
 # 2) NetCDF library path if we wish to use netcdf    
-NCDIR=/usr/
+NCDIR=/usr
 # 3) Blas library  ! required if DAFLAG defined for data assimilation routines
 BLAS_PATH=/usr
 ###########################
