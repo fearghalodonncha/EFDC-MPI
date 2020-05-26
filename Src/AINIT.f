@@ -188,29 +188,23 @@ C      ENDIF
 C *** ALL ZEROING OF ARRAYS MOVED TO ZERO
         ENDDO  
       ENDDO  
-      DO K=1,KC  
-        DO L=1,LC  
-          AH(L,K)=AHO  
-          AHU(L,K)=AHO  
-          AHULPF(L,K)=AHO  
-          AHV(L,K)=AHO  
-          AHVLPF(L,K)=AHO  
-          AHC(L,K)=AHO  
-          AQ(L,K)=AVO  
+!      DO K=1,KC  
+!        DO L=1,LC  
+          AH(1:LC,1:KC)=AHO  
+          AHU(1:LC,1:KC)=AHO  
+          AHULPF(1:LC,1:KC)=AHO  
+          AHV(1:LC,1:KC)=AHO  
+          AHVLPF(1:LC,1:KC)=AHO  
+          AHC(1:LC,1:KC)=AHO  
+          AQ(1:LC,1:KC)=AVO  
 C *** ALL ZEROING OF ARRAYS MOVED TO ZERO
-          CTURBB1(L,K)=CTURB  
-          CTURBB2(L,K)=CTURB2B  
+          CTURBB1(1:LC,1:KC)=CTURB  
+          CTURBB2(1:LC,1:KC)=CTURB2B  
 C *** TEMPERATURE INITIATION
-          TEM(L,K)=TEMO
-          TEM1(L,K)=TEMO
-C *** DYE INITIATION
-          DYE(L,K) = 0.
-          DYE1(L,K) = 0.
-C *** SAL INITIATION
-          SAL(L,K) = 0.
-          SAL1(L,K) = 0.
-        ENDDO  
-      ENDDO  
+          TEM(1:LC,1:KC)=TEMO    !This shouldn't be here, it is already initialized in INPUT.f...SCJ...where?
+          TEM1(1:LC,1:KC)=TEM(1:LC,1:KC)   
+!        ENDDO  
+!      ENDDO  
       NTMPC=MAX(NSED,1)  
       DO NS=1,NTMPC  
         DO K=1,KC  
@@ -354,6 +348,42 @@ C
           ENDDO
         ENDIF
       ENDIF
+C**********************************************************************C
+CGR 4/16/10 INITIALIZATION OF PUVDASM LAYER CONSTRAINTS
+C     CONSTRAIN ASSIMILATION TO DEPTHS ABOVE KCUVDA W/SMOOTHING
+      TUVKC(1:KC)=1.0
+      DO K=1,KCUVDA
+        TUVKC(K)=TUVKC(K)*FLOAT(K)/FLOAT(KCUVDA)
+      ENDDO  
+c CSERT      
+      TCSERKC(1:KC)=1.0
+      DO K=1,KCSERDA
+        TCSERKC(K)=TCSERKC(K)*FLOAT(K)/FLOAT(KCSERDA)
+      ENDDO  
+C********************* 
+C***********************************************************	
+CGR 6/8/10  INITIALIZE CDASM
+C ***Relax CSERext. Optimized for sponge width of 5-10 cells.  No Sponge Layers set by NLCDA in C16***
+C****Greg Rocheleau       Feb 10,2010  
+C
+CGR 5/10/2011      IF(ISACDA.EQ.3)THEN
+CGR 5/10/2011        DO NSPNG=1,NLCDA    
+C 6/8/10 ORIGINAL CODE WAS "SWAPPING" INDEXING OS R1, BUT WAS WORKING WELL...
+C       R1(NSPNG)=TSCDA*(REAL(NSPNG)/REAL(NLCDA))**10
+CGR 5/10/2011        R1(NLCDA-NSPNG+1)=TSCDA*(REAL(NSPNG)/REAL(NLCDA))**6
+C	  R2(NSPNG)=1.
+CGR 5/10/2011        R2(NLCDA-NSPNG+1)=TSCDA*(REAL(NSPNG)/REAL(NLCDA))**3
+CGR 5/10/2011	  ENDDO
+C
+C        DO NSPNG=NLCDA+1,NLCDA+3    
+C	  R2(NSPNG)=(0.5)**(REAL(NSPNG)-REAL(NLCDA))
+C	  ENDDO
+CGR 5/10/2011	ENDIF
+	IF(ISACDA==3.AND.ISCDA(3)>0)R1(1:ISCDA(3))=1.0
+C***********************************************************************
+CGR
+C**********************************************************************C	
+C**********************************************************************C
       RETURN  
       END  
 
