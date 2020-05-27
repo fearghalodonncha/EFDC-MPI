@@ -47,13 +47,10 @@ C
 
       RPCG=0.
       RPCG_OUT=0.
-       DO I = 3, IC-2
-          DO J = 3,JC -2
-          L = LIJ(I,J) 
-          RPCG = RPCG + RCG(L)*PCG(L)
-          END DO
-      END DO
-!      RPCG = sum([RCG(L_CONG) * PCG(L_CONG)])
+      ! compute the dot product of RCG and LCG
+      ! note that L_CONG(:) represents all cells inside the
+      ! computational domain (in MPI this denotes cells inside ghost zone)
+      RPCG = sum([RCG(L_CONG) * PCG(L_CONG)])
  
       IERR1 = 0
       CALL MPI_ALLREDUCE(RPCG,RPCG_OUT,1,MPI_REAL8,MPI_SUM,EFDC_COMM,IERR1)
@@ -75,13 +72,8 @@ C
 
       PAPCG=0.  
       PAPCG_OUT=0.
-       DO I = 3, IC-2
-          DO J = 3,JC -2
-          L = LIJ(I,J) 
-          PAPCG = PAPCG + APCG(L)*PCG(L)
-          END DO
-      END DO 
-!      PAPCG = sum( [APCG(L_CONG)*PCG(L_CONG)])
+      ! dot product of APCG & PCG
+      PAPCG = sum( [APCG(L_CONG)*PCG(L_CONG)])
 
       IERR2 = 0
       CALL MPI_ALLREDUCE(PAPCG,PAPCG_OUT,1,MPI_REAL8,MPI_SUM,EFDC_COMM,IERR2)
@@ -101,15 +93,8 @@ C
       RPCGN=0.  
       RSQ_DBL=0.
  
-       DO I = 3, IC-2
-          DO J = 3,JC -2
-          L = LIJ(I,J) 
-          RPCGN = RPCGN + RCG(L)*TMPCG(L)
-          RSQ_DBL = RSQ_DBL + RCG(L) * RCG(L)
-          END DO
-      END DO
-!      RPCGN = sum( [RCG(L_CONG)*TMPCG(L_CONG)])
-!      RSQ_DBL = sum( [RCG(L_CONG)*RCG(L_CONG)])
+      RPCGN = sum( [RCG(L_CONG)*TMPCG(L_CONG)])
+      RSQ_DBL = sum( [RCG(L_CONG)*RCG(L_CONG)])
       CALL MPI_ALLREDUCE(RPCGN,RED_OUT1,1,MPI_REAL8,MPI_SUM,EFDC_COMM,IERR3)
       CALL MPI_ALLREDUCE(RSQ_DBL,RED_OUT2,1,MPI_REAL8,MPI_SUM,EFDC_COMM,IERR4)
       RPCGN=RED_OUT1
