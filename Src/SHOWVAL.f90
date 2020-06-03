@@ -5,7 +5,7 @@ SUBROUTINE SHOWVAL
   USE GLOBAL
   CHARACTER BLANK,ASTER,CSURF(32),CSALS(20),CSALB(20)
   CHARACTER UNITS*3, PARM*3
-  LOGICAL status 
+  LOGICAL estatus 
   SAVE    INFODT, JSHPRT, UNITS, SCALE, PARM
   REAL    T1,T2,TSPEED,ETA
   
@@ -97,9 +97,9 @@ SUBROUTINE SHOWVAL
       WRITE(*,'(A)')' STEP                        (CM)       &              (PPT)            (PPT)'
       WRITE(*,'(16X,I3,26X,I3,'' 0'',15X,I3,'' 0'',15X,I3)') IZSMIN,IZSMAX,ISALMAX,ISALMAX
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT   ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT   ",F10.4," MW-hr")')SUM(EMHK(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
 
     ELSEIF(NSHTYPE==2)THEN
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
@@ -113,9 +113,9 @@ SUBROUTINE SHOWVAL
         WRITE(*,'(A)')' STEP     I   J   CM   CM/S  CM/S  PPT   CM/S  CM/S  CM/S  CM/S   PPT  CM/S  CM/S'
       ENDIF
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(MAXVAL(MVEGL(:))>90.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
 
     ELSEIF(NSHTYPE.LT.9)THEN
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
@@ -137,12 +137,16 @@ SUBROUTINE SHOWVAL
   ! *** INCREMENT THE SCREEN COUNTER
   JSHPRT=JSHPRT+1
   IF(JSHPRT.LT.ISHPRT)RETURN
+#ifdef key_mpi
+  CONTINUE
+#else
   if(IDNOTRVA/=0)call tecplot !Macroalgae output
   IF(OUTPUTFLAG.GE.4) THEN ! IFREMER flume
     call tecplot !User defined output subroutine for Tecplot SCJ
   ENDIF
-  inquire(file='ensight.inp',exist=status)
-  if(status) call ensight
+  inquire(file='ensight.inp',exist=estatus)
+  if(estatus) call ensight
+#endif
   JSHPRT=1
   NSHOWC=NSHOWC+1
 

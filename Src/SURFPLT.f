@@ -5,7 +5,7 @@ C **  SUBROUTINE SURFPLT WRITES FILES TO CONTOUR FREE SURFACE
 C **  ELEVATION  
 C  
       USE GLOBAL
-      CHARACTER*80 TITLE  
+!      CHARACTER*80 TITLE  
       INTEGER*8 TIME
 C  
 C *** EE BEGIN BLOCK  
@@ -71,7 +71,7 @@ C
           CLOSE(10)  
         ENDIF  
         OPEN(10,FILE='EE_WS.OUT',POSITION='APPEND',STATUS='OLD',  
-     &      FORM='UNFORMATTED')  
+     &      FORM='UNFORMATTED')  !UNFORMATTED
         IF(ISDYNSTP.EQ.0)THEN  
           TIME=DT*FLOAT(N)+TCON*TBEGIN  
         ELSE  
@@ -87,7 +87,7 @@ C
         DO L=2,LA  
           WRITE(10)HP(L)  
         ENDDO 
-CFERG        CALL FLUSH(10)
+ !       CALL FLUSH(10) !This was commented out by Fearghal
         CLOSE(10)  
       ENDIF  
 C  

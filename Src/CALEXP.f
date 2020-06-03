@@ -120,20 +120,22 @@ C
       DO K=1,KC  
         DO L=2,LA  
           LN=LNC(L)  
-          LS=LSC(L)  
+          LS=LSC(L)
+          LE=LEAST(L)
+          LW=LWEST(L)
           UHC=0.5*(UHDY2(L,K)+UHDY2(LS,K))  
-          UHB=0.5*(UHDY2(L,K)+UHDY2(LEAST(L),K))  
-          VHC=0.5*(VHDX2(L,K)+VHDX2(LWEST(L),K))  
+          UHB=0.5*(UHDY2(L,K)+UHDY2(LE,K))  
+          VHC=0.5*(VHDX2(L,K)+VHDX2(LW,K))  
           VHB=0.5*(VHDX2(L,K)+VHDX2(LN,K))  
 C  
           FUHU(L,K)=MAX(UHB,0.)*U1(L,K)  
-     &        +MIN(UHB,0.)*U1(LEAST(L),K)  
+     &             +MIN(UHB,0.)*U1(LE,K)  
           FVHU(L,K)=MAX(VHC,0.)*U1(LS,K)  
-     &        +MIN(VHC,0.)*U1(L,K)  
-          FUHV(L,K)=MAX(UHC,0.)*V1(LWEST(L),K)  
-     &        +MIN(UHC,0.)*V1(L,K)  
+     &             +MIN(VHC,0.)*U1(L,K)  
+          FUHV(L,K)=MAX(UHC,0.)*V1(LW,K)  
+     &             +MIN(UHC,0.)*V1(L,K)  
           FVHV(L,K)=MAX(VHB,0.)*V1(L,K)  
-     &        +MIN(VHB,0.)*V1(LN,K)  
+     &             +MIN(VHB,0.)*V1(LN,K)  
         ENDDO  
       ENDDO  
 C  
@@ -460,13 +462,15 @@ C
           DO L=2,LA  
             LN=LNC(L)  
             LS=LSC(L)  
+            LE=LEAST(L)
+            LW=LWEST(L)
             LNW=LNWC(L)  
             LSE=LSEC(L)  
             FCAX(L,K)=ROLD*FCAX(L,K)  
      &        +0.25*RNEW*SCAX(L)*(CAC(L,K)*(V(LN,K)+V(L,K))  
-     &        +CAC(LWEST(L),K)*(V(LNW,K)+V(LWEST(L),K)))  
+     &        +CAC(LWEST(L),K)*(V(LNW,K)+V(LW,K)))  
             FCAY(L,K)=ROLD*FCAY(L,K)  
-     &        +0.25*RNEW*SCAY(L)*(CAC(L,K)*(U(LEAST(L),K)+U(L,K))  
+     &        +0.25*RNEW*SCAY(L)*(CAC(L,K)*(U(LE,K)+U(L,K))  
      &        +CAC(LS,K)*(U(LSE,K)+U(LS,K)))  
           ENDDO  
         ENDDO
@@ -522,13 +526,13 @@ C
       DO K=1,KC  
         DO L=2,LA  
           LN=LNC(L) 
-          LS=LSC(L) 
+          LS=LSC(L)
+          LE=LEAST(L)
+          LW=LWEST(L)
           !HRUO(L)=SUBO(L)*DYU(L)*DXIU(L)  
           !HRXYU(L)=DXU(L)/DYU(L)
-          FX(L,K)=(FUHU(L,K)-FUHU(LWEST(L),K)+FVHU(LN,K)-FVHU(L,K)  
-     &            +FUHJ(L,K) )  
-          FY(L,K)=(FUHV(LEAST(L),K)-FUHV(L,K)+FVHV(L,K)-FVHV(LS,K)  
-     &            +FVHJ(L,K) )  
+          FX(L,K)=(FUHU(L ,K)-FUHU(LW,K)+FVHU(LN,K)-FVHU(L ,K)+FUHJ(L,K))  
+          FY(L,K)=(FUHV(LE,K)-FUHV(L ,K)+FVHV(L ,K)-FVHV(LS,K)+FVHJ(L,K))  
         ENDDO  
       ENDDO
 

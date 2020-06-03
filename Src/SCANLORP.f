@@ -7,6 +7,7 @@
       END DO
 
       READ(1,*)NPARTX,NPARTY,NACTIVE  
+      IF(PARTID==0)PRINT*,'SCANNING LORP'
 
       READ(1,*)
       DO N = 1,NPARTX

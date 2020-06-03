@@ -34,6 +34,8 @@
 	REAL::UHB1MX,UHB1MN,VHC1MX,VHC1MN,UHC1MX,UHC1MN,VHB1MX
 	REAL::VHB1MN,UHB2MX,UHB2MN,VHC2MX,VHC2MN,UHC2MX,UHC2MN,VHB2MX
 	REAL::VHB2MN,BOTT,QMF,QUMF,VEAST1,VWEST1
+      REAL::SFXV(LCM),SFYV(LCM)
+      REAL::FXVGTMP(LCM,KC),FYVGTMP(LCM,KC)
 
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::DZPC
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TMPVEC1  
@@ -94,13 +96,13 @@
 !$OMP PARALLEL PRIVATE(LN,LS,LE,LW,UHC,UHB,VHC,VHB)
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
       DO L=1,LC  
-        FCAXE(L)=0.  
-        FCAYE(L)=0.  
-        FXE(L)=0.  
-        FYE(L)=0.
-        FX(L,1:KC)=0.
-        FY(L,1:KC)=0.  
-      ENDDO  
+        FCAXE(L)=0.0
+        FCAYE(L)=0.0
+        FXE(L)=0.0
+        FYE(L)=0.0
+        FX(L,1:KC)=0.0
+        FY(L,1:KC)=0.0
+      ENDDO
 !$OMP END DO NOWAIT
 !  
 !  
@@ -131,6 +133,7 @@
      &                 +MIN(UHC,0.)*V(L,  K)
             ELSE
               FUHU(L,K)=0.  
+              
               FVHU(L,K)=0.  
               FVHV(L,K)=0.  
               FUHV(L,K)=0.  
@@ -178,80 +181,71 @@
 !  
             BOTT=ABS(UHB1*U(L,1))  
             IF(BOTT.GT.0.0)  
-     &          UHB1MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB1*U(L,1)  
+     &        UHB1MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB1*U(L,1)  
             BOTT=ABS(UHB1*U(LE,1))  
-            IF(BOTT.GT.0.0)  
-     &          UHB1MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/
-     &          UHB1*U(LE,1)  
+            IF(BOTT.GT.0.0)
+     &        UHB1MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/UHB1*U(LE,1)  
             BOTT=ABS(VHC1*U(LS,1))  
             IF(BOTT.GT.0.0)  
-     &          VHC1MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC1*
-     &          U(LS,1)  
+     &        VHC1MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC1*U(LS,1)  
             BOTT=ABS(VHC1*U(L,1))  
+            IF(BOTT.GT.0.0)
+     &        VHC1MN=1.+CK2UVM*(VHC2-VHC1)*(U(L,2)-U(L,1))/VHC1*U(L,1)
+            BOTT=ABS(UHC1*V(LW,1))  
             IF(BOTT.GT.0.0)  
-     &          VHC1MN=1.+CK2UVM*(VHC2-VHC1)*(U(L,2)-U(L,1))/VHC1*U(L,1)  
-            BOTT=ABS(UHC1*V(LWEST(L),1))  
-            IF(BOTT.GT.0.0)  
-     &          UHC1MX=1.+CK2UVM*(UHC2-UHC1)*(V(LWEST(L),2)-V(LWEST(L),1))/
-     &          UHC1*V(LWEST(L),1)  
+     &        UHC1MX=1.+CK2UVM*(UHC2-UHC1)*(V(LW,2)-V(LW,1))/UHC1*V(LW,1)  
             BOTT=ABS(UHC1*V(L,1))  
             IF(BOTT.GT.0.0)  
-     &          UHC1MN=1.+CK2UVM*(UHC2-UHC1)*(V(L,2)-V(L,1))/UHC1*V(L,1)  
+     &        UHC1MN=1.+CK2UVM*(UHC2-UHC1)*(V(L,2)-V(L,1))/UHC1*V(L,1)  
             BOTT=ABS(VHB1*V(L,1))  
             IF(BOTT.GT.0.0)  
-     &          VHB1MX=1.+CK2VVM*(VHB2-VHB1)*(V(L,2)-V(L,1))/VHB1*V(L,1)  
+     &        VHB1MX=1.+CK2VVM*(VHB2-VHB1)*(V(L,2)-V(L,1))/VHB1*V(L,1)  
             BOTT=ABS(VHB1*V(LN,1))  
             IF(BOTT.GT.0.0)  
-     &          VHB1MN=1.+CK2VVM*(VHB2-VHB1)*(V(LN,2)-V(LN,1))/VHB1*
-     &          V(LN,1)  
-  
-            BOTT=ABS(UHB2*U(L,2))  
-            IF(BOTT.GT.0.0)  
-     &          UHB2MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB2*U(L,2)  
+     &        VHB1MN=1.+CK2VVM*(VHB2-VHB1)*(V(LN,2)-V(LN,1))/VHB1*V(LN,1)  
+            BOTT=ABS(UHB2*U(L,2))
+            IF(BOTT.GT.0.0)
+     &        UHB2MX=1.+CK2UUM*(UHB2-UHB1)*(U(L,2)-U(L,1))/UHB2*U(L,2)  
             BOTT=ABS(UHB2*U(LE,2))  
             IF(BOTT.GT.0.0)  
-     &          UHB2MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/
-     &          UHB2*U(LE,2)  
+     &        UHB2MN=1.+CK2UUM*(UHB2-UHB1)*(U(LE,2)-U(LE,1))/UHB2*U(LE,2)  
             BOTT=ABS(VHC2*U(LS,2))  
-            IF(BOTT.GT.0.0)  
-     &          VHC2MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC2*
-     &          U(LS,2)  
+            IF(BOTT.GT.0.0)
+     &        VHC2MX=1.+CK2UVM*(VHC2-VHC1)*(U(LS,2)-U(LS,1))/VHC2*U(LS,2)  
             BOTT=ABS(VHC2*U(L,2))  
+            IF(BOTT.GT.0.0)
+     &        VHC2MN=1.+CK2UVM*(VHC2-VHC1)*(U(L,2)-U(L,1))/VHC2*U(L,2)  
+            BOTT=ABS(UHC2*V(LW,2))  
             IF(BOTT.GT.0.0)  
-     &          VHC2MN=1.+CK2UVM*(VHC2-VHC1)*(U(L,2)-U(L,1))/VHC2*U(L,2)  
-            BOTT=ABS(UHC2*V(LWEST(L),2))  
-            IF(BOTT.GT.0.0)  
-     &          UHC2MX=1.+CK2UVM*(UHC2-UHC1)*(V(LWEST(L),2)-V(LWEST(L),1))/
-     &          UHC2*V(LWEST(L),2)  
+     &        UHC2MX=1.+CK2UVM*(UHC2-UHC1)*(V(LW,2)-V(LW,1))/UHC2*V(LW,2)  
             BOTT=ABS(UHC2*V(L,2))  
             IF(BOTT.GT.0.0)  
-     &          UHC2MN=1.+CK2UVM*(UHC2-UHC1)*(V(L,2)-V(L,1))/UHC2*V(L,2)  
+     &        UHC2MN=1.+CK2UVM*(UHC2-UHC1)*(V(L,2)-V(L,1))/UHC2*V(L,2)  
             BOTT=ABS(VHB2*V(L,2))  
             IF(BOTT.GT.0.0)  
-     &          VHB2MX=1.+CK2VVM*(VHB2-VHB1)*(V(L,2)-V(L,1))/VHB2*V(L,2)  
+     &        VHB2MX=1.+CK2VVM*(VHB2-VHB1)*(V(L,2)-V(L,1))/VHB2*V(L,2)  
             BOTT=ABS(VHB2*V(LN,2))  
             IF(BOTT.GT.0.0)  
-     &          VHB2MN=1.+CK2VVM*(VHB2-VHB1)*(V(LN,2)-V(LN,1))/VHB2*
-     &          V(LN,2)  
+     &        VHB2MN=1.+CK2VVM*(VHB2-VHB1)*(V(LN,2)-V(LN,1))/VHB2*V(LN,2)  
 !  
-            FUHU(L,1)=UHB1MX*MAX(UHB1,0.)*U(L,1)  
-     &          +UHB1MN*MIN(UHB1,0.)*U(LE,1)  
+            FUHU(L,1)=UHB1MX*MAX(UHB1,0.)*U(L ,1)  
+     &               +UHB1MN*MIN(UHB1,0.)*U(LE,1)  
             FVHU(L,1)=VHC1MX*MAX(VHC1,0.)*U(LS,1)  
-     &          +VHC1MN*MIN(VHC1,0.)*U(L,1)  
-            FUHV(L,1)=UHC1MX*MAX(UHC1,0.)*V(LWEST(L),1)  
-     &          +UHC1MN*MIN(UHC1,0.)*V(L,1)  
-            FVHV(L,1)=VHB1MX*MAX(VHB1,0.)*V(L,1)  
-     &          +VHB1MN*MIN(VHB1,0.)*V(LN,1)  
+     &               +VHC1MN*MIN(VHC1,0.)*U(L ,1)  
+            FUHV(L,1)=UHC1MX*MAX(UHC1,0.)*V(LW,1)  
+     &               +UHC1MN*MIN(UHC1,0.)*V(L ,1)  
+            FVHV(L,1)=VHB1MX*MAX(VHB1,0.)*V(L ,1)  
+     &               +VHB1MN*MIN(VHB1,0.)*V(LN,1)  
             FUHJ(L,1)=0.  
             FVHJ(L,1)=0.  
-            FUHU(L,2)=UHB2MX*MAX(UHB2,0.)*U(L,2)  
-     &          +UHB2MN*MIN(UHB2,0.)*U(LE,2)  
+            FUHU(L,2)=UHB2MX*MAX(UHB2,0.)*U(L ,2)  
+     &               +UHB2MN*MIN(UHB2,0.)*U(LE,2)  
             FVHU(L,2)=VHC2MX*MAX(VHC2,0.)*U(LS,2)  
-     &          +VHC2MN*MIN(VHC2,0.)*U(L,2)  
-            FUHV(L,2)=UHC2MX*MAX(UHC2,0.)*V(LWEST(L),2)  
-     &          +UHC2MN*MIN(UHC2,0.)*V(L,2)  
-            FVHV(L,2)=VHB2MX*MAX(VHB2,0.)*V(L,2)  
-     &          +VHB2MN*MIN(VHB2,0.)*V(LN,2)  
+     &               +VHC2MN*MIN(VHC2,0.)*U(L ,2)  
+            FUHV(L,2)=UHC2MX*MAX(UHC2,0.)*V(LW,2)  
+     &               +UHC2MN*MIN(UHC2,0.)*V(L ,2)  
+            FVHV(L,2)=VHB2MX*MAX(VHB2,0.)*V(L ,2)  
+     &               +VHB2MN*MIN(VHB2,0.)*V(LN,2)  
             FUHJ(L,2)=0.  
             FVHJ(L,2)=0.  
           ENDIF  
@@ -302,15 +296,7 @@
 !         ENDIF  
         ENDIF  
       ENDDO  
-!  
-! ** HARDWIRE FOR PEACH BOTTOM  
-!  
-!      DO K=1,KC  
-!       FVHV(535,K)=700./H1P(535)  
-!      ENDDO  
-!  
-! ** END HARDWIRE FOR PEACH BOTTOM  
-!  
+!    
 !----------------------------------------------------------------------C  
 !  
 ! *** COMPUTE VERTICAL ACCELERATIONS
@@ -486,9 +472,10 @@
         DO LL=1,NPBE  
           IF(ISPBE(LL).EQ.2)THEN  
             L=LPBE(LL)  
-            LNW=LNWC(L)  
+            LNW=LNWC(L)
+            LW=LWEST(L)
             DO K=1,KC  
-              FCAX(L,K)=0.5*SCAX(L)*CAC(LWEST(L),K)*(V(LNW,K)+V(LWEST(L),K))  
+              FCAX(L,K)=0.5*SCAX(L)*CAC(LW,K)*(V(LNW,K)+V(LW,K))  
             ENDDO  
           ENDIF  
         ENDDO  
@@ -579,10 +566,8 @@
             LS=LSC(L) 
             LW=LWEST(L)
             LE=LEAST(L)
-            FX(L,K)=(FUHU(L,K)-FUHU(LW,K)+FVHU(LN,K)-FVHU(L,K)  
-     &          +FUHJ(L,K) )  
-            FY(L,K)=(FUHV(LE,K)-FUHV(L,K)+FVHV(L,K)-FVHV(LS,K)  
-     &          +FVHJ(L,K) )
+            FX(L,K)=(FUHU(L,K)-FUHU(LW,K)+FVHU(LN,K)-FVHU(L,K)+FUHJ(L,K))  
+            FY(L,K)=(FUHV(LE,K)-FUHV(L,K)+FVHV(L,K)-FVHV(LS,K)+FVHJ(L,K))
           ELSE
             FX(L,K)=0.
             FY(L,K)=0.
@@ -625,10 +610,11 @@
           DO L=2,LA  
             LN=LNC(L)  
             LS=LSC(L)  
+            LW=LWEST(L)
             LNW=LNWC(L)  
             LSE=LSEC(L)  
             WRITE(1,1113)IL(L),JL(L),CAC(L,K),V(LN,K),V(L,K),  
-     &          CAC(LWEST(L),K),V(LNW,K),V(LWEST(L),K)  
+     &          CAC(LW,K),V(LNW,K),V(LW,K)  
           ENDDO  
           CLOSE(1)  
         ENDIF  
@@ -671,17 +657,18 @@
 !----------------------------------------------------------------------C   
 !!!Begin SCJ block
       IF(ISVEG>=1)THEN
-        FXVEGE(:)=0.0;FYVEGE(:)=0.0 !initialize sum of vegetative forces in the water column
+        FXVEGE=0.0;FYVEGE=0.0 !Zero external mode forces
         DO L=2,LA  !loop over the model area
+          LW=LWEST(L)  !west cell
+          LE=LEAST(L)  !east cell
+          LS=LSC(L)    !south cell
+          LN=LNC(L)    !north cell
+          LNW=LNWC(L)  !northwest cell
+          LSE=LSEC(L)  !southeast cell
           IF(.NOT.LMASKDRY(L).OR.MVEGL(L)==MVEGOW)CYCLE  !if the cell is dry, or if it is open water, or if there is no vegetation in cell L, skip this cell
-          IF(MVEGL(L)==0.AND.MVEGL(LWEST(L))==0.AND.MVEGL(LSC(L))==0)CYCLE !if not this cell and no surrounding cells are vegetation, skip
+          IF(MVEGL(L)==0.AND.MVEGL(LW)==0.AND.MVEGL(LS)==0)CYCLE !if not this cell and no surrounding cells are vegetation, skip
           DO K=1,KC  !loop over the model layers
-            LW=LWEST(L)  !west cell
-            LE=LEAST(L)  !east cell
-            LS=LSC(L)    !south cell
-            LN=LNC(L)    !north cell
-            LNW=LNWC(L)  !northwest cell
-            LSE=LSEC(L)  !southeast cell
+            IF(RMAC(L,K)==0.0)CYCLE
             UTMPATV=0.25*(U(L,K)+U(LE,K) + U(LS,K)+U(LSE,K))  !u-velocity at v face
             VTMPATU=0.25*(V(L,K)+V(LW,K) + V(LN,K)+V(LNW,K))  !v-velocity at u face
             UMAGTMP=SQRT( U(L,K)*U(L,K)  +VTMPATU*VTMPATU )   !u-face velocity vector magnitude
@@ -698,8 +685,12 @@
           ENDDO
 !FXVEG/FYVEG are added to the body forces as C_d(N/L^2)A|q|q
 !FXVEG/FYVEG are multiplied by the local velocity to yield units of [m^4/s^2]
-          FX(L,:)=FX(L,:)+(FXVEG(L,:)-SUM(FXVEG(L,:)*DZC(:)))*U(L,:) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear. 
-          FY(L,:)=FY(L,:)+(FYVEG(L,:)-SUM(FYVEG(L,:)*DZC(:)))*V(L,:) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear.
+          SFXV(L)=SUM(FXVEG(L,1:KC)*DZC(1:KC))!*FLOAT(KC)
+          SFYV(L)=SUM(FYVEG(L,1:KC)*DZC(1:KC))!*FLOAT(KC)
+          FXVGTMP(L,1:KC)=(FXVEG(L,1:KC)-SFXV(L))*U(L,1:KC)
+          FYVGTMP(L,1:KC)=(FYVEG(L,1:KC)-SFYV(L))*V(L,1:KC)
+          FX(L,1:KC)=FX(L,1:KC)+FXVGTMP(L,1:KC) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear. 
+          FY(L,1:KC)=FY(L,1:KC)+FYVGTMP(L,1:KC) ![m^4/s^2] adding vegetative resistance to the body force (no net force added) to induce layer shear.
         ENDDO
         IF(LMHK)THEN
           CALL MHKPWRDIS !MHK devices exist
@@ -1293,11 +1284,5 @@ c      IINTPG=0
 !
 !**********************************************************************C
 !
- !     if(N>500)then
-      !write(112233,'(i6,5(1x,e10.2)," In")')N,(FY(12127,K),K=1,5)
-      !write(112233,'(i6,5(1x,e10.2)," Out")')N,(FY(23611,K),K=1,5)
- !     write(112244,'(i6,5(1x,e10.2)," In")')N,(V(12127,K),K=1,5)
- !     write(112244,'(i6,5(1x,e10.2)," Out")')N,(V(23611,K),K=1,5)
- !     endif
       RETURN
       END

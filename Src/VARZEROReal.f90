@@ -206,6 +206,7 @@ SUBROUTINE VARZEROReal
       CO2WQ=0.0
       COEFK=0.0
       COEFSK=0.0
+      CON1=0.0
       CON2=0.0
       CONGW=0.0
       CONPARB=0.0
@@ -392,10 +393,12 @@ SUBROUTINE VARZEROReal
       FUDISP=0.0
       FUHDYATV=0.0
       FUHDYE=0.0
+      FUHJ=0.0
       FUHU=0.0
       FUHV=0.0
       FVDISP=0.0
       FVHDXE=0.0
+      FVHJ=0.0
       FVHU=0.0
       FVHV=0.0
       FVOLASM=0.0
@@ -881,7 +884,7 @@ SUBROUTINE VARZEROReal
       SMW2=0.0
       SMW2DTOH=0.0
       SMW2PHODT=0.0
-      SNAPSHOTS=0.0
+      SNAPSHOTS=9999. !Make snapshot time large until overwritten
       SND=0.0
       SND1=0.0
       SND3DMAX=0.0
@@ -1561,10 +1564,6 @@ SUBROUTINE VARZEROReal
       ZZ=0.0
       ZZP=0.0
 
-      UROTTMP=0.
-      VROTTMP=0.
-      RFBODYFXI=0.
-      RFBODYFYI=0.
 !Initialize aquaculture related variables
       DRPRDRG=0.0
       DRPRTURB=0.0
@@ -1575,4 +1574,5 @@ SUBROUTINE VARZEROReal
    
       TATMT_M1 = 0.
       TATMT_M2 = 0.
+      RETURN
 END SUBROUTINE VARZEROReal

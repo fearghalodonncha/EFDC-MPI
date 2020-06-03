@@ -8,7 +8,6 @@ C **  TIME LEVELS INVOLVED
 C  
       USE GLOBAL
 !$      USE OMP_LIB
-      DOUBLE PRECISION LST,LEND,foo
       REAL,PARAMETER::BETAVEG_P=1.0, BETAVEG_D=5.1,CE4VEG=0.9 !from Katul et al. 2003
       REAL,PARAMETER::BETASUP_P=1.0, BETASUP_D=5.1,CE4SUP=0.9 !from Katul et al. 2003
       REAL,SAVE,ALLOCATABLE::PQQVEGI(:,:),PQQVEGE(:,:)
@@ -124,13 +123,13 @@ C
             UHUW=0.5*(UHDY2(L,K)+UHDY2(L,K+1))  
             VHVW=0.5*(VHDX2(L,K)+VHDX2(L,K+1))  
             FUHU(L,K)=MAX(UHUW,0.)*QQ(LW,K)  
-     &          +MIN(UHUW,0.)*QQ(L,K)  
+     &               +MIN(UHUW,0.)*QQ(L ,K)  
             FVHU(L,K)=MAX(VHVW,0.)*QQ(LS,K)  
-     &          +MIN(VHVW,0.)*QQ(L,K)  
+     &               +MIN(VHVW,0.)*QQ(L ,K)  
             FUHV(L,K)=MAX(UHUW,0.)*QQL(LW,K)*H1P(LW)  
-     &          +MIN(UHUW,0.)*QQL(L,K)*H1P(L)  
+     &               +MIN(UHUW,0.)*QQL(L ,K)*H1P(L )  
             FVHV(L,K)=MAX(VHVW,0.)*QQL(LS,K)*H1P(LS)  
-     &          +MIN(VHVW,0.)*QQL(L,K)*H1P(L)  
+     &               +MIN(VHVW,0.)*QQL(L ,K)*H1P(L )  
           ENDDO  
 !$OMP END DO NOWAIT
         ENDDO  
@@ -144,13 +143,14 @@ C
               UHUW=0.5*(UHDY2(L,K)+UHDY2(L,K+1))  
               VHVW=0.5*(VHDX2(L,K)+VHDX2(L,K+1))  
               FUHU(L,K)=MAX(UHUW,0.)*QQ(LW,K)  
-     &            +MIN(UHUW,0.)*QQ(L,K)  
+     &                 +MIN(UHUW,0.)*QQ(L ,K)  
               FVHU(L,K)=MAX(VHVW,0.)*QQ(LS,K)  
-     &            +MIN(VHVW,0.)*QQ(L,K)  
+     &                 +MIN(VHVW,0.)*QQ(L ,K)  
               FUHV(L,K)=MAX(UHUW,0.)*QQL(LW,K)*H1P(LW)  
-     &            +MIN(UHUW,0.)*QQL(L,K)*H1P(L)  
+     &                 +MIN(UHUW,0.)*QQL(L ,K)*H1P(L )  
+      print*,'d',FVHV(L,K),UHUW,QQL(LW,K),H1P(LW)
               FVHV(L,K)=MAX(VHVW,0.)*QQL(LS,K)*H1P(LS)  
-     &            +MIN(VHVW,0.)*QQL(L,K)*H1P(L)
+     &                 +MIN(VHVW,0.)*QQL(L ,K)*H1P(L )
             ELSE  
               FUHU(L,K)=0.  
               FUHV(L,K)=0.  
@@ -200,7 +200,12 @@ C
             FVHV(L,K)=0.0  
           ENDIF  
         ENDDO  
-      ENDDO  
+      ENDDO
+      WHERE(FVHU(LCBN(1:NCBN),1:KC)<0.0)
+        FVHU(LCBN(1:NCBN),1:KC)=0.0
+        FVHV(LCBN(1:NCBN),1:KC)=0.0
+      ENDWHERE
+      FVHU(LCBN(1:NCMB),1:KC)=MAX(FVHU(LCBN(1:NCMB),1:KC),0.0)
       IF(ISVEG.GT.0)THEN !SCJ vegetative/MHK impact on K-epsilon
         DO K=1,KS  
           DO L=2,LA

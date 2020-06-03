@@ -18,7 +18,7 @@
 
 !*****************************************************************************************
 !** initialize variables for declaring appropriate month,day,time
-     INTEGER  jd,yyyy,mm,dd,l,hh,min
+     INTEGER  jd,yyyy,mm,dd,hh,min
      INTEGER,PARAMETER :: dprec=kind(1.d0)
      REAL(kind=dprec):: time 
 

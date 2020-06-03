@@ -25,10 +25,9 @@ C
       USE GLOBAL  
       USE DRIFTER,ONLY:DRIFTERINP,AREA_CENTRD
 #ifdef key_mpi
-      USE parallel_mpi
-      USE mpi
+      USE PARALLEL_MPI
+      USE MPI
 #endif
-      CHARACTER(LEN=124) STRING_DESCR
       REAL*4       SEEPRATE(1000)
       CHARACTER*80 TEXT,TITLE  
       CHARACTER*10 CDUM  
@@ -1742,15 +1741,26 @@ C73*  CONTROLS FOR HORIZONTAL PLANE VELOCITY PLOTTING
 #ifdef key_ncdf
       ! We need information on I & J location in cell to manage reconciliation
       ! Ensure these present for velocity elevation and transported solutes
-      IVPHXY=1
-      IPPHXY=1
-      ISPHXY(:) = 1
-      !IF(LCM==2753)THEN !Just to get a model to spit out EE SCJ SCJ Delete otherwise
-      !    IVPHXY=3
-      !    IPPHXY=3
-      !    ISPHKY=3
-      !ENDIF
-      
+      DO N=1,7
+        IF(ISSPH(N)==1.AND.ISPHXY(N)/=1)THEN
+          IF(PARTID==0)THEN
+            PRINT*,'ISPHXY(',N,') on C71 SET TO 1'
+          ENDIF
+          ISPHXY(N)=1
+        ENDIF
+      ENDDO  
+      IF(ISPPH==1.AND.IPPHXY/=1)THEN
+        IF(PARTID==0)THEN
+          PRINT*,'IPPHXY on C72 SET TO 1'    
+        ENDIF
+        IPPHXY=1
+      ENDIF 
+      IF(ISVPH==1.AND.IVPHXY/=1)THEN
+        IF(PARTID==0)THEN
+          PRINT*,'IVPHXY on C73 SET TO 1'    
+        ENDIF
+        IVPHXY=1
+      ENDIF
 #endif
 C  
 C74*  CONTROLS FOR VERTICAL PLANE SCALAR FIELD CONTOURING 
@@ -5266,7 +5276,7 @@ C
       ! NPPPH (elevation), NPVPH(velocity) and NPSPH(scalar transport)
       ! Set write frequency to maximum of user specified values and print
       ! warning to screen
-      INTEGER I,J, NPSPH_MAX
+      INTEGER NPSPH_MAX
 
       ! 1) Find maximum write frequency of scalar transport
       NPSPH_MAX = 0

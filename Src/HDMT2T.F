@@ -37,7 +37,7 @@ C
       USE IOM
 #endif
 
-ifdef key_mpi
+#ifdef key_mpi
       USE mpi
 #endif
 

@@ -286,9 +286,10 @@ C PMC         UHDY2(L,K)=0.25*STCUV(L)*( (UHDY(L  ,K)+UHDY(L  ,K)
       ENDIF
       ! *** DSLLC END BLOCK  
       DO K=1,KS  
-        DO L=2,LA  
-          W2(L,K)=0.25*( DXYP(L  )*(W(L  ,K)+W(L  ,K))  
-     &        +DXYP(LWEST(L))*(W(LWEST(L),K)+W(LWEST(L),K)) )  
+        DO L=2,LA
+          LW=LWEST(L)
+          W2(L,K)=0.25*( DXYP(L )*(W(L ,K)+W(L ,K))  
+     &                  +DXYP(LW)*(W(LW,K)+W(LW,K)) )  
         ENDDO  
       ENDDO  
 C  
@@ -297,18 +298,18 @@ C ** STANDARD FORM
 C  
       DO K=1,KC  
         DO L=2,LA
-          LE=LEAST(L)
           LS=LSC(L)
-          FUHU(L,K)=MAX(UHDY2(L,K),0.)*U(L     ,K)  
-     &        +MIN(UHDY2(L,K),0.)*U(LE   ,K)  
+          LE=LEAST(L)
+          FUHU(L,K)=MAX(UHDY2(L,K),0.)*U(L ,K)  
+     &             +MIN(UHDY2(L,K),0.)*U(LE,K)  
           FVHU(L,K)=MAX(VHDX2(L,K),0.)*U(LS,K)  
-     &        +MIN(VHDX2(L,K),0.)*U(L     ,K)  
+     &             +MIN(VHDX2(L,K),0.)*U(L ,K)  
         ENDDO  
       ENDDO  
       DO K=1,KS  
         DO L=2,LA  
-          FWU(L,K)=MAX(W2(L,K),0.)*U(L,K)  
-     &        +MIN(W2(L,K),0.)*U(L,K+1)  
+          FWU(L,K)=MAX(W2(L,K),0.)*U(L,K  )  
+     &            +MIN(W2(L,K),0.)*U(L,K+1)  
         ENDDO  
       ENDDO  
 C  
@@ -400,11 +401,13 @@ C ** SMOLARKIEWCZ AND MARGOLIN FORM
 C ** STANDARD FORM  
 C  
       DO K=1,KC  
-        DO L=2,LA  
-          FUHV(L,K)=MAX(UHDY2(L,K),0.)*V(LWEST(L)   ,K)  
-     &        +MIN(UHDY2(L,K),0.)*V(L     ,K)  
-          FVHV(L,K)=MAX(VHDX2(L,K),0.)*V(L     ,K)  
-     &        +MIN(VHDX2(L,K),0.)*V(LNC(L),K)  
+        DO L=2,LA
+          LW=LWEST(L)
+          LN=LNC(L)
+          FUHV(L,K)=MAX(UHDY2(L,K),0.)*V(LW,K)  
+     &             +MIN(UHDY2(L,K),0.)*V(L ,K)  
+          FVHV(L,K)=MAX(VHDX2(L,K),0.)*V(L ,K)  
+     &             +MIN(VHDX2(L,K),0.)*V(LN,K)  
         ENDDO  
       ENDDO  
       DO K=1,KS  

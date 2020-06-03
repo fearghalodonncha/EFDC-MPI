@@ -10,7 +10,6 @@ C
       USE GLOBAL 
       USE parallel_mpi       
       USE OMP_LIB
-      DOUBLE PRECISION LST,LEND,foo
       REAL(8) PAPCG,RPCG,RPCGN
       REAL(8) RPCG_OUT,PAPCG_OUT,
      &  RED_OUT1,RED_OUT2,RSQ_DBL

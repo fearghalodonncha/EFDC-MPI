@@ -9,7 +9,6 @@ C
 #ifdef key_mpi
       USE parallel_mpi
 #endif
-      DOUBLE PRECISION LST,LEND,foo
 C  
       IF(ISDYNSTP.EQ.0)THEN  
         DELT=DT2  
@@ -606,5 +605,4 @@ C
  1213 FORMAT(I4)  
  1214 FORMAT(2I5,I12,F10.2)  
       RETURN  
-      END  
-
+      END

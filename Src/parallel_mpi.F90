@@ -33,16 +33,15 @@ MODULE PARALLEL_MPI
        SUBROUTINE INITIALIZE_MPI
 
 ! set up MPI execution environment and initialize MPI
-!      IMPLICIT NONE; including this statement will involve significant reoorganising and declaring of existing code
+!      IMPLICIT NONE; including this statement will involve significant reorganizing and declaring of existing code
 !       IMPLICIT NONE
-       INTEGER(4) ii,ierr2
-!      INTEGER(4) IERR,ii
+       INTEGER(4) ierr2
 !MPI_COMM_WORLD,MPI_ERRORS_ARE_FATAL
 ! initiate MPI environment
 ! this routine must be called before any other MPI routines
-         CALL MPI_INIT(IERR)
-
-         STARTTIME = MPI_WTIME()
+       CALL MPI_INIT(IERR)
+ !      PRINT*,'CALLED MPI_INIT',IERR
+       STARTTIME = MPI_WTIME()
 
 !
 
@@ -54,13 +53,15 @@ MODULE PARALLEL_MPI
       CALL MPI_COMM_RANK(MPI_COMM_WORLD,MY_TASK,IERR)
       EFDC_COMM = MPI_COMM_WORLD
 
-      CALL MPI_comm_set_errhandler(EFDC_COMM,MPI_ERRORS_ARE_FATAL,IERR2)
+      CALL MPI_COMM_SET_ERRHANDLER(EFDC_COMM,MPI_ERRORS_ARE_FATAL,IERR2)
 ! my_task refers to actual processor ID of current process (i.e. PARTID)
 ! declare partition id with base 0 (MPI)
       PARTID = TILEID(MY_TASK+1)
       NODEID = TILE2NODE(PARTID + 1)
       MASTER_TASK = 0
       PARTID2 = PARTID + 1
+ !     PRINT*,PARTID,PARTID2,NODEID
+      RETURN
       END SUBROUTINE INITIALIZE_MPI
 !!
       SUBROUTINE FINALIZE_MPI
@@ -73,7 +74,7 @@ MODULE PARALLEL_MPI
       ENDTIME = MPI_WTIME()
       EFDCRUNTIME = (ENDTIME-STARTTIME)/3600.
      
-      IF (PARTID ==0) THEN
+      IF (PARTID == 0) THEN
   ! Write to log file run time
           OPEN(607,FILE='CouplingOutput.log',STATUS='UNKNOWN',  &
                   POSITION='APPEND')
@@ -85,40 +86,47 @@ MODULE PARALLEL_MPI
       END IF
 
       CALL MPI_FINALIZE(IERR)
-      
+      RETURN
       END SUBROUTINE FINALIZE_MPI
 
       SUBROUTINE DISTRIBUTE_MPI
 ! distribute the model domain across processors
 
 !       
-      IMPLICIT NONE
-      INTEGER(4) IERR, NPROC ,II
+      IMPLICIT NONE 
+      INTEGER(4) IERR, NPROC, II
      
       NPROC=0
       IERR=0
+      DO II = 1,PARTID2
+        WRITE(ANS(II),'(I3.3)')II
+!        PRINT*,II,ANS(II)
+      ENDDO  
 
 ! determine the number of processors and check if exceed prescribed values
 ! MPI_COMM_SIZE determines the size of the group (number of processes) associated with a communicator (EFDC_COMM)
 
       CALL MPI_COMM_SIZE(EFDC_COMM,NPROC,IERR)
-      open(222,FILE='RANK.txt',status='unknown',POSITION='APPEND')
-      write(222,*)"I am", MY_TASK, "of", NPROC
-      close(222)
+!      OPEN(222,FILE='RANK'//ANS(PARTID2)//'.TXT',STATUS='UNKNOWN')
+!      CLOSE(222,STATUS='DELETE')
+!      OPEN(222,FILE='RANK'//ANS(PARTID2)//'.TXT',STATUS='UNKNOWN')
+!      WRITE(222,*)"I am", MY_TASK+1, "of", NPROC
+!      PRINT*,"I am", MY_TASK+1, "of", NPROC
+!      CLOSE(222)
 ! introduce check here on number of processors at later point
 ! to ensure number of assigned processors not greate than user-prescribed (i. EFDC.INP)
 
 ! NPARTX number of processors in x
-! NPARTY number of processors in y (both determined from python utility)
+! NPARTY number of processors in y (both determined from Python utility)
 ! NPART total number of processors = NPARTX * NPARTY
       IF(NPROC.NE.NPARTS)THEN
-         IF (MY_TASK.EQ.MASTER_TASK) WRITE(*,'(A//A)' )  &
-     'NUMBER OF PROCESSORS DO NOT CORRESPOND TO PRESCRIBED', 'EFDC TERMINATED'
+         IF (MY_TASK==MASTER_TASK) WRITE(*,'(A//A)' )  &
+     'NUMBER OF PROCESSORS DOES NOT CORRESPOND TO PRESCRIBED', 'EFDC TERMINATED'
          write(*,*)'PRESCRIBED=',NPARTS,'ACTUAL=',NPROC    
          CALL FINALIZE_MPI
          STOP
       END IF 
-
+      
 ! determine partition id of neighbours to which data communicated
 
       PART_EAST  = PARTID + 1
@@ -142,7 +150,7 @@ MODULE PARALLEL_MPI
 
 
 
-      
+      RETURN
       END SUBROUTINE DISTRIBUTE_MPI
 
 
@@ -903,7 +911,7 @@ MODULE PARALLEL_MPI
 
 
 !     end communication and updating of variables
-      
+      RETURN
       END SUBROUTINE COMMUNICATE_MPI
 
 
@@ -1065,8 +1073,8 @@ MODULE PARALLEL_MPI
          END DO
        END IF  
 
-       
-       END SUBROUTINE COMMUNICATE_P
+      RETURN
+      END SUBROUTINE COMMUNICATE_P
 
 
 
@@ -1257,7 +1265,7 @@ MODULE PARALLEL_MPI
        END IF  
 
 
-       
+      RETURN
        END SUBROUTINE COMMUNICATE_W
 
 
@@ -1429,7 +1437,7 @@ MODULE PARALLEL_MPI
 
 
        END IF
-       
+      RETURN
        END SUBROUTINE COMMUNICATE_3d
 
 
@@ -1613,7 +1621,7 @@ MODULE PARALLEL_MPI
 
 
        END IF
-
+      RETURN
        END SUBROUTINE COMMUNICATE_4D_WQ
 
 #endif

@@ -75,13 +75,14 @@ C
       ENDDO  
       DO K=1,KS  
         DO L=2,LA  
-          LS=LSC(L)  
+          LS=LSC(L)
+          LW=LWEST(L)
           UHUW=0.5*(UHDY(L,K)+UHDY(L,K+1))  
           VHVW=0.5*(VHDX(L,K)+VHDX(L,K+1))  
-          FUHU(L,K)=MAX(UHUW,0.)*WZ(LWEST(L),K)  
-     &        +MIN(UHUW,0.)*WZ(L,K)  
+          FUHU(L,K)=MAX(UHUW,0.)*WZ(LW,K)  
+     &             +MIN(UHUW,0.)*WZ(L ,K)  
           FVHU(L,K)=MAX(VHVW,0.)*WZ(LS,K)  
-     &        +MIN(VHVW,0.)*WZ(L,K)  
+     &             +MIN(VHVW,0.)*WZ(L ,K)  
         ENDDO  
       ENDDO  
       DO K=1,KC  
@@ -142,23 +143,25 @@ C
 C **  CALCULATE QUASI-NONHYDROSTATIC PRESSURE  
 C  
       DO L=2,LA  
-        LN=LNC(L)  
+        LN=LNC(L)
+        LE=LEAST(L)
         TMPVAL=0.5*DZC(KC)/DXYP(L)  
-        PNHYDS(L,KC)= 0.75*TMPVAL*( 
-     &           DELTI*DXYP(L)*(HP(L)*WZ(L,KC)-H1P(L)*WZ1(L,KC))
-     &          +FUHU(LEAST(L),KC)-FUHU(L,KC)+FVHU(LN,KC)-FVHU(L,KC) )
-     &               +0.25*TMPVAL*( 
-     &           DELTI*DXYP(L)*(HP(L)*WZ(L,KS)-H1P(L)*WZ1(L,KS))
-     &          +FUHU(LEAST(L),KS)-FUHU(L,KS)+FVHU(LN,KS)-FVHU(L,KS) )
+        PNHYDS(L,KC)= 0.75*TMPVAL
+     &          *( DELTI*DXYP(L)*(HP(L)*WZ(L,KC)-H1P(L)*WZ1(L,KC))
+     &          +FUHU(LE,KC)-FUHU(L,KC)+FVHU(LN,KC)-FVHU(L,KC) )
+     &                +0.25*TMPVAL*
+     &          *( DELTI*DXYP(L)*(HP(L)*WZ(L,KS)-H1P(L)*WZ1(L,KS))
+     &          +FUHU(L ,KS)-FUHU(L,KS)+FVHU(LN,KS)-FVHU(L,KS) )
      &          -FWQQ(L,KC)
       ENDDO  
       DO K=KS,1,-1  
         DO L=2,LA  
-          LN=LNC(L)  
+          LN=LNC(L)
+          LE=LEAST(L)
           TMPVAL=0.5*(DZC(K+1)+DZC(K))/DXYP(L)  
           PNHYDS(L,K)=PNHYDS(L,K+1)+FWQQ(L,K+1)-FWQQ(L,K)-FWJET(L,K)  
      &        +TMPVAL*( DELTI*DXYP(L)*(HP(L)*WZ(L,K)-H1P(L)*WZ1(L,K))  
-     &        +FUHU(LEAST(L),K)-FUHU(L,K)+FVHU(LN,K)-FVHU(L,K) )  
+     &        +FUHU(LE,K)-FUHU(L,K)+FVHU(LN,K)-FVHU(L,K) )  
         ENDDO  
       ENDDO  
       DO K=0,KC  

@@ -47,8 +47,8 @@ C
 	    XPSL=0.0 
       ENDIF
 C  
-      OPEN(2,FILE='WQ3D.OUT',STATUS='UNKNOWN',POSITION='APPEND')  
-      PRINT *,'WQ: READING WQ3DWC.INP - MAIN WATER QUALITY CONTROL FILE'
+      OPEN(2,FILE='WQ3D'//ans(partid2)//'.OUT',STATUS='UNKNOWN',POSITION='APPEND')  
+      IF(PARTID==0)PRINT *,'WQ: READING WQ3DWC.INP - MAIN WATER QUALITY CONTROL FILE'
       OPEN(1,FILE='WQ3DWC.INP',STATUS='UNKNOWN')  
 C  
 C READ FIRST LINE IN WQ3DWC.INP FILE.  IF FIRST CHARACTER IS '#', THEN  
@@ -79,9 +79,9 @@ C *** C02
       WRITE(2,999)  
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) ISWQLVL,NWQV,NWQZ,NWQPS,NWQTD,NWQTS,NTSWQV,NSMG,NSMZ,  
+      READ(1,*) ISWQLVL,NWQV,NWQZ,NWQPS_GL,NWQTD,NWQTS,NTSWQV,NSMG,NSMZ,  
      &    NTSSMV,NSMTS,NWQKDPT  
-      WRITE(2,*) ISWQLVL,NWQV,NWQZ,NWQPS,NWQTD,NWQTS,NTSWQV,NSMG,NSMZ,  
+      WRITE(2,*) ISWQLVL,NWQV,NWQZ,NWQPS_GL,NWQTD,NWQTS,NTSWQV,NSMG,NSMZ,  
      &    NTSSMV,NSMTS,NWQKDPT  
       IF(ISWQLVL.LT.0.OR.ISWQLVL.GT.4)STOP 'BAD KINETICS OPTION'   ! *** PMC
 C *** C02A   
@@ -1336,7 +1336,7 @@ C
         READ(1,*) (WQV(1,1,NW), NW=14,NWQV) 
         WRITE(2,*) (WQV(1,1,NW), NW=14,NWQV)
       ENDIF
-      IF(IWQICI.NE.1.AND.IWQICI.NE.3)THEN  !SCJ IWQICI.NE.3 not needed if PSLs used
+      IF(IWQICI.EQ.0)THEN  !SCJ only needed if ICs are constant and specified on C44
         WRITE(2,999)  
         WRITE(2,90) TITLE(1)  
         WRITE(2,21)' : (BC, BD, BG)         = ', (WQV(1,1,NW),NW=1,3)  
@@ -1658,24 +1658,18 @@ C     The code was updated to be on a layer-wise basis for macroalgae "irrigatio
 C     Original code ignored K, but it is used for irrigating macroalgae.
       IF(ISSKIP .GT. 0) CALL SKIPCOMM(1,CCMRM)  
       IF(ISSKIP .EQ. 0) READ(1,999)  
-      READ(1,*) IWQPS,NPSTMSR
-      IF(NQSIJ/=0)THEN
-        IF(MOD(IWQPS,NQSIJ)/=0)THEN !Allows distinct layers to be different, not just assigned by column.
-          PRINT*,'IWQPS is not an integer multiple of NQSIJ'
-          PAUSE
-          STOP
-        ENDIF
-      ENDIF
-      WRITE(2,*) IWQPS,NPSTMSR  
-      WRITE(2,23)'* NUMBER OF CELLS FOR POINT SOURCE INPUT  = ',IWQPS  
+      READ(1,*) IWQPS_GL,NPSTMSR
+      WRITE(2,*) IWQPS_GL,NPSTMSR  
+      WRITE(2,23)'* NUMBER OF CELLS FOR POINT SOURCE INPUT  = ',IWQPS_GL
       WRITE(2,23)'* NUMBER WITH VARIABLE POINT SOURCE INPUT = ',NPSTMSR
-      IF(IWQPS.GT.NWQPS) STOP 'ERROR!! IWQPS SHOULD BE <= NWQPS'  
+      IF(IWQPS_GL.GT.NWQPS_GL) STOP 'ERROR!! IWQPS SHOULD BE <= NWQPS'  
       DO M=1,3  
         READ(1,90) TITLE(M)  
         WRITE(2,90) TITLE(M)  
       ENDDO
       M=0
-      WQPSLs: DO MM=1,IWQPS  
+      IWQPS=0
+      WQPSLs: DO MM=1,IWQPS_GL
         READ(1,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6)  !GR changed ITMP to be indexed value CSER in CWQSRxx.INP, K is sigma layer for inflow corresponding to QSER.INP. XPSQ is not used.
         WRITE(2,*) I,J,K,ITMP,XPSQ,(XPSL(NW),NW=1,6) !SCJ ITMP is the flow series index in QSER.INP, but C32, C35, C38, and C41 already do this for BCs (not irrigation)
         READ(1,*) (XPSL(NW),NW=7,13)  
@@ -1691,6 +1685,7 @@ C     Original code ignored K, but it is used for irrigating macroalgae.
         !Presently it is assigned to all layers in CALCSER.
         IF(CELL_INSIDE_DOMAIN(L))THEN
           M=M+1
+          IWQPS = IWQPS + 1
           IF(MOD(M,NQSIJ+1)==0)M=1 !Reset M to allow distinct layers to be different (not assigned to the entire water column)
           IF(IJCT(II,JJ).LT.1 .OR. IJCT(II,JJ).GT.8)THEN  
             WRITE(*,911) I,J  
@@ -1717,6 +1712,7 @@ C     Original code ignored K, but it is used for irrigating macroalgae.
               ENDIF
             ENDDO
           ENDIF
+
 C  
 C JMH MODIFIED 5/18/00 TO ALLOW KCPSL(M) TO BE SET TO ZERO FOR UNIFORM D  
 C OF LOAD IN HORIZONTAL CELL STACK OVER ALL LAYERS  
@@ -1751,6 +1747,14 @@ C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
           ENDIF
         ENDIF
       ENDDO WQPSLs
+      IF(NQSIJ_GL/=0)THEN
+        IF(MOD(IWQPS,NQSIJ)/=0)THEN !Allows distinct layers to be different, not just assigned by column.
+          PRINT*,'IWQPS is not an integer multiple of NQSIJ'
+          PRINT*,ANS(PARTID2),IWQPS,NQSIJ
+          PAUSE
+          STOP
+        ENDIF
+      ENDIF
   911 FORMAT(/,' I,J = ', 2I5)  
 C  
 C *** C49
@@ -1866,8 +1870,11 @@ C ***     MG/L FOR 1-19, TAM-MOLES/L, AND FCB-MPN/L
         WRITE(99,888)  
         CLOSE(99)  
       ELSE  
-        IF(RSTOFN(1:4).NE.'NONE'.AND.RSTOFN(1:4).NE.'none')  
-     &     STOP 'ERROR!! INVALID IWQORST/RSTOFN'  
+        IF(RSTOFN(1:4).NE.'NONE'.AND.RSTOFN(1:4).NE.'none')THEN
+           PRINT*,ANS(PARTID2),RSTOFN(1:4)
+           PAUSE
+           STOP 'ERROR!! INVALID IWQORST/RSTOFN' 
+         ENDIF  
       ENDIF  
   888 FORMAT('    L    K',  
      &    '          BC          BD          BG        RPOC       

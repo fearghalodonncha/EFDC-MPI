@@ -103,13 +103,13 @@ C **  AT (N) OR (N-1) IF ISTL EQUALS 2 OR 3 RESPECTIVELY
 C  
   300 CONTINUE  
       IF(IDRYTBP.EQ.0)THEN  
-!$OMP PARALLEL SHARED(DEFAULT)  
+!$OMP PARALLEL DEFAULT(SHARED)  
         DO K=1,KS  
 !$OMP DO  schedule(static,chunksize) 
           DO L=2,LA  
               FUHU(L,K)=UHDY2(L,K)*CON1(LUPU(L,K),K)  
               FVHU(L,K)=VHDX2(L,K)*CON1(LUPV(L,K),K)  
-              FWU(L,K)=W2(L,K)*CON1(L,KUPW(L,K))
+              FWU(L,K) =W2(L,K)   *CON1(L,KUPW(L,K))
           ENDDO  
         ENDDO
         DO L=2,LA  
@@ -150,7 +150,7 @@ C **  AVERAGED BETWEEN  (N-1) AND (N+1) AND ADVECTED FIELD AVERAGED
 C **  BETWEEN AT (N-1) AND (N) IF ISTL 3 ONLY  
 C  
   350 CONTINUE  
-!$OMP PARALLEL SHARED(DEFAULT)
+!$OMP PARALLEL DEFAULT(SHARED)
       DO K=1,KC  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)
         DO L=2,LA  
@@ -226,7 +226,7 @@ C
       IF(ISCDCA(MVAR).EQ.0)THEN  
         IF(ISTL_.EQ.2)THEN  
           IF(IDRYTBP.EQ.0)THEN  
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(RDZIC) 
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC) 
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -276,7 +276,7 @@ C
 C ELSE ON TIME LEVEL CHOICE FOR ISCDCA=0   (i.e. ISTL_ == 2) 
 C  
         ELSE
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -317,10 +317,8 @@ C
     
 
         ! *** UPDATE NEW CONCENTRATIONS        
-        DO K=1,KC  
- !         DO L=2,LA  
-            CON(2:LA,K)=CH(2:LA,K)*HPI(2:LA)  
- !         ENDDO  
+        DO K=1,KC
+          CON(2:LA,K)=CH(2:LA,K)*HPI(2:LA)
         ENDDO 
 
 C  
@@ -333,7 +331,7 @@ C BEGIN IF ON TIME LEVEL CHOICE FOR ISCDCA.NE.0
 C  
         IF(ISTL_.EQ.2)THEN  
           IF(IDRYTBP.EQ.0)THEN
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(static,chunksize)
@@ -376,7 +374,7 @@ C
 C ELSE ON TIME LEVEL CHOICE FOR ISCDCA.NE.0 AND ISTL.EQ.3
 C  
         ELSE  
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -479,12 +477,10 @@ C
           ENDIF  
         ENDDO  
       ENDDO  
-      VSW_BOUNDARY = 0
-      SAL_CELL = 0
+        
       ! *** WEST OPEN BC
+      DO K=1,KC  
         DO LL=1,NCBW  
-              DO K=1,KC
-
           NSID=NCSERW(LL,M)  
           L=LCBW(LL)
           LE=LEAST(L)
@@ -508,8 +504,6 @@ C
             IF(M.EQ.1.AND.CON(L,K).GT.CBWTMP) CON(L,K)=CBWTMP  
             CLOW(LL,K,M)=CON(L,K)  
             NLOW(LL,K,M)=N  
-            SAL_CELL = SAL_CELL + (CTMP*(-1.)/KC)
-
           ELSE  
             ! *** FLOWING INTO DOMAIN
             IF(ISUD.EQ.1) CON1(L,K)=CON(L,K)  
@@ -520,14 +514,10 @@ C
               CON(L,K)=CBT  
             ELSE  
               CON(L,K)=CLOW(LL,K,M)  
-     &            +(CBT-CLOW(LL,K,M))*FLOAT(NMNLO)/FLOAT(NTSCRW(LL))
-
+     &            +(CBT-CLOW(LL,K,M))*FLOAT(NMNLO)/FLOAT(NTSCRW(LL))  
             ENDIF  
-            SAL_CELL = SAL_CELL + CON(L,K)/KC
           ENDIF  
         ENDDO  
-        VSW_BOUNDARY= VSW_BOUNDARY+((.5*( HU(L) + HV(L)))*DXYP(L)*(1 - (SAL_CELL/35)))
-        SAL_CELL = 0
       ENDDO
       
       ! *** EAST OPEN BC
@@ -635,7 +625,7 @@ C
 !          POS(L,K)=MAX(CON(L,K),0.)
 !        ENDDO
 !      ENDDO
-      POS(2:LA,1:KC)=MAX(CON(2:LA,1:KC),0.0)
+      POS(:,:)=MAX(CON(:,:),0.0)
       ! *** PMC END BLOCK
 
       IF(IDRYTBP.EQ.0)THEN  
@@ -651,7 +641,7 @@ C
         ENDDO  
 C
 !$         LST = omp_get_wtime()
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(UTERM,VTERM,UHU,VHV,SSCORUE,SSCORUW,SSCORVN,
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(UTERM,VTERM,UHU,VHV,SSCORUE,SSCORUW,SSCORVN,
 !$OMP& SSCORVS,SSCORU,SSCORV,LW,LE,LN,LS,LNW,LSE,RDZIC,RDZIG,AUHU,AVHV,AWW,WTERM,
 !$OMP& SSCORWA,SSCORWB,SSCORW,WW)
         DO K=1,KC  
@@ -665,7 +655,7 @@ C
  !           WWW(L,K)=W2(L,K)*(POS(L,K+1)-POS(L,K))*HPI(L)*RDZIG  
           ENDDO  
 !$OMP END DO
-          WWW(2:LA,K)=W2(2:LA,K)*(POS(2:LA,K+1)-POS(2:LA,K))*HPI(2:LA)*RDZIG
+          WWW(:,K)=W2(:,K)*(POS(:,K+1)-POS(:,K))*HPI(:)*RDZIG
         ENDDO 
         DO K=1,KC  
           RDZIC=DZIC(K) 
@@ -820,41 +810,41 @@ C
 C  
 C **  DETERMINE MAX AND MIN CONCENTRATIONS  
 C  
-!        DO K=1,KC  
-!          DO L=1,LC  
-!            CONTMX(L,K)=0.0  
-!            CONTMN(L,K)=0.0  
-!          ENDDO  
-!        ENDDO
-!        DO K=1,KC  
-!          DO L=2,LA  
-!            CONTMX(L,K)=MAX(CON(L,K),CON2(L,K))  
-!            CONTMN(L,K)=MIN(CON(L,K),CON2(L,K))  
-!          ENDDO  
-!        ENDDO
-        CONTMX(2:LA,1:KC)=MAX(CON(2:LA,1:KC),CON2(2:LA,1:KC))
-        CONTMN(2:LA,1:KC)=MIN(CON(2:LA,1:KC),CON2(2:LA,1:KC))
-!        DO L=2,LA  
-!          CMAX(L,1)=MAX(CONTMX(L,1),CONTMX(L,2))  
-!          CMAX(L,KC)=MAX(CONTMX(L,KS),CONTMX(L,KC))  
-!          CMIN(L,1)=MIN(CONTMN(L,1),CONTMN(L,2))  
-!          CMIN(L,KC)=MIN(CONTMN(L,KS),CONTMN(L,KC))  
-!        ENDDO
-        CMAX(2:LA,1)=MAX(CONTMX(2:LA,1),CONTMX(2:LA,2))  
-        CMAX(2:LA,KC)=MAX(CONTMX(2:LA,KS),CONTMX(2:LA,KC))  
-        CMIN(2:LA,1)=MIN(CONTMN(2:LA,1),CONTMN(2:LA,2))  
-        CMIN(2:LA,KC)=MIN(CONTMN(2:LA,KS),CONTMN(2:LA,KC)) 
+        DO K=1,KC  
+          DO L=1,LC  
+            CONTMX(L,K)=0.0  
+            CONTMN(L,K)=0.0  
+          ENDDO  
+        ENDDO
+        DO K=1,KC  
+          DO L=2,LA  
+            CONTMX(L,K)=MAX(CON(L,K),CON2(L,K))  
+            CONTMN(L,K)=MIN(CON(L,K),CON2(L,K))  
+          ENDDO  
+        ENDDO
+!        CONTMX(:,:)=MAX(CON(:,:),CON2(:,:))
+!        CONTMN(:,:)=MIN(CON(:,:),CON2(:,:))
+        DO L=2,LA  
+          CMAX(L,1)=MAX(CONTMX(L,1),CONTMX(L,2))  
+          CMAX(L,KC)=MAX(CONTMX(L,KS),CONTMX(L,KC))  
+          CMIN(L,1)=MIN(CONTMN(L,1),CONTMN(L,2))  
+          CMIN(L,KC)=MIN(CONTMN(L,KS),CONTMN(L,KC))  
+        ENDDO
+!        CMAX(:,1)=MAX(CONTMX(:,1),CONTMX(:,2))  
+!        CMAX(:,KC)=MAX(CONTMX(:,KS),CONTMX(:,KC))  
+!        CMIN(:,1)=MIN(CONTMN(:,1),CONTMN(:,2))  
+!        CMIN(:,KC)=MIN(CONTMN(:,KS),CONTMN(:,KC)) 
         DO K=2,KS  
-!          DO L=2,LA  
-!            CMAXT=MAX(CONTMX(L,K-1),CONTMX(L,K+1))  
-!            CMAX(L,K)=MAX(CONTMX(L,K),CMAXT)  
-!            CMINT=MIN(CONTMN(L,K-1),CONTMN(L,K+1))  
-!            CMIN(L,K)=MIN(CONTMN(L,K),CMINT)  
-!          ENDDO
-          CMAX(2:LA,K)=MAX(CONTMX(2:LA,K-1),CONTMX(2:LA,K),CONTMX(2:LA,K+1))
-          CMIN(2:LA,K)=MIN(CONTMN(2:LA,K-1),CONTMN(2:LA,K),CONTMN(2:LA,K+1))
+          DO L=2,LA  
+            CMAXT=MAX(CONTMX(L,K-1),CONTMX(L,K+1))  
+            CMAX(L,K)=MAX(CONTMX(L,K),CMAXT)  
+            CMINT=MIN(CONTMN(L,K-1),CONTMN(L,K+1))  
+            CMIN(L,K)=MIN(CONTMN(L,K),CMINT)  
+          ENDDO
+!          CMAX(:,K)=MAX(CONTMX(:,K-1),CONTMX(:,K),CONTMX(:,K+1))
+!          CMIN(:,K)=MIN(CONTMN(:,K-1),CONTMN(:,K),CONTMN(:,K+1))
         ENDDO  
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(CMAXT,CMINT,LS,LN,LW,LE,
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(CMAXT,CMINT,LS,LN,LW,LE,
 !$OMP& CWMAX,CEMAX,CSMAX,CNMAX,CWMIN,CEMIN,CSMIN,CNMIN,RDZIC) 
         DO K=1,KC  
 !$OMP DO schedule(static,chunksize)
@@ -955,23 +945,23 @@ C
 C **  LIMIT FLUXES  
 C  
 
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(LS,LW) 
+! !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(LS,LW) 
         DO K=1,KC
-!$OMP DO SCHEDULE(STATIC,CHUNKSIZE)  
+! !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)  
           DO L=2,LA  
             LS=LSC(L)
             LW=LWEST(L)  
             FUHU(L,K)=MIN(DV(LW,K),DU(L,K))*FUHU(L,K)  
-     &          +MIN(DU(LW,K),DV(L,K))*FUHV(L,K)  
+     &               +MIN(DU(LW,K),DV(L,K))*FUHV(L,K)  
             FVHU(L,K)=MIN(DV(LS,K),DU(L,K))*FVHU(L,K)  
-     &          +MIN(DU(LS,K),DV(L,K))*FVHV(L,K)  
+     &               +MIN(DU(LS,K),DV(L,K))*FVHV(L,K)
           ENDDO  
         ENDDO  
-!$OMP END PARALLEL
+! !$OMP END PARALLEL
         DO K=1,KS  
           DO L=2,LA  
             FWU(L,K)=MIN(DV(L,K),DU(L,K+1))*FWU(L,K)  
-     &          +MIN(DU(L,K),DV(L,K+1))*FWV(L,K)  
+     &              +MIN(DU(L,K),DV(L,K+1))*FWV(L,K)  
           ENDDO  
         ENDDO  
 C  
@@ -979,7 +969,7 @@ C **  ANTI-DIFFUSIVE ADVECTION CALCULATION
 C  
  1100   CONTINUE  
 C    
-!$OMP PARALLEL SHARED(DEFAULT) PRIVATE(RDZIC) 
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC) 
         DO K=1,KC
           RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)  
