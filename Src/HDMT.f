@@ -22,12 +22,15 @@ C
       USE GLOBAL  
       USE DRIFTER
       USE WINDWAVE ,ONLY:WINDWAVEINIT,WINDWAVETUR
+#ifdef key_ncdf
+      USE IOM
+#endif
       
 	IMPLICIT NONE
 	INTEGER::L,ND,NTMP1,NTMP2,NTMP,K,NS,IMAX,JMAX,KMAX
-	INTEGER::IMIN,JMIN,KMIN,NMD,ITMP,ICALLTP,LS
+	INTEGER::IMIN,JMIN,KMIN,NMD,ITMP,ICALLTP
 	INTEGER::IPLTTMP,NRESTO,ISSREST,IRRMIN,ILOGC
-	INTEGER::LN,LNW,LSE,LF,LL,LSW
+	INTEGER::LN,LS,LE,LW,LNW,LSE,LF,LL,LSW
       INTEGER::I1,I2
 	REAL::SALMIN,HPPTMP,WTM,WTMP
 	REAL::DELVOL,SALMAX,TAUB2,DELTD2,DZDDELT
@@ -76,17 +79,19 @@ C
       DO L=2,LA  
         LN=LNC(L)  
         LS=LSC(L)  
+        LE=LEAST(L)
+        LW=LWEST(L)
         LNW=LNWC(L)  
         LSE=LSEC(L)  
         LSW=LSWC(L)  
 
         UV(L)=0.25*(HP(LS)*(U(LSE,1)+U(LS,1))  
-     &      +HP(L)*(U(LEAST(L),1)+U(L,1)))*HVI(L)  
+     &      +HP(L)*(U(LE,1)+U(L,1)))*HVI(L)  
         U1V(L)=0.25*(H1P(LS)*(U1(LSE,1)+U1(LS,1))  
-     &      +H1P(L)*(U1(LEAST(L),1)+U1(L,1)))*H1VI(L)  
-        VU(L)=0.25*(HP(LWEST(L))*(V(LNW,1)+V(LWEST(L),1))  
+     &      +H1P(L)*(U1(LE,1)+U1(L,1)))*H1VI(L)  
+        VU(L)=0.25*(HP(LW)*(V(LNW,1)+V(LW,1))  
      &      +HP(L)*(V(LN,1)+V(L,1)))*HUI(L)  
-        V1U(L)=0.25*(H1P(LWEST(L))*(V1(LNW,1)+V1(LWEST(L),1))  
+        V1U(L)=0.25*(H1P(LW)*(V1(LNW,1)+V1(LW,1))  
      &      +H1P(L)*(V1(LN,1)+V1(L,1)))*H1UI(L)  
 
       ENDDO  
@@ -1044,14 +1049,16 @@ C
         DO L=2,LA  
           LN=LNC(L)  
           LS=LSC(L)  
+          LE=LEAST(L)
+          LW=LWEST(L)
           LNW=LNWC(L)  
           LSE=LSEC(L)  
           LSW=LSWC(L)  
-C PMC          H1C(L)=0.25*(H1P(L)+H1P(LWEST(L))+H1P(LS)+H1P(LSW))  
+C PMC          H1C(L)=0.25*(H1P(L)+H1P(LW)+H1P(LS)+H1P(LSW))  
           UV(L)=0.25*(HP(LS)*(U(LSE,1)+U(LS,1))  
-     &        +HP(L)*(U(LEAST(L),1)+U(L,1)))*HVI(L)  
-          VU(L)=0.25*(HP(LWEST(L))*(V(LNW,1)+V(LWEST(L),1))  
-     &        +HP(L)*(V(LN,1)+V(L,1)))*HUI(L)  
+     &               +HP(L )*(U(LE ,1)+U(L ,1)))*HVI(L)  
+          VU(L)=0.25*(HP(LW)*(V(LNW,1)+V(LW,1))  
+     &               +HP(L )*(V(LN ,1)+V(L ,1)))*HUI(L)  
         ENDDO  
 C  
 C**********************************************************************C  

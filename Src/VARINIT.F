@@ -69,7 +69,7 @@ C
 C  
       IF(ISTRAN(8).GT.0)CALL SCANWQ
 
-! allocate bounds sfor aquaculture installations if relevant
+! allocate bounds for aquaculture installations if relevant
       LAQUA=1; KAQUA=1;
       INQUIRE(FILE='INPUTAQUA.INP',exist=exist)
       if(exist) then

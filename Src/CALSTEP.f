@@ -87,15 +87,18 @@ C **  METHOD 1: UPWIND DIFF IN MOMENTUM EQUATIONS
 C  
       DO K=1,KC  
         DO L=2,LA  
-          LE=LEAST(L)  
           LN=LNC(L)  
           LS=LSC(L)  
+          LE=LEAST(L)
+          LW=LWEST(L)
+          LNW=LNWC(L)
+          LSE=LSEC(L)
           KM=K-1  
-          VATUUU=0.25*(V(L,K)+V(LWEST(L),K)+V(LN,K)+V(LN-1,K))  
+          VATUUU=0.25*(V(L,K)+V(LW,K)+V(LN,K)+V(LNW,K))  
           TMPUUU=ABS(U(L,K)/DXU(L))+ABS(VATUUU/DYU(L))  
           DTTMP=1./(TMPUUU + 1.0E-18)
           DTL1(L)=MIN(DTL1(L),DTTMP)  
-          UATVVV=0.25*(U(L,K)+U(LS,K)+V(LE,K)+V(LS+1,K))  
+          UATVVV=0.25*(U(L,K)+U(LS,K)+V(LE,K)+V(LSE,K))  
           TMPVVV=ABS(V(L,K)/DYV(L))+ABS(UATVVV/DXV(L))  
           DTTMP=1./(TMPVVV + 1.0E-18)  
           DTL1(L)=MIN(DTL1(L),DTTMP)  
@@ -136,7 +139,7 @@ C
             QTOTAL=QSUM(L,K)+QSUBOUT(L,K)+QSUBINN(L,K)  
             QSRC=-MIN(QTOTAL,0.0)  
             BOT=QXPLUS+QYPLUS+QZPLUS+QXMINS+QYMINS+QZMINS+QSRC  
-            IF(BOT.GT.0.0)THEN  
+            IF(BOT.GT.EPSILON(BOT))THEN 
               DTTMP=TOP/BOT  
               DTL2(L)=MIN(DTL2(L),DTTMP)  
               IF(DTTMP.LT.0.0)THEN  

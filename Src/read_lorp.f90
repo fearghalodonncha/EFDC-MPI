@@ -9,7 +9,7 @@
 !! The LORP.INP file is created by running
 !! the "Gorp" model that conducts a domain decomposition on
 !! the CELL.INP cell, considering the number of columns and rows [IC, JC]
-!! together with the ration of land/water cells in each domain
+!! together with the ratio of land/water cells in each domain
 !!=============================================================================
   USE GLOBAL
   IMPLICIT NONE
@@ -45,7 +45,7 @@
      STOP
    END IF
    READ(123,*)
-   DO N = 1,NPARTX*NPARTY 
+   DO N = 1,NPARTS !NPARTX*NPARTY 
      READ(123,*,IOSTAT=ISO)TILE2NODE(N)
    END DO   
    IF(ISO.GT.0)THEN
@@ -54,7 +54,6 @@
    END IF
 
    CLOSE(123)
-
    IF (DEBUG) THEN
      OPEN (124,FILE='LORP.OUT',Status='unknown')   ! diagnostics
      WRITE(124,*)'IC_LORP FOR', npartx,'PARTITIONS IN X'
