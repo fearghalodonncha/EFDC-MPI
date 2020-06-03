@@ -49,6 +49,7 @@ CONTAINS
     !Close netCDF file
     !:-------:-------:-------:-------:-------:-------:-------:
     CALL check_nf90(nf90_close(ncid))
+    RETURN
    end subroutine griddims    
 
     SUBROUTINE readgrid_1D(infile,idata,NSIZE,varloc)
@@ -60,7 +61,7 @@ CONTAINS
     CHARACTER(LEN=1084), INTENT(IN) :: infile
     CHARACTER(LEN=50) :: vname
 
-    !Open netCDF file
+    !Open NetCDF file
     !:-------:-------:-------:-------:-------:-------:-------:-------:
     CALL check_nf90(nf90_open(trim(infile), nf90_nowrite, ncid))
 
@@ -75,7 +76,7 @@ CONTAINS
     !:-------:-------:-------:-------:-------:-------:-------:-------:
 
     CALL check_nf90(nf90_close(ncid))
-
+      RETURN
     END SUBROUTINE readgrid_1D
 
 
@@ -103,11 +104,11 @@ CONTAINS
     !:-------:-------:-------:-------:-------:-------:-------:-------:
 
     CALL check_nf90(nf90_close(ncid))
-
+      RETURN
     END SUBROUTINE readgrid_2D
 
 
-    SUBROUTINE readgrid_3D(infile,idata,NT,NY,NX,varloc)
+SUBROUTINE readgrid_3D(infile,idata,NT,NY,NX,varloc)
     INTEGER(KIND=4), INTENT(IN) :: NX, NY,NT, varloc
     REAL(KIND=8), DIMENSION(NX,NY,NT), INTENT(OUT):: idata
     INTEGER(KIND=4), DIMENSION(3) :: dimids
@@ -131,8 +132,8 @@ CONTAINS
     !:-------:-------:-------:-------:-------:-------:-------:-------:
 
     CALL check_nf90(nf90_close(ncid))
-
-    END SUBROUTINE readgrid_3D
+    RETURN
+END SUBROUTINE readgrid_3D
 
 
 SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
@@ -142,7 +143,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   INTEGER, PARAMETER :: NDIMS = 4
   INTEGER NLONS,NLATS
   INTEGER VAR1, TIMEFILE,NFILES, &
-          I,J,TIMESTEP,NVARS, ILOC,JLOC, IMAP, JMAP
+          I,J,TIMESTEP,NVARS, IMAP, JMAP
   REAL ::  VAR2,TEMP_SURF
   REAL*8 TIME_WRITE_JD,TIME_WRITE
   INTEGER*8 TIMESEC_OUT,JUL_DAY,NDAYS,TWRITE_SEC
@@ -175,6 +176,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   CHARACTER (LEN = *), PARAMETER :: UNITS = "units"
   CHARACTER (LEN = *), PARAMETER :: UVEL_UNITS = "m/sec"
   CHARACTER (LEN = *), PARAMETER :: VVEL_UNITS = "m/sec"
+  CHARACTER (LEN = *), PARAMETER :: WVEL_UNITS = "m/sec"
   CHARACTER (LEN = *), PARAMETER :: TEMP_UNITS = "Degree Celsius"
   CHARACTER (LEN = *), PARAMETER :: DYE_UNITS = "Concentration (%)"
   CHARACTER (LEN = *), PARAMETER :: ELEV_UNITS = "m"
@@ -189,14 +191,13 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
  ! AN ID FOR EACH ONE.
   INTEGER :: NCID, LVL_DIMID, LON_DIMID, LAT_DIMID, &
              LON_VARID, LAT_VARID, LVL_VARID,TIME_DIMID, &
-             II,TRANME_VARID,IIB, &
-             UVEL_VARID, TEMP_VARID, VVEL_VARID, &   ! NETCDF
+             TIME_VARID,TRANME_VARID,IIB,II, &
+             TEMP_VARID, UVEL_VARID, VVEL_VARID, WVEL_VARID, &   ! NETCDF
              DYE_VARID,ELEV_VARID, SALINITY_VARID, &
              DIMIDS_2D(3), &                  ! VARIABLES
              FILELOOP,  &
              UNITNAME, &  ! FILE ID IDENTS
              FILEID_BEGIN, FILEID_END
-  INTEGER :: TIME_VARID 
   REAL:: DIMLOCS(4)
 
   ! ACFILEEXT FOR ALLOCATABLE ARRAYS BASED ON
@@ -208,26 +209,26 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   INTEGER,ALLOCATABLE,DIMENSION(:)::LVLS
   REAL,ALLOCATABLE,DIMENSION(:)::TEMP_VELS,TEMP_CONC,EASTING,NORTHING,LATS,LONS 
   INTEGER,ALLOCATABLE,DIMENSION(:)::DIMIDS
-  REAL*4,ALLOCATABLE,DIMENSION(:,:,:)::MAP_U_VEL,MAP_V_VEL,MAP_TEMPERATURE,MAP_DYE, &
-                                     MAP_VV, MAP_SALINITY
+  REAL,ALLOCATABLE,DIMENSION(:,:,:)::MAP_U_VEL,MAP_V_VEL,MAP_W_VEL,MAP_TEMPERATURE,MAP_DYE, &
+                                     MAP_SALINITY
   REAL,ALLOCATABLE,DIMENSION(:,:):: MAP_SURFEL
   REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::MAP_WQ !WQ VARIABLES
   NFILES = NSNAPSHOTS + 1
   NVARS = KC
   NLONS = IC_GLOBAL
   NLATS = JC_GLOBAL
-  ALLOCATE(LVLS(NVARS))
+  ALLOCATE(LVLS(KC))
   ALLOCATE(INTCHAR4(NFILES)) 
   ALLOCATE(FILE_IN(5000))
   ALLOCATE(FILE_OUT(NFILES))
-  ALLOCATE(TEMP_VELS (2*NVARS) )
-  ALLOCATE(TEMP_CONC (NVARS) )
-  ALLOCATE(MAP_U_VEL (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_V_VEL (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_SALINITY (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_TEMPERATURE (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_DYE (NLONS,NLATS,NVARS) )
-  ALLOCATE(MAP_VV (NLONS,NLATS,NVARS) )
+  ALLOCATE(TEMP_VELS (3*KC) )  ! We allocate for U, V and W velocities
+  ALLOCATE(TEMP_CONC (KC) )
+  ALLOCATE(MAP_U_VEL (NLONS,NLATS,KC) )
+  ALLOCATE(MAP_V_VEL (NLONS,NLATS,KC) )
+  ALLOCATE(MAP_W_VEL (NLONS,NLATS,KC) )
+  ALLOCATE(MAP_SALINITY (NLONS,NLATS,KC) )
+  ALLOCATE(MAP_TEMPERATURE (NLONS,NLATS,KC) )
+  ALLOCATE(MAP_DYE (NLONS,NLATS,KC) )
   ALLOCATE(MAP_SURFEL (NLONS,NLATS) )
   ALLOCATE(EASTING (NLONS) )
   ALLOCATE(NORTHING (NLATS) )
@@ -294,7 +295,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 
   ALLOCATE(FILEEXT(NPARTX*NPARTY)) ! FILE EXTENSION CHARACTER STRING FOR EACH OF THE EFDC FILES (VELVECH###.OUT, SALPLTH###.OUT, etc.)
   IF (MPI_PAR_FLAG == 1) THEN
-    DO ii =1, NPARTX*NPARTY
+    DO ii =1, NPARTX*NPARTY  ! Note that we need to account for inactive domains hence NPARTX*NPARTY rather than NPARTS
       WRITE(FILEEXT(ii), '(I3.3)')ii
     END DO
   ELSE
@@ -303,10 +304,10 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   TIMEFILE= 0  
   MAP_U_VEL(:,:,:) =-9999.
   MAP_V_VEL(:,:,:) =-9999.
+  MAP_W_VEL(:,:,:) =-9999.
   MAP_SALINITY(:,:,:) =-9999.
   MAP_TEMPERATURE(:,:,:) =-9999.
   MAP_DYE(:,:,:) =-9999.
-  MAP_VV(:,:,:) =-9999.
   MAP_SURFEL(:,:) =-9999.
   DO TIMESTEP = 1,NSNAPSHOTS -1 ! NSNAPSHOTS IS PREPARING FOR NEXT WRITE
     UNITNAME = 300
@@ -316,15 +317,16 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       IIB = IIB +1
       IF (TILE2NODE(FILELOOP) /= -1) THEN  ! skip partitions that didn't write
           IF (ISVPH > 0) THEN
-            unitname = unitname  + 1
+            UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'VELVECH'//trim(FILEEXT(IIB))//'.OUT'
-            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            OPEN(UNITNAME, FILE = TRIM(FILE_IN(FILELOOP)), STATUS ='OLD')
             READ(UNITNAME,*) VAR1,TIMESEC_OUT,PARTID,LA
             DO I=2,LA
-              READ(UNITNAME,*) IMAP, JMAP ,  (TEMP_VELS(II),II=1,2*NVARS)  ! READ VELS
-              MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:NVARS)             ! U VELOCITY   | MAP TO
-              MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(NVARS+1:2*NVARS)     ! V VELOCITY   | GLOB GRD
-            END DO
+              READ(UNITNAME,*) IMAP, JMAP ,  (TEMP_VELS(II),II=1,3*KC)  ! READ VELS
+              MAP_U_VEL(IMAP, JMAP,:)= TEMP_VELS(1:KC)          ! U VELOCITY   | MAP TO
+              MAP_V_VEL(IMAP, JMAP,:)= TEMP_VELS(KC+1:2*KC)     ! V VELOCITY   | GLOBAL
+              MAP_W_VEL(IMAP, JMAP,:)= TEMP_VELS(2*KC+1:3*KC)   ! W VELOCITY   | GRID
+           END DO
           END IF
           IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0 ) THEN
             UNITNAME = UNITNAME  + 1
@@ -332,31 +334,31 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
             READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
             DO I=2,LA
-              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ SALINITY OUTPUT
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,KC)   ! READ SALINITY OUTPUT
               MAP_SALINITY(IMAP, JMAP,:)= TEMP_CONC(:)               ! MAP TO GLOBAL GRID
             END DO
-          END IF
-          IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0) THEN
+        ENDIF
+        IF(ISTRAN(2) == 1 .AND. ISSPH(2) > 0)THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'TEMCONH'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = TRIM(FILE_IN(FILELOOP)), STATUS ='OLD')
             READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
             DO I=2,LA
-              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ TEMPERATURE
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,KC)   ! READ TEMPERATURE
               MAP_TEMPERATURE(IMAP, JMAP,:)= TEMP_CONC(:) ! + 273.15     ! map to global grid
             END DO
-          END IF
-          IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0) THEN
+        ENDIF
+        IF(ISTRAN(3) == 1 .AND. ISSPH(3) > 0)THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'DYECONH'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
             READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
             DO I=2,LA
-              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,NVARS)   ! READ DYE
+              READ(UNITNAME,*)IMAP, JMAP, (TEMP_CONC(II),II=1,KC)   ! READ DYE
               MAP_DYE(IMAP, JMAP,:)= TEMP_CONC(:)
             END DO
-          END IF
-          IF (ISPPH > 0 ) THEN
+        ENDIF
+        IF(ISPPH > 0)THEN
             UNITNAME = UNITNAME  + 1
             FILE_IN(FILELOOP)= 'SURFCON'//trim(FILEEXT(IIB))//'.OUT'
             OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
@@ -365,7 +367,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               READ(UNITNAME,*)IMAP, JMAP, TEMP_SURF   ! READ SURFACE ELEVATION
               MAP_SURFEL(IMAP, JMAP)= TEMP_SURF
             END DO
-          END IF
+        END IF
       END IF  ! ENDIF ON CHECK WHETHER DOMAIN EXISTS ( IF (TILE2NODE(FILELOOP) /= -1)
     END DO  ! END LOOP ON FILES (I.E. ACROSS ALL PARTITIONS
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
@@ -405,8 +407,8 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     DO II = 1, NLONS
       LONS(II) = II
     END DO
-    DO II = 1,NVARS
-      LVLS(II)= 100 - INT( (100/NVARS) * II)
+    DO II = 1,KC
+      LVLS(II)= 100 - INT( (100/KC) * II)
     END DO
   ! Always check the return code of every netCDF function call. In
   ! this example program, wrapping netCDF calls with "call check()"
@@ -417,7 +419,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   ! overwrite this file, if it already exists
     call check_nf90(nf90_create(trim(FILE_OUT(TIMEFILE)), NF90_CLOBBER, ncid) )
   ! Define the dimensions. NetCDF will hand back an ID for each. 
-    call check_nf90( nf90_def_dim(ncid, LVL_NAME, NVARS, lvl_dimid) )
+    call check_nf90( nf90_def_dim(ncid, LVL_NAME, KC, lvl_dimid) )
     call check_nf90( nf90_def_dim(ncid, LON_NAME, NLONS, lon_dimid) )
     call check_nf90( nf90_def_dim(ncid, LAT_NAME, NLATS, lat_dimid) )
     call check_nf90( nf90_def_dim(ncid, REC_NAME, NF90_UNLIMITED, time_dimid) )
@@ -456,8 +458,15 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
         call check_nf90( nf90_put_att(ncid, vvel_varid, "long_name", "v_velocity") )
         call check_nf90( nf90_put_att(ncid, vvel_varid, "standard_name", "northward_water_velocity") )
         call check_nf90( nf90_put_att(ncid, vvel_varid, UNITS, vvel_units) )
-    END IF
 
+        call check_nf90( nf90_def_var(ncid, WVEL_NAME, NF90_REAL, dimids, wvel_varid) )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, "_FillValue", FillValue_real) )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, "coordinates", "X Y Depth time") )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, "grid_mapping", "transverse_mercator") )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, "long_name", "w_velocity") )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, "standard_name", "upward_water_velocity") )
+        call check_nf90( nf90_put_att(ncid, wvel_varid, UNITS, wvel_units) )
+    END IF
     IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0) THEN
       call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
       call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
@@ -543,35 +552,25 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
 ! End define mode.
     call check_nf90( nf90_enddef(ncid) )
 
-! Beging put variables mode
+! Begin put variables mode
     call check_nf90( nf90_put_var(ncid, lvl_varid, lvls) )       ! Sigma levels 
-    call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! EASTING
+    call check_nf90( nf90_put_var(ncid, lon_varid, Easting) )    ! Easting
     call check_nf90( nf90_put_var(ncid, lat_varid, Northing) )   ! Northing
     call check_nf90( nf90_put_var(ncid, time_varid, twrite_sec) )   ! Time
     call check_nf90( nf90_put_var(ncid, uvel_varid, map_u_vel))    ! u velocity
     call check_nf90( nf90_put_var(ncid, vvel_varid, map_v_vel))    ! v velocity
-    IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! temperature data
-    IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! temperature data
-    IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! dye data
-    IF (ISPPH > 0) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! elevation data
+    call check_nf90( nf90_put_var(ncid, wvel_varid, map_w_vel))    ! w velocity
+    IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0 )  call check_nf90( nf90_put_var(ncid, salinity_varid, map_salinity))    ! Temperature data
+    IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! Temperature data
+    IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! Dye data
+    IF (ISPPH > 0) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! Elevation data
 
     dimlocs(1)=1; dimlocs(2)=2; dimlocs(3) = 3; dimlocs(4) = 4
 ! Close the file. This causes netCDF to flush all buffers and make
 ! sure your data are really written to disk.
     call check_nf90( nf90_close(ncid) )
-! column-major format.
 
-  ! Define the variable. The type of the variable in this case is
-  ! NF90_INT (4-byte integer).
 
-  ! End define mode. This tells netCDF we are done defining metadata.
-
-  ! Write the pretend data to the file. Although netCDF supports
-  ! reading and writing subsets of data, in this case we write all the
-  ! data in one operation.
-
-  ! Close the file. This frees up any internal netCDF resources
-  ! associated with the file, and flushes any buffers.
   end do
   print *, "*** SUCCESS writing NetCDF file__n! "
 ! Loop through all output files and delete
@@ -580,6 +579,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     INQUIRE(UNIT=FILELOOP,OPENED=FOPEN)
     IF(FOPEN)CLOSE(FILELOOP,STATUS='DELETE')
   END DO    
+  RETURN
 END SUBROUTINE ASCII2NCF
  
 SUBROUTINE WQ_NC_WRITE
@@ -588,12 +588,10 @@ SUBROUTINE WQ_NC_WRITE
    USE MPI
    REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
    REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VECTOR  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
-   INTEGER,ALLOCATABLE,DIMENSION(:)  :: RECBUF,DISP    !(0:NPARTX*NPARTY)
-   REAL,ALLOCATABLE,DIMENSION(:) :: RBUFU,RBUFV    ! (PNX*PNY*NPARTX*NPARTY)
    logical :: CELL_INSIDE_DOMAIN
    INTEGER :: LOC_VECTOR_SIZE, II, JJ, GLOBAL_VECTOR_SIZE, IC_ARR_I, JC_ARR_I, &
             IC_POS, JC_POS, IEXTENT, JEXTENT, ISKIP, JSKIP, XD, YD, III, ID, ERROR
-   INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STEP,RCOUNTS_PART, SIZE_ARR_ON_EACH_PARTITION
+   INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STEP,RCOUNTS_PART
 #endif
    INTEGER::I,J,K,L,NW
    REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
@@ -610,7 +608,6 @@ SUBROUTINE WQ_NC_WRITE
    GLOBAL_VECTOR_SIZE = IC_GLOBAL * JC_GLOBAL * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
    IF(.NOT.ALLOCATED(WQV_LOC_VECTOR))THEN
       ALLOCATE(WQV_LOC_VECTOR(LOC_VECTOR_SIZE))
-      ALLOCATE(SIZE_ARR_ON_EACH_PARTITION(NPARTS*2),STAT=ERROR)
       ALLOCATE(DISPL_STEP(NPARTS),STAT=ERROR)
       ALLOCATE(RCOUNTS_PART(NPARTS),STAT=ERROR)
    ENDIF
@@ -618,7 +615,7 @@ SUBROUTINE WQ_NC_WRITE
       ALLOCATE(WQV_GLOBAL_VECTOR(GLOBAL_VECTOR_SIZE))
    ENDIF
    II = 0
-   DEBUG_NETCDF = .TRUE.
+   DEBUG_NETCDF = .FALSE.
    ! Pack the 3D array WQV(LCM,KC,NWQVM) into 1D vector to implement MPI Gather
    DO NW = 1, NWQVM
      DO K = 1,KC
@@ -652,8 +649,8 @@ SUBROUTINE WQ_NC_WRITE
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-   RCOUNTS_PART=0
-   DISPL_STEP=0
+   RCOUNTS_PART(:) = 0
+   DISPL_STEP(:) = 0
    I = 0
    ID = 0
    DO YD = 1,NPARTY
@@ -670,11 +667,9 @@ SUBROUTINE WQ_NC_WRITE
        ENDIF
      ENDDO
    ENDDO
-   WRITE(*,*) 'Begin Communication', LOC_VECTOR_SIZE, RCOUNTS_PART, DISPL_STEP
-                   !Local data       Local data size            Global data        size on each proc Displacement for packing data
-   CALL MPI_GATHERv(WQV_LOC_VECTOR , LOC_VECTOR_SIZE, MPI_REAL8, WQV_GLOBAL_VECTOR, RCOUNTS_PART,     DISPL_STEP, &
+                   !Local data       Local data size             Global data        Size on each processor  Displacement for packing data
+   CALL MPI_GATHERv(WQV_LOC_VECTOR , LOC_VECTOR_SIZE, MPI_REAL8, WQV_GLOBAL_VECTOR, RCOUNTS_PART,           DISPL_STEP, &
                      MPI_REAL8, 0, MPI_COMM_WORLD, ERROR)
-   WRITE(*,*) 'End communication'
    III = 0
    ID = 0
    IF(PARTID==MASTER_TASK)THEN ! Unpack on MASTER Partition only
@@ -730,7 +725,7 @@ SUBROUTINE WQ_NC_WRITE
 9999 FORMAT(3I6, 2F12.6)
    RETURN
 #endif
-   DO NW = 1,NWQVM
+   DO NW = 1,NWQVM !Code block when NOT using Message Passing Interface (NWQVM includes ALL WQ variables including macroalgae NWQVM=23 and IDNOTRVA=23)
      DO K = 1,KC
        DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
          DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
@@ -802,8 +797,8 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   CHARACTER(LEN=*),PARAMETER::WQV19_UNITS="g/m3"
   CHARACTER(LEN=*),PARAMETER::WQV20_UNITS="kmol"
   CHARACTER(LEN=*),PARAMETER::WQV21_UNITS="MPN/100mL"
-  CHARACTER(LEN=*),PARAMETER::WQV22_UNITS="kg/m3"
-  CHARACTER(LEN=*),PARAMETER::WQV23_UNITS="kg/m3"
+  CHARACTER(LEN=*),PARAMETER::WQV22_UNITS="mg/L" !dissolved CO2
+  CHARACTER(LEN=*),PARAMETER::WQV23_UNITS="kg/m3" !(kelp)
   INTEGER::WQV1_VARID, WQV2_VARID, WQV3_VARID, WQV4_VARID, WQV5_VARID, WQV6_VARID, & !WQ variable IDs for NetCDF
            WQV7_VARID, WQV8_VARID, WQV9_VARID, WQV10_VARID,WQV11_VARID,WQV12_VARID,&
            WQV13_VARID,WQV14_VARID,WQV15_VARID,WQV16_VARID,WQV17_VARID,WQV18_VARID,&
@@ -1206,7 +1201,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! Beging put variables mode
 !Basic outputs
   call check_nf90( nf90_put_var(NCID, LVL_VARID, LVLS) )       ! Sigma levels 
-  call check_nf90( nf90_put_var(NCID, LON_VARID, EASTING) )    ! EASTING
+  call check_nf90( nf90_put_var(NCID, LON_VARID, EASTING) )    ! Easting
   call check_nf90( nf90_put_var(NCID, LAT_VARID, NORTHING) )   ! Northing
   call check_nf90( nf90_put_var(NCID, TIME_VARID, TWRITE_SEC) )! Time
 ! WQV1 details
@@ -1258,6 +1253,10 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   IF(ISTRWQ(10).EQ.1)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,10)
     call check_nf90( nf90_put_var(NCID, WQV10_VARID, WQTMP))    ! WQ data
+    IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
+      PRINT*,'No WQ values for P4D detected'
+      pause
+    ENDIF
   ENDIF
 ! WQV11 details
   IF(ISTRWQ(11).EQ.1)THEN 
@@ -1278,11 +1277,19 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   IF(ISTRWQ(14).EQ.1)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,14)
     call check_nf90( nf90_put_var(NCID, WQV14_VARID, WQTMP))    ! WQ data
+    IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
+      PRINT*,'No WQ values for NHX detected'
+      pause
+    ENDIF
   ENDIF
 ! WQV15 details
   IF(ISTRWQ(15).EQ.1)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,15)
     call check_nf90( nf90_put_var(NCID, WQV15_VARID, WQTMP))    ! WQ data
+    IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
+      PRINT*,'No WQ values for NOX detected'
+      pause
+    ENDIF
   ENDIF
 ! WQV16 details
   IF(ISTRWQ(16).EQ.1)THEN 
@@ -1329,6 +1336,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 ! Close the file. This causes netCDF to flush all buffers and make
 ! sure your data are really written to disk.
   call check_nf90( nf90_close(NCID) )
+  RETURN
 END SUBROUTINE WRITE_WQ_NCDF
 
 
