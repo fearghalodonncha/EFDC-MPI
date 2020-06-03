@@ -33,8 +33,11 @@ C
       USE PARALLEL_MPI
       USE WINDWAVE ,ONLY:WINDWAVEINIT,WINDWAVETUR
       USE OMP_LIB
-      use iom
-#ifdef key_mpi
+#ifdef key_ncdf
+      USE IOM
+#endif
+
+ifdef key_mpi
       USE mpi
 #endif
 
@@ -188,19 +191,21 @@ C----------------------------------------------------------------------C
 C  
       DO L=2,LA  
         LN=LNC(L)  
-        LS=LSC(L)  
+        LS=LSC(L)
+        LE=LEAST(L)
+        LW=LWEST(L)
         LNW=LNWC(L)  
         LSE=LSEC(L)  
         LSW=LSWC(L)  
   
         UV(L)=0.25*(HP(LS)*(U(LSE,1)+U(LS,1))  
-     &      +HP(L)*(U(LEAST(L),1)+U(L,1)))*HVI(L)  
+     &             +HP(L )*(U(LE ,1)+U(L ,1)))*HVI(L)  
         U1V(L)=0.25*(H1P(LS)*(U1(LSE,1)+U1(LS,1))  
-     &      +H1P(L)*(U1(LEAST(L),1)+U1(L,1)))*H1VI(L)  
-        VU(L)=0.25*(HP(LWEST(L))*(V(LNW,1)+V(LWEST(L),1))  
-     &      +HP(L)*(V(LN,1)+V(L,1)))*HUI(L)  
-        V1U(L)=0.25*(H1P(LWEST(L))*(V1(LNW,1)+V1(LWEST(L),1))  
-     &      +H1P(L)*(V1(LN,1)+V1(L,1)))*H1UI(L)  
+     &              +H1P(L )*(U1(LE ,1)+U1(L ,1)))*H1VI(L)  
+        VU(L)=0.25*(HP(LW)*(V(LNW,1)+V(LW,1))  
+     &             +HP(L )*(V(LN ,1)+V(L ,1)))*HUI(L)  
+        V1U(L)=0.25*(H1P(LW)*(V1(LNW,1)+V1(LW,1))  
+     &              +H1P(L )*(V1(LN ,1)+V1(L ,1)))*H1UI(L)  
         ! *** DSLLC END BLOCK
       ENDDO  
 
@@ -581,7 +586,7 @@ C *** DSLLC BEGIN BLOCK
             ENDDO 
             WINDSTKA_SAVE(1) = 1.
 ! Fearghal: introduce first generation ice model parameterisation here
-! parameterisation based on Wang (2010) Development of the Great Lakes Ice Circulation Model (GLIM) - Journal Great Lakes Research
+! parametrization based on Wang (2010) Development of the Great Lakes Ice Circulation Model (GLIM) - Journal Great Lakes Research
           REVC_SAVE=REVC; RCHC_SAVE=RCHC
           REVC=0.0; RCHC=0.0
           DO L=2,LA  
@@ -776,9 +781,6 @@ C
 C----------------------------------------------------------------------C
 C
       IF(ISWSEDA.GT.0.OR.ISUVDA.GT.0) CALL PUVDASM(ISTL,2)
-
-
-
 C
 C  
 C**********************************************************************C  
@@ -1265,15 +1267,17 @@ C
       DO L=2,LA  
         LN=LNC(L)  
         LS=LSC(L)  
+        LE=LEAST(L)
+        LW=LWEST(L)
         LNW=LNWC(L)  
         LSE=LSEC(L)  
         LSW=LSWC(L)  
         U1V(L)=UV(L)  
         V1U(L)=VU(L)  
         UV(L)=0.25*(HP(LS)*(U(LSE,1)+U(LS,1))  
-     &      +HP(L)*(U(LEAST(L),1)+U(L,1)))*HVI(L)  
-        VU(L)=0.25*(HP(LWEST(L))*(V(LNW,1)+V(LWEST(L),1))  
-     &      +HP(L)*(V(LN,1)+V(L,1)))*HUI(L)  
+     &             +HP(L )*(U(LE ,1)+U(L ,1)))*HVI(L)  
+        VU(L)=0.25*(HP(LW)*(V(LNW,1)+V(L,1))  
+     &             +HP(L )*(V(LN ,1)+V(L,1)))*HUI(L)  
       ENDDO  
 C  
 C**********************************************************************C  

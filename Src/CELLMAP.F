@@ -25,7 +25,7 @@ C
           IJCTLT(I,J)=IJCTLT_GLOBAL(XPAR(I),YPAR(J))
         END DO
       END DO
-      IF (PARTID .EQ. 1) THEN
+      IF (PARTID .EQ. 0) THEN
         OPEN(37,FILE='CELLMAP1.DAT',status='unknown')
         L=2
         DO J =1,JC_GLOBAL
@@ -49,7 +49,7 @@ C **  SET 1D CELL INDEX SEQUENCE AND MAPPINGS
             JL(L) = J
             LCT(L)=IJCT_GLOBAL(IL_GL(L),JL_GL(L))
             LIJ(I,J)=L
-  !          IF(PARTID==1) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
+            IF(PARTID==0) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
             L = L + 1
           END IF
         ENDDO
@@ -203,16 +203,16 @@ C
         ELSE  
           LSWC(L)=LIJ(I-1,J-1)  
         ENDIF  
-      IF(IJCT(I-1,J).EQ.9)THEN
-       LWEST(L)=LC
-      ELSE
-       LWEST(L)=MAX(LIJ(I-1,J),1)
-      ENDIF
-      IF(IJCT(I+1,J).EQ.9)THEN
-       LEAST(L)=LC
-      ELSE
-       LEAST(L)=MAX(LIJ(I+1,J),1)
-      ENDIF
+        IF(IJCT(I-1,J).EQ.9)THEN
+          LWEST(L)=LC
+        ELSE
+          LWEST(L)=MAX(LIJ(I-1,J),1)
+        ENDIF
+        IF(IJCT(I+1,J).EQ.9)THEN
+          LEAST(L)=LC
+        ELSE
+          LEAST(L)=MAX(LIJ(I+1,J),1)
+        ENDIF
       ENDDO  
 C  
 C **  MODIFY NORTH-SOUTH CELL MAPPING FOR PERIOD GRID IN N-S DIRECTION  

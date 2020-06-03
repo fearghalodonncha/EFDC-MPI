@@ -46,7 +46,7 @@ C    return (i,j)
           XPAR(I) = IC_POS + I - NGHOST
         END DO
         DO J =1, JC
-          YPAR(J) = JC_POS + J -NGHOST
+          YPAR(J) = JC_POS + J - NGHOST
         END DO
 
       ! Create a mapping of [I,J] starting coordinates for use in global reconciliation
@@ -84,7 +84,6 @@ C    return (i,j)
         END DO
 
       END SUBROUTINE PARENTGRID
-
 
 
 

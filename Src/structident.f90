@@ -3,7 +3,7 @@ USE GLOBAL
 IMPLICIT NONE
 
 INTEGER I,J,K,L,FILEND,II,JJ,LL,LSTRUCT,ILOC,JLOC
-REAL canrat,hdef,typaqua,temp,can_ad,drgtmp,drg_ad
+REAL canrat,hdef,typaqua,can_ad,drgtmp,drg_ad
 INTEGER,ALLOCATABLE,DIMENSION(:):: ISTRUCT
 INTEGER,ALLOCATABLE,DIMENSION(:):: JSTRUCT
 ALLOCATE(ISTRUCT(LCM))
@@ -91,8 +91,8 @@ FXDRPR=0.
 FYDRPR=0.
 DO  K=1,KC
   DO L=2,LA
-     LW=L-1
-     LE=L+1
+     LW=LWEST(L)
+     LE=LEAST(L)
      LS=LSC(L)
      LN=LNC(L)
      LNW=LNWC(L)

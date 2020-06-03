@@ -1,5 +1,6 @@
       SUBROUTINE SETSHLD(TSC,THETA,D,SSG,DSR,USC)  
       REAL::VISC,GP,SSG,TMP,DSR,D,THETA,TSC,USC
+      REAL::GPD
 C CHANGE RECORD  
 C  
 C  
@@ -10,6 +11,7 @@ C
       GP=(SSG-1.)*9.82  
       TMP=GP/(VISC*VISC)  
       DSR=D*(TMP**0.333333)  
+
       GPD=GP*D  
 C  
 C **  SHIELDS  
