@@ -48,7 +48,7 @@ C
       ENDIF
 C  
       OPEN(2,FILE='WQ3D'//ans(partid2)//'.OUT',STATUS='UNKNOWN',POSITION='APPEND')  
-      IF(PARTID==0)PRINT *,'WQ: READING WQ3DWC.INP - MAIN WATER QUALITY CONTROL FILE'
+      IF(PARTID==MASTER_TASK)PRINT *,'WQ: READING WQ3DWC.INP - MAIN WATER QUALITY CONTROL FILE'
       OPEN(1,FILE='WQ3DWC.INP',STATUS='UNKNOWN')  
 C  
 C READ FIRST LINE IN WQ3DWC.INP FILE.  IF FIRST CHARACTER IS '#', THEN  
@@ -764,7 +764,6 @@ C
       DO M=1,NWQTD  
 C        WTEMP =0.25*REAL(M)-30.25
         WQTDTEMP(M)=WTEMP
-
         IF(WTEMP.LT.WQTMC1)THEN  
           WQTDGC(M) = EXP( -WQKG1C*(WTEMP-WQTMC1)*(WTEMP-WQTMC1) )
         ELSEIF(WTEMP.GT.WQTMC2)THEN  
@@ -1747,9 +1746,9 @@ C        WQPSQC(M)=XPSQ  ! *** PMC-NOT USED
           ENDIF
         ENDIF
       ENDDO WQPSLs
-      IF(NQSIJ_GL/=0)THEN
-        IF(MOD(IWQPS,NQSIJ)/=0)THEN !Allows distinct layers to be different, not just assigned by column.
-          PRINT*,'IWQPS is not an integer multiple of NQSIJ'
+      IF(NQSIJ_GL/=0.AND.IWQPS_GL/=0)THEN
+        IF(IWQPS/=NQSIJ)THEN !Allows distinct layers to be different, not just assigned by column.
+          PRINT*,'IWQPS not equal to NQSIJ'
           PRINT*,ANS(PARTID2),IWQPS,NQSIJ
           PAUSE
           STOP
@@ -1872,7 +1871,6 @@ C ***     MG/L FOR 1-19, TAM-MOLES/L, AND FCB-MPN/L
       ELSE  
         IF(RSTOFN(1:4).NE.'NONE'.AND.RSTOFN(1:4).NE.'none')THEN
            PRINT*,ANS(PARTID2),RSTOFN(1:4)
-           PAUSE
            STOP 'ERROR!! INVALID IWQORST/RSTOFN' 
          ENDIF  
       ENDIF  

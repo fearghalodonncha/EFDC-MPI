@@ -50,7 +50,7 @@ C
       
       INTEGER::I1,I2
       INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::ISSBCP  
-      LOGICAL BTEST, LTEST, KINVARA_MC
+      LOGICAL BTEST, LTEST, CELL_INSIDE_DOMAIN, KINVARA_MC
 
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WCOREW  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:)::WCORNS  
@@ -968,7 +968,7 @@ C
           IF(ISNAN(HP(L)))THEN
             BTEST=.TRUE.
            IF(.NOT.LTEST)THEN
-              OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+              OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &             STATUS='UNKNOWN')  
               WRITE(1,*)' * DEBUG: ERROR IN DEPTH VARIABLES'
             ENDIF
@@ -986,7 +986,7 @@ C
               IF(ISNAN(AV(L,K)))THEN
                BTEST=.TRUE.
                 IF(.NOT.LTEST)THEN
-                  OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                  OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                 STATUS='UNKNOWN')  
                   WRITE(1,*)' * DEBUG: ERROR IN VERTICAL VISCOSITY'
                 ENDIF
@@ -1006,7 +1006,7 @@ C
               IF(ISNAN(SAL(L,K)))THEN
                 BTEST=.TRUE.
                IF(.NOT.LTEST)THEN
-                  OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                  OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                 STATUS='UNKNOWN')  
                   WRITE(1,*)' * DEBUG: ERROR IN SALINITY VARIABLES'
                 ENDIF
@@ -1027,7 +1027,7 @@ C
               IF(ISNAN(TEM(L,K)))THEN
                BTEST=.TRUE.
                 IF(.NOT.LTEST)THEN
-                  OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                  OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                 STATUS='UNKNOWN')  
                   WRITE(1,*)' * DEBUG: ERROR IN TEMPERATURE VARIABLES'
                 ENDIF
@@ -1049,7 +1049,7 @@ C
                 IF(ISNAN(SED(L,K,NS)))THEN
                   BTEST=.TRUE.
                  IF(.NOT.LTEST)THEN
-                    OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                    OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                 STATUS='UNKNOWN')  
                     WRITE(1,*)' * DEBUG: ERROR IN SED VARIABLES'
                   ENDIF
@@ -1072,7 +1072,7 @@ C
                 IF(ISNAN(SND(L,K,NS)))THEN
                  BTEST=.TRUE.
                   IF(.NOT.LTEST)THEN
-                    OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                    OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                   STATUS='UNKNOWN')  
                     WRITE(1,*)' * DEBUG: ERROR IN SAND VARIABLES'
                   ENDIF
@@ -1094,7 +1094,7 @@ C
               DO NW=1,21
                 IF(ISNAN(WQV(L,K,NW)))THEN
                  BTEST=.TRUE.
-                  OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',
+                  OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',
      &                 STATUS='UNKNOWN')  
                   WRITE(1,*)' * DEBUG: ERROR IN WATER QUALITY VARIABLES'
                   WRITE(1,918) TIMEDAY, L, IL(L), JL(L), K, NW, 
@@ -1981,7 +1981,7 @@ C----------------------------------------------------------------------C
 C  
 C **  WRITE EFDC EXPLORER FORMAT OUTPUT  
 C  
-      IF(ISSPH(8).EQ.1.OR.ISBEXP.EQ.1)THEN  
+      IF(ISSPH(8).EQ.1.AND.ISBEXP.EQ.1)THEN  
         IF(TIMEDAY.GE.SNAPSHOTS(NSNAPSHOTS))THEN  
           CALL EEXPOUT(0)  
         ENDIF  
@@ -2014,7 +2014,8 @@ C
           ENDIF
           ISSREST=N  
         ENDIF  
-      ENDIF  
+      ENDIF
+      
 C  
 C**********************************************************************C  
 C  
@@ -2035,7 +2036,9 @@ C *** EE END BLOCK
 C  
 C**********************************************************************C  
 C  
-        IF(PARTID==0 .AND. ISHOW.GT.0) CALL SHOWVAL
+
+      IF(ISHOW.GT.0.AND.PARTID==MASTER_TASK)CALL SHOWVAL
+
 C  
 C**********************************************************************C  
 C  

@@ -7,6 +7,7 @@ C
       USE GLOBAL
 !      CHARACTER*80 TITLE  
       INTEGER*8 TIME
+      LOGICAL,SAVE:: FIRSTTIME=.FALSE.
 C  
 C *** EE BEGIN BLOCK  
 C  
@@ -18,11 +19,11 @@ C
         IF(JSPPH.NE.1) GOTO 300  
         OPEN(10,FILE='SURFCON'//ans(partid2)//'.OUT')  
         CLOSE(10,STATUS='DELETE')  
-        JSPPH=0  
+        JSPPH=0
+        FIRSTTIME = .TRUE.
   300   CONTINUE  
         IF(ISDYNSTP.EQ.0)THEN  
           TIME=DT*FLOAT(N)+TCON*TBEGIN  
-
         ELSE  
           TIME=TIMESEC  
         ENDIF  

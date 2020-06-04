@@ -27,7 +27,8 @@ C     MAJOR REWRITE BY PAUL M. CRAIG  JANUARY 12, 2006
       REAL WQE7,WQA7C,WQA7D,WQA7G,WQA7,WQR7
       REAL WQF8,WQA8C,WQA8D,WQA8G,WQA8,WQR8
       REAL WQF9,WQA9C,WQA9D,WQA9G,WQA9,WQR9
-      REAL WQA10C,WQA10D,WQA10G,WQR10,WQKKL
+      REAL WQA10C,WQA10D,WQA10G,WQKKL
+      !REAL WQR10
       REAL WQI11,WQA11C,WQA11D,WQA11G,WQA11,WQR11
       REAL WQJ12,WQA12C,WQA12D,WQA12G,WQA12,WQR12
       REAL WQF13,WQA13C,WQA13D,WQA13G,WQA13,WQR13
@@ -155,18 +156,25 @@ C
 C COMPUTE WQCHL,WQTAMP,WQPO4D,WQSAD AT A NEW TIME STEP: WQCHLX=1/WQCHLX  
 C  
       ! *** Compute WQCHL (Chlorophyll) Using Algal Biomass & factors
-      WQCHL(2:LA,1:KC)=WQV(2:LA,1:KC,1)*WQCHLC
-     &                +WQV(2:LA,1:KC,2)*WQCHLD
-     &                +WQV(2:LA,1:KC,3)*WQCHLG
- 
+      DO K=1,KC
+        DO L=2,LA
+          WQCHL(L,K)=WQV(L,K,1)*WQCHLC
+     &              +WQV(L,K,2)*WQCHLD
+     &              +WQV(L,K,3)*WQCHLG
+        ENDDO
+      ENDDO
 C
 C INITIALIZE SOLAR RADIATION AND OPTIMAL LIGHT
 C
       ! *** INITIAL SOLAR RADIATION AT TOP OF SURFACE LAYER
       IF(USESHADE)THEN
-        WQI0TOP(2:LA)=WQI0 * PSHADE(2:LA)
+        DO L=2,LA
+          WQI0TOP(L)=WQI0 * PSHADE(L)
+        ENDDO
       ELSE
-        WQI0TOP(2:LA)=WQI0
+        DO L=2,LA  
+          WQI0TOP(L)=WQI0
+        ENDDO  
       ENDIF
       ! ***  COMPUTE THE CURRENT OPTIMAL LIGHT INTENSITY
       IF(IWQSUN==2)THEN  
@@ -178,14 +186,15 @@ C
  !     WQAVGIO = WQAVGIO / (WQFD + 1.E-18)											!!!!!!!!!!
 
       ! *** DZWQ=1/H (for a layer), VOLWQ=1/VOL (m^-3)
-      DO K=KC,1,-1  
-        TWQ(2:LA)=TEM(2:LA,K)                 !layer temperature for WQ calcs
-        SWQ(2:LA)=MAX(SAL(2:LA,K), 0.0)       !layer salinity for WQ calcs
-        DZCHP(2:LA)=DZC(K)*HP(2:LA)           !layer thickness of a cell in meters
-        DZWQ(2:LA) = 1.0 / DZCHP(2:LA)        !inverse layer thickness
-        VOLWQ(2:LA) = DZWQ(2:LA) / DXYP(2:LA) !inverse volume of each cell in a layer
-        IMWQZT(2:LA)=IWQZMAP(2:LA,K)          !binary map for WQ calcs
-            
+      DO K=KC,1,-1
+        DO L=2,LA
+          TWQ(L)=TEM(L,K)                 !layer temperature for WQ calcs
+          SWQ(L)=MAX(SAL(L,K), 0.0)       !layer salinity for WQ calcs
+          DZCHP(L)=DZC(K)*HP(L)           !layer thickness of a cell in meters
+          DZWQ(L) = 1.0 / DZCHP(L)        !inverse layer thickness
+          VOLWQ(L) = DZWQ(L) / DXYP(L) !inverse volume of each cell in a layer
+          IMWQZT(L)=IWQZMAP(L,K)          !binary map for WQ calcs
+        ENDDO    
         ! *** ZERO WQWPSL IF FLOWS ARE NEGATIVE.  THESE ARE HANDLED IN CALFQC (PMC)
         IF(IWQPSL/=2)THEN
           DO NQ=1,NQSIJ  
@@ -260,29 +269,37 @@ C
         ENDIF
         
         IF(K/=KC) THEN
-          WQRPSET(2:LA,2) = WQWSRP(IMWQZT1(2:LA))*DZWQ(2:LA)  
-          WQLPSET(2:LA,2) = WQWSLP(IMWQZT1(2:LA))*DZWQ(2:LA)  
+          DO L=2,LA
+            WQRPSET(L,2) = WQWSRP(IMWQZT1(L))*DZWQ(L)  
+            WQLPSET(L,2) = WQWSLP(IMWQZT1(L))*DZWQ(L)
+          ENDDO
         ENDIF
 ! *** SET SETTLING FOR TAM SORPTION: ONE LAYER UP
-	  IF(IWQSRP==1.AND.K/=KC)WQWSSET(2:LA,2) = WQWSS(IMWQZT1(2:LA))*DZWQ(2:LA)  
+	  IF(IWQSRP==1.AND.K/=KC)THEN
+          DO L=2,LA
+            WQWSSET(L,2) = WQWSS(IMWQZT1(L))*DZWQ(L)
+          ENDDO
+        ENDIF  
 C  
 C FIND AN INDEX FOR LOOK-UP TABLE FOR TEMPERATURE DEPENDENCY  
 C  
 		! *** DSLLC BEGIN BLOCK
-        IWQT(2:LA)=NINT((TWQ(2:LA)-WQTDMIN)/WQTDINC)+1  
+        DO L=2,LA
+          IWQT(L)=NINT((TWQ(L)-WQTDMIN)/WQTDINC)+1
+        ENDDO  
         DO L=2,LA  
           IF(IWQT(L)<1 .OR. IWQT(L)>NWQTD)THEN  
-            OPEN(1,FILE='ERROR.LOG',POSITION='APPEND',STATUS='UNKNOWN')  
+            OPEN(1,FILE='ERROR'//ans(partid2)//'.LOG',POSITION='APPEND',STATUS='UNKNOWN')  
             WRITE(1,*)' *** ERROR IN WQSKE1:TEMPERATURE LOOKUP TABLE'
             WRITE(1,911) TIMEDAY, L, IL(L), JL(L), K, TWQ(L),TEM(L,K)  
-            WRITE(6,600)IL(L),JL(L),K,TWQ(L)  
+            WRITE(6,600)IL(L),JL(L),K,TWQ(L),TEM(L,K)  
             IWQT(L)=MAX(IWQT(L),1)  
             IWQT(L)=MIN(IWQT(L),NWQTD)  
             CLOSE(1,STATUS='KEEP')
           ENDIF  
         ENDDO  
 		! *** DSLLC END BLOCK
-  600 FORMAT(' I,J,K,TEM = ',3I5,E13.4)  
+  600 FORMAT(' I,J,K,TWQ,TEM = ',3I5,2E13.4)  
   911 FORMAT('ERROR: TIME, L, I, J, K, TWQ(L),TEM(L,K) = ',  
      &    F10.5, I5, 2I4, I3, 2F10.4,/)  
   
@@ -295,12 +312,14 @@ C
         !C        XLIMIX(L,K) = LIGHT       LIMITATION FOR ALGAE GROUP X  
         !C        XLIMTX(L,K) = TEMPERATURE LIMITATION FOR ALGAE GROUP X  
        
-        ! *** BEGIN HORIZONTAL LOOP FOR ALGAE PARMETERS  
-        RNH4WQ(2:LA) = MAX (WQV(2:LA,K,14), 0.0)     ! *** Ammonia
-        RNO3WQ(2:LA) = MAX (WQV(2:LA,K,15), 0.0)     ! *** Nitrate
-        PO4DWQ(2:LA) = MAX (WQPO4D(2:LA,K), 0.0)     ! *** Phosphate
-        RNH4NO3(2:LA) = RNH4WQ(2:LA) + RNO3WQ(2:LA)  ! *** Total Inorganic Nitrogen
-        CO2WQ(2:LA)  = MAX (WQV(2:LA,K,22), 0.0)     ! *** CO2
+        ! *** BEGIN HORIZONTAL LOOP FOR ALGAE PARMETERS
+        DO L=2,LA
+          RNH4WQ(L) = MAX (WQV(L,K,14), 0.0)     ! *** Ammonia
+          RNO3WQ(L) = MAX (WQV(L,K,15), 0.0)     ! *** Nitrate
+          PO4DWQ(L) = MAX (WQPO4D(L,K), 0.0)     ! *** Phosphate
+          RNH4NO3(L) = RNH4WQ(L) + RNO3WQ(L)     ! *** Total Inorganic Nitrogen
+          IF(ISTRWQ(22)==1)CO2WQ(L)  = MAX (WQV(L,K,22), 0.0)     ! *** CO2
+        ENDDO
         DO L=2,LA  
           IF(ISTRWQ(1)==1.OR.ISTRWQ(2)==1.OR.ISTRWQ(3)==1)THEN !Microalgae?
             WQGNC = RNH4NO3(L) / (WQKHNC+RNH4NO3(L) + 1.E-18)  
@@ -624,11 +643,12 @@ C
           WQN17(L) = WQN17(L)*DTWQO2 
         ENDIF  
 C  
-	  PPCDO=-3.45	!PARTIAL PRES OF CO2 IN 10^ppcdo ATM; TEMPORARILY DECLARED HERE. SHOULD BE READ IN FROM INPUT FILE
-        DO L=2,LA  
-          IZ=IWQZMAP(L,K)  
-          WQO18(L)= -DTWQO2*WQKCOD(IWQT(L),IZ)*O2WQ(L) /  
-     &        (WQKHCOD(IZ) + O2WQ(L) + 1.E-18)  
+        IF(ISTRWQ(22)==1)THEN
+	    PPCDO=-3.45	!PARTIAL PRES OF CO2 IN 10^ppcdo ATM; TEMPORARILY DECLARED HERE. SHOULD BE READ IN FROM INPUT FILE
+          DO L=2,LA  
+            IZ=IWQZMAP(L,K)  
+            WQO18(L)= -DTWQO2*WQKCOD(IWQT(L),IZ)*O2WQ(L) /  
+     &          (WQKHCOD(IZ) + O2WQ(L) + 1.E-18)  
 C  
 ! *** DO Saturation, MOD BY TT, SEE CHAPRA (1997) PG. 3 
 !          TVAL1=1./(TWQ(L)+273.15)  
@@ -642,105 +662,106 @@ C
 !          WQDOS(L) = EXP(RLNSAT2)  
 !          XDOSAT(L,K) = XDOSAT(L,K) + WQDOS(L)*DTWQ*DZCHP(L)   
 ! *** DO Saturation, Modified by SCJ, see Garcia and Gordon, Limnology and Oceanography 37(6), 1992, Eqn. 8 and Table 1
-          TVAL1=LOG((298.15-TWQ(L))/(273.15+TWQ(L)))
-          TVAL2=TVAL1*TVAL1
-          TVAL3=TVAL1*TVAL2
-          TVAL4=TVAL1*TVAL3
-          TVAL5=TVAL1*TVAL4
-          RLNSAT1=5.80818+3.20684*TVAL1+4.11890*TVAL2+4.93845*TVAL3
-     &           +1.01567*TVAL4+1.41575*TVAL5
-          RLNSAT2=SWQ(L)*(-7.01211E-3-7.25958E-3*TVAL1-7.93334E-3*TVAL2
-     &           -5.54491E-3*TVAL3)-1.32412E-7*SWQ(L)*SWQ(L)
-          WQDOS(L) = EXP(RLNSAT1+RLNSAT2)*32E-3 !32E-3 approximately converts micromol/L to mg/L or g/m^3
-          XDOSAT(L,K) = XDOSAT(L,K) + WQDOS(L)*DTWQ*DZCHP(L)
+            TVAL1=LOG((298.15-TWQ(L))/(273.15+TWQ(L)))
+            TVAL2=TVAL1*TVAL1
+            TVAL3=TVAL1*TVAL2
+            TVAL4=TVAL1*TVAL3
+            TVAL5=TVAL1*TVAL4
+            RLNSAT1=5.80818+3.20684*TVAL1+4.11890*TVAL2+4.93845*TVAL3
+     &             +1.01567*TVAL4+1.41575*TVAL5
+            RLNSAT2=SWQ(L)*(-7.01211E-3-7.25958E-3*TVAL1-7.93334E-3*TVAL2
+     &             -5.54491E-3*TVAL3)-1.32412E-7*SWQ(L)*SWQ(L)
+            WQDOS(L) = EXP(RLNSAT1+RLNSAT2)*32E-3 !32E-3 approximately converts micromol/L to mg/L or g/m^3
+            XDOSAT(L,K) = XDOSAT(L,K) + WQDOS(L)*DTWQ*DZCHP(L)
           
 !************* CO2 parameters
-	    CDOSATIDX(L) = -2385.73/(TWQ(L) + 273.15) -	!VB COMPUTING THE pK FOR SAT CONC OF CO2; K - HENRY'S CONST
+	      CDOSATIDX(L) = -2385.73/(TWQ(L) + 273.15) -	!VB COMPUTING THE pK FOR SAT CONC OF CO2; K - HENRY'S CONST
      &	                       0.0152642 * (TWQ(L) + 273.15) + 14.0184
 !          K * MOL WT OF CO2 * PARTAL PRES OF CO2 IN ATM
-	    WQCDOS(L) = 10.**(-CDOSATIDX(L)+PPCDO) * (44.* 1000.) !VB EVALUATING CONC OF CO2 IN G/M^3 
+	      WQCDOS(L) = 10.**(-CDOSATIDX(L)+PPCDO) * (44.* 1000.) !VB EVALUATING CONC OF CO2 IN G/M^3 
 !************* CO2 parameters
           ! *** Compute Reaeration
-          IF(K==KC)THEN 
-            WINDREA = WINDST(L)  
+            IF(K==KC)THEN 
+              WINDREA = WINDST(L)  
             ! DO NOT ALLOW WIND SPEEDS ABOVE 11 M/SEC IN THE FOLLOWING EQUATION
-            WQWREA=0.728*SQRT(WINDREA)+(0.0372*WINDREA-0.317)*WINDREA  
+              WQWREA=0.728*SQRT(WINDREA)+(0.0372*WINDREA-0.317)*WINDREA  
 C  
-            LE=LEAST(L)
-            LN=LNC(L)
-            IF(IWQKA(IZ)==0)THEN  
-              WQVREA = WQKRO(IZ)  
-              WQWREA = 0.0  
-            ELSEIF(IWQKA(IZ)==1)THEN  
-              WQVREA = WQKRO(IZ)  
-            ELSEIF(IWQKA(IZ)==2)THEN  
-              UMRM = 0.5*(U(L,K)+U(LE,K))  
-              VMRM = 0.5*(V(L,K)+V(LN,K))  
-              XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
+              LE=LEAST(L)
+              LN=LNC(L)
+              IF(IWQKA(IZ)==0)THEN  
+                WQVREA = WQKRO(IZ)  
+                WQWREA = 0.0  
+              ELSEIF(IWQKA(IZ)==1)THEN  
+                WQVREA = WQKRO(IZ)  
+              ELSEIF(IWQKA(IZ)==2)THEN  
+                UMRM = 0.5*(U(L,K)+U(LE,K))  
+                VMRM = 0.5*(V(L,K)+V(LN,K))  
+                XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 3.933 TYPICALLY  
-              WQVREA = WQKRO(IZ) * XMRM**0.5 / HP(L)**0.5  
-            ELSEIF(IWQKA(IZ)==3)THEN  
-              UMRM = MAX(U(L,K), U(LE,K))  
-              VMRM = MAX(V(L,K), V(LN,K))  
-              XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
+                WQVREA = WQKRO(IZ) * XMRM**0.5 / HP(L)**0.5  
+              ELSEIF(IWQKA(IZ)==3)THEN  
+                UMRM = MAX(U(L,K), U(LE,K))  
+                VMRM = MAX(V(L,K), V(LN,K))  
+                XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
               ! *** WQKRO = 5.32 TYPICALLY  
-              WQVREA = WQKRO(IZ) * XMRM**0.67 / HP(L)**1.85  
-            ELSEIF(IWQKA(IZ)==4)THEN  
-              ! *** MODIFIED OWENS AND GIBBS REAERATION EQUATION:  
-              ! *** NOTE: NORMALIZED TO A DEPTH OF 1.0 FT, I.E., THIS EQUATION GIVES THE  
-              ! ***       SAME REAERATION AS OWENS & GIBBS AT 1.0 FT DEPTH; AT HIGHER  
-              ! ***       DEPTHS IT GIVES LARGER REAERATION THAN OWENS & GIBBS.  
-              UMRM = MAX(U(L,K), U(LE,K))  
-              VMRM = MAX(V(L,K), V(LN,K))  
-              XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
-              YMRM = HP(L)*3.0*(1.0 - HP(L)/(HP(L)+0.1524))  
-              ! *** WQKRO = 5.32 TYPICALLY  
-              WQVREA = WQKRO(IZ) * XMRM**0.67 / YMRM**1.85  
-            ELSEIF(IWQKA(IZ)== 5)THEN  
-              UMRM = MAX(U(L,K), U(LEAST(L),K))  
-              VMRM = MAX(V(L,K), V(LNC(L),K))  
-              XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
-              WQVREA = 3.7*XMRM  
-            ENDIF  
+                WQVREA = WQKRO(IZ) * XMRM**0.67 / HP(L)**1.85  
+              ELSEIF(IWQKA(IZ)==4)THEN  
+            ! *** MODIFIED OWENS AND GIBBS REAERATION EQUATION:  
+            ! *** NOTE: NORMALIZED TO A DEPTH OF 1.0 FT, I.E., THIS EQUATION GIVES THE  
+            ! ***       SAME REAERATION AS OWENS & GIBBS AT 1.0 FT DEPTH; AT HIGHER  
+            ! ***       DEPTHS IT GIVES LARGER REAERATION THAN OWENS & GIBBS.  
+                UMRM = MAX(U(L,K), U(LE,K))  
+                VMRM = MAX(V(L,K), V(LN,K))  
+                XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
+                YMRM = HP(L)*3.0*(1.0 - HP(L)/(HP(L)+0.1524))  
+            ! *** WQKRO = 5.32 TYPICALLY  
+                WQVREA = WQKRO(IZ) * XMRM**0.67 / YMRM**1.85  
+              ELSEIF(IWQKA(IZ)== 5)THEN  
+                UMRM = MAX(U(L,K), U(LEAST(L),K))  
+                VMRM = MAX(V(L,K), V(LNC(L),K))  
+                XMRM = SQRT(UMRM*UMRM + VMRM*VMRM)  
+                WQVREA = 3.7*XMRM  
+              ENDIF  
 
             ! *** NOW COMBINE REAERATION DUE TO WATER VELOCITY AND WIND STRESS
-            WQVREA = WQVREA * REAC(IZ)  
-            WQWREA = WQWREA * REAC(IZ)  
-            WQP19(L) = - (WQVREA + WQWREA) * DZWQ(L)* WQTDKR(IWQT(L),IZ)  
-            WQKRDOS(L) = -WQP19(L)*WQDOS(L)
-            WQP22(L) = WQP19(L)*((32./44.)**0.25) 		!VB Kr FOR CO2 ANALOGOUS TO WQP19 ; 44 = MOL WT OF CO2
-            WQKRCDOS(L) = -WQP22(L) * WQCDOS(L)		!VB EVALUATING Kr*SAT CONC OF CO2
-          ELSE  
-            WQP19(L) = 0.0  
-            WQP22(L) = 0.0							!VB Kr FOR CO2 IS ZERO FOR CELLS NOT AT THE SURFACE
-          ENDIF  
-        ENDDO  
-        IF(IWQSRP==1)THEN
-          WQR20(2:LA) = WQWPSL(2:LA,K,20)*VOLWQ(2:LA)  
+              WQVREA = WQVREA * REAC(IZ)  
+              WQWREA = WQWREA * REAC(IZ)  
+              WQP19(L) = - (WQVREA + WQWREA) * DZWQ(L)* WQTDKR(IWQT(L),IZ)  
+              WQKRDOS(L) = -WQP19(L)*WQDOS(L)
+              WQP22(L) = WQP19(L)*((32./44.)**0.25) 		!VB Kr FOR CO2 ANALOGOUS TO WQP19 ; 44 = MOL WT OF CO2
+              WQKRCDOS(L) = -WQP22(L) * WQCDOS(L)		!VB EVALUATING Kr*SAT CONC OF CO2
+            ELSE  
+              WQP19(L) = 0.0  
+              WQP22(L) = 0.0							!VB Kr FOR CO2 IS ZERO FOR CELLS NOT AT THE SURFACE
+            ENDIF  
+          ENDDO  
+          IF(IWQSRP==1)THEN
+            WQR20(2:LA) = WQWPSL(2:LA,K,20)*VOLWQ(2:LA)  
      &          + (WQV(2:LA,K,20) - WQTAMP(2:LA,K)) * WQWSSET(2:LA,1)  
-          IF(K==1)THEN
-            DO L=2,LA  
-              IF(LMASKDRY(L))THEN
-                WQR20(L) = WQR20(L)  
-     &          + WQTDTAM(IWQT(L))*DZWQ(L)/(WQKHBMF+O2WQ(L) + 1.E-18)
-              ENDIF
-            ENDDO
-          ENDIF
+            IF(K==1)THEN
+              DO L=2,LA  
+                IF(LMASKDRY(L))THEN
+                  WQR20(L) = WQR20(L)  
+     &            + WQTDTAM(IWQT(L))*DZWQ(L)/(WQKHBMF+O2WQ(L) + 1.E-18)
+                ENDIF
+              ENDDO
+            ENDIF
   
-          IF(K/=KC)THEN
-            WQR20(2:LA) = WQR20(2:LA)  
+            IF(K/=KC)THEN
+              WQR20(2:LA) = WQR20(2:LA)  
      &          + (WQV(2:LA,K+1,20) - WQTAMP(2:LA,K+1)) * WQWSSET(2:LA,2)  
-          ELSE     ! K==KC
-            WQR20(2:LA)=WQR20(2:LA)+(WQWDSL(2:LA,KC,20)+WQATML(2:LA,KC,20))*VOLWQ(2:LA)
-          ENDIF 
-        ENDIF  
+            ELSE     ! K==KC
+              WQR20(2:LA)=WQR20(2:LA)+(WQWDSL(2:LA,KC,20)+WQATML(2:LA,KC,20))*VOLWQ(2:LA)
+            ENDIF 
+          ENDIF
+        ENDIF
 C  
 !      WQA1Cmax=0.0;WQA1Cmin=0.0
         DO M=1,MCOUNT !Macroalgae
           L=IJLMAC(M,3)
           IF(RMAC(L,K)>0.0)THEN
             WQA1C = (WQPM(L) - WQBMM(L) - WQPRM(L)-WQWSM*DZWQ(L))*DTWQO2 !RMAC factor
-!            WQA1Cmax=max(WQA1Cmax,WQA1C);WQA1Cmin=min(WQA1Cmin,WQA1C)
+!           WQA1Cmax=max(WQA1Cmax,WQA1C);WQA1Cmin=min(WQA1Cmin,WQA1C)
             WQVA1C = 1.0 / (1.0 - WQA1C)  
             WQV(L,K,IDNOTRVA)=(WQV(L,K,IDNOTRVA)+WQA1C*WQV(L,K,IDNOTRVA))*WQVA1C !*SMAC(L)  !Macroalgae growth equation
             WQV(L,K,IDNOTRVA) = MAX(WQV(L,K,IDNOTRVA),WQMCMIN) !*SMAC(L)  !Note the lower bound put on macroalgae from Bmin in C44 of WQ3DWC.INP
@@ -1038,7 +1059,7 @@ C
 !              WQRR(L) = WQRR(L) + WQR10
             DO L=2,LA
               IF(LMASKDRY(L))THEN
-              ! ***                       ATM DRY DEP        ATM WET DEP       VOLUME (THESE ARE WQR10)
+              ! ***                  ATM DRY DEP     ATM WET DEP      VOLUME (THESE ARE WQR10)
                 WQRR(L) = WQRR(L) + (WQWDSL(L,KC,10)+WQATML(L,KC,10))*VOLWQ(L)
               ENDIF
             ENDDO

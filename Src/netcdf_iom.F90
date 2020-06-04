@@ -253,22 +253,22 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   END DO
   CLOSE(123)
 ! ASSUME A CARTESIAN GRID FOR NOW
-  DELX_EAST = EASTING(IC-2) - EASTING(IC-3)
-  DELY_NORTH = NORTHING(JC-2) - NORTHING(JC-3)
+  DELX_EAST = EASTING(IC-5) - EASTING(IC-6)  !SCJ changed this to stay well within easting bounds: was EASTING(IC-3) - EASTING(IC-4)
+  DELY_NORTH = NORTHING(JC-5) - NORTHING(JC-6) !SCJ changed this to stay well within easting bounds: was NORTHING(IC-3) - NORTHING(IC-4)
   DO I =2,NLONS
-    IF (EASTING(I) == 0) EASTING(I) = EASTING(I-1) + DELX_EAST
+    IF (EASTING(I) == 0) EASTING(I) = EASTING(I-1) + DELX_EAST  !Need to be careful here because it is possible to have a 0 location in LXLY
   END DO
 
   DO I =2,NLATS
-    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I-1) + DELY_NORTH
+    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I-1) + DELY_NORTH  !Need to be careful here because it is possible to have a 0 location in LXLY
   END DO
 
   DO I = NLONS-1,1,-1
-    IF (EASTING(I) == 0) EASTING(I) = EASTING(I+1) - DELX_EAST
+    IF (EASTING(I) == 0) EASTING(I) = EASTING(I+1) - DELX_EAST  !Need to be careful here because it is possible to have a 0 location in LXLY
   END DO
 
   DO I = NLATS-1,1,-1
-    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I+1) - DELY_NORTH
+    IF (NORTHING(I) == 0) NORTHING(I) = NORTHING(I+1) - DELY_NORTH !Need to be careful here because it is possible to have a 0 location in LXLY
   END DO
 ! Easting northing obtained and stored
 
@@ -367,7 +367,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               READ(UNITNAME,*)IMAP, JMAP, TEMP_SURF   ! READ SURFACE ELEVATION
               MAP_SURFEL(IMAP, JMAP)= TEMP_SURF
             END DO
-        END IF
+          END IF
       END IF  ! ENDIF ON CHECK WHETHER DOMAIN EXISTS ( IF (TILE2NODE(FILELOOP) /= -1)
     END DO  ! END LOOP ON FILES (I.E. ACROSS ALL PARTITIONS
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
@@ -466,7 +466,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
         call check_nf90( nf90_put_att(ncid, wvel_varid, "long_name", "w_velocity") )
         call check_nf90( nf90_put_att(ncid, wvel_varid, "standard_name", "upward_water_velocity") )
         call check_nf90( nf90_put_att(ncid, wvel_varid, UNITS, wvel_units) )
-    END IF
+    ENDIF
     IF (ISTRAN(1) == 1 .AND. ISSPH(1) > 0) THEN
       call check_nf90( nf90_def_var(ncid, salinity_name, nf90_real, dimids, salinity_varid) )
       call check_nf90( nf90_put_att(ncid, salinity_varid, "_FillValue", FillValue_real) )
@@ -622,9 +622,9 @@ SUBROUTINE WQ_NC_WRITE
        DO I = 3,IC-2
          DO J = 3,JC-2
            II = II + 1
-           WQV_LOC_VECTOR(II) = 0. ! Cache efficient way to initiatlise to zero before acting on array
+           WQV_LOC_VECTOR(II) = 0. ! Cache efficient way to initialize to zero before acting on array
            L = LIJ(I,J)
-           if (L/=0) WQV_LOC_VECTOR(II) = WQV(L,K,NW)  !
+           IF(L/=0) WQV_LOC_VECTOR(II) = WQV(L,K,NW)  !
          ENDDO
        ENDDO
      ENDDO
@@ -695,32 +695,32 @@ SUBROUTINE WQ_NC_WRITE
    ENDIF
 
 
-      if (DEBUG_NETCDF) THEN
-       WRITE(*,*) 'BEGIN WRITE OF GLOBAL VARIABLES AFTER COMMUNICATION'
-      write (fname_netcdf, "(A15,I6, A4)") "NetCDFDataGATER", N, ".txt"
-      open(9999,FILE=trim(fname_netcdf),STATUS='UNKNOWN')
-         IF(PARTID==MASTER_TASK)THEN ! Unpack on MASTER Partition only
-         DO YD = 1,NPARTY   ! Number of subdomains in the vertical axis
-           DO XD = 1,NPARTX  ! Number of subdomains in the horizontal axis
-              ID = ID + 1
-              IF(TILE2NODE(ID)/=-1)THEN  ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
-           DO I = 1,IC_LORP(XD)-4    ! IC values for domain [XD, YD]
-             DO J = 1,JC_LORP(YD)-4  ! JC values for domain [XD, YD]
-               II = I +  IC_STRID(XD) ! Starting value of I cell in global coordinate \  map [I,J] = [1,1] in [XD,YD]
-               JJ = J +  JC_STRID(YD) ! Starting value of J cell in global coordinate /  to [I+X,J+Y] based on [XD,YD] pos
-              DO K = 1, KC
-                write(9999,9999) II, JJ, K, (WQV_ARRAY_OUT(II,JJ, K, NW), NW = 14, 15)
-              END DO
-            END DO
-          END DO
-          END IF
+   if (DEBUG_NETCDF) THEN
+     WRITE(*,*) 'BEGIN WRITE OF GLOBAL VARIABLES AFTER COMMUNICATION'
+     write (fname_netcdf, "(A15,I6, A4)") "NetCDFDataGATER", N, ".txt"
+     open(9999,FILE=trim(fname_netcdf),STATUS='UNKNOWN')
+     IF(PARTID==MASTER_TASK)THEN ! Unpack on MASTER Partition only
+       DO YD = 1,NPARTY   ! Number of subdomains in the vertical axis
+         DO XD = 1,NPARTX  ! Number of subdomains in the horizontal axis
+           ID = ID + 1
+           IF(TILE2NODE(ID)/=-1)THEN  ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
+             DO I = 1,IC_LORP(XD)-4    ! IC values for domain [XD, YD]
+               DO J = 1,JC_LORP(YD)-4  ! JC values for domain [XD, YD]
+                 II = I +  IC_STRID(XD) ! Starting value of I cell in global coordinate \  map [I,J] = [1,1] in [XD,YD]
+                 JJ = J +  JC_STRID(YD) ! Starting value of J cell in global coordinate /  to [I+X,J+Y] based on [XD,YD] pos
+                 DO K = 1, KC
+                   write(9999,9999) II, JJ, K, (WQV_ARRAY_OUT(II,JJ, K, NW), NW = 14, 15)
+                 END DO
+               END DO
+             END DO
+           END IF
+         END DO
         END DO
-      END DO
       END IF
       WRITE(*,*) 'FINISH WRITE OF GLOBAL VARIABLES AFTER COMMUNICATION'
       CLOSE(9999)
     END IF
-   CALL WRITE_WQ_NCDF(WQV_ARRAY_OUT)
+    CALL WRITE_WQ_NCDF(WQV_ARRAY_OUT)
 
 9999 FORMAT(3I6, 2F12.6)
    RETURN
@@ -1205,52 +1205,52 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
   call check_nf90( nf90_put_var(NCID, LAT_VARID, NORTHING) )   ! Northing
   call check_nf90( nf90_put_var(NCID, TIME_VARID, TWRITE_SEC) )! Time
 ! WQV1 details
-  IF(ISTRWQ(1).EQ.1)THEN 
+  IF(ISTRWQ(1).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,1)
     call check_nf90( nf90_put_var(NCID, WQV1_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV2 details
-  IF(ISTRWQ(2).EQ.1)THEN 
+  IF(ISTRWQ(2).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,2)
     call check_nf90( nf90_put_var(NCID, WQV2_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV3 details
-  IF(ISTRWQ(3).EQ.1)THEN 
+  IF(ISTRWQ(3).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,3)
     call check_nf90( nf90_put_var(NCID, WQV3_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV4 details
-  IF(ISTRWQ(4).EQ.1)THEN 
+  IF(ISTRWQ(4).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,4)
     call check_nf90( nf90_put_var(NCID, WQV4_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV5 details
-  IF(ISTRWQ(5).EQ.1)THEN 
+  IF(ISTRWQ(5).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,5)
     call check_nf90( nf90_put_var(NCID, WQV5_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV6 details
-  IF(ISTRWQ(6).EQ.1)THEN 
+  IF(ISTRWQ(6).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,6)
     call check_nf90( nf90_put_var(NCID, WQV6_VARID, WQTMP))    ! WQ data
   ENDIF
 !WQV7 definition
-  IF(ISTRWQ(7).EQ.1)THEN 
+  IF(ISTRWQ(7).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,7)
     call check_nf90( nf90_put_var(NCID, WQV7_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV8 details
-  IF(ISTRWQ(8).EQ.1)THEN 
+  IF(ISTRWQ(8).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,8)
     call check_nf90( nf90_put_var(NCID, WQV8_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV9 details
-  IF(ISTRWQ(9).EQ.1)THEN 
+  IF(ISTRWQ(9).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,9)
     call check_nf90( nf90_put_var(NCID, WQV9_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV10 details
-  IF(ISTRWQ(10).EQ.1)THEN 
+  IF(ISTRWQ(10).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,10)
     call check_nf90( nf90_put_var(NCID, WQV10_VARID, WQTMP))    ! WQ data
     IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
@@ -1259,22 +1259,22 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     ENDIF
   ENDIF
 ! WQV11 details
-  IF(ISTRWQ(11).EQ.1)THEN 
+  IF(ISTRWQ(11).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,11)
     call check_nf90( nf90_put_var(NCID, WQV11_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV12 details
-  IF(ISTRWQ(12).EQ.1)THEN 
+  IF(ISTRWQ(12).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,12)
     call check_nf90( nf90_put_var(NCID, WQV12_VARID, WQTMP))    ! WQ data
   ENDIF
 !WQV13 definition
-  IF(ISTRWQ(13).EQ.1)THEN 
+  IF(ISTRWQ(13).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,13)
     call check_nf90( nf90_put_var(NCID, WQV13_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV14 details
-  IF(ISTRWQ(14).EQ.1)THEN 
+  IF(ISTRWQ(14).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,14)
     call check_nf90( nf90_put_var(NCID, WQV14_VARID, WQTMP))    ! WQ data
     IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
@@ -1283,7 +1283,7 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     ENDIF
   ENDIF
 ! WQV15 details
-  IF(ISTRWQ(15).EQ.1)THEN 
+  IF(ISTRWQ(15).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,15)
     call check_nf90( nf90_put_var(NCID, WQV15_VARID, WQTMP))    ! WQ data
     IF(MAXVAL(WQTMP(:,:,:))<0.0)THEN
@@ -1292,42 +1292,42 @@ SUBROUTINE WRITE_WQ_NCDF(WQV_ARRAY_OUT)
     ENDIF
   ENDIF
 ! WQV16 details
-  IF(ISTRWQ(16).EQ.1)THEN 
+  IF(ISTRWQ(16).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,16)
     call check_nf90( nf90_put_var(NCID, WQV16_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV17 details
-  IF(ISTRWQ(17).EQ.1)THEN 
+  IF(ISTRWQ(17).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,17)
     call check_nf90( nf90_put_var(NCID, WQV17_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV18 details
-  IF(ISTRWQ(18).EQ.1)THEN 
+  IF(ISTRWQ(18).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,18)
     call check_nf90( nf90_put_var(NCID, WQV18_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV19 details
-  IF(ISTRWQ(19).EQ.1)THEN 
+  IF(ISTRWQ(19).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,19)
     call check_nf90( nf90_put_var(NCID, WQV19_VARID, WQTMP))    ! WQ data
   ENDIF
 !WQV20 definition
-  IF(ISTRWQ(20).EQ.1)THEN 
+  IF(ISTRWQ(20).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,20)
     call check_nf90( nf90_put_var(NCID, WQV20_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV21 details
-  IF(ISTRWQ(21).EQ.1)THEN 
+  IF(ISTRWQ(21).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,21)
     call check_nf90( nf90_put_var(NCID, WQV21_VARID, WQTMP))    ! WQ data
   ENDIF
 !WQV22 definition
-  IF(ISTRWQ(22).EQ.1)THEN 
+  IF(ISTRWQ(22).EQ.1.AND.PARTID==MASTER_TASK)THEN 
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,22)
     call check_nf90( nf90_put_var(NCID, WQV22_VARID, WQTMP))    ! WQ data
   ENDIF
 ! WQV23 details
-  IF(IDNOTRVA.EQ.23)THEN
+  IF(IDNOTRVA.EQ.23.AND.PARTID==MASTER_TASK)THEN
     WQTMP(:,:,:)=WQV_ARRAY_OUT(:,:,:,23)
     call check_nf90( nf90_put_var(NCID, WQV23_VARID, WQTMP))    ! WQ data
   ENDIF
