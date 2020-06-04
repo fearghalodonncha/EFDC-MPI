@@ -175,7 +175,7 @@ C
           ENDDO  
         ENDDO  
       ENDIF  
-      TTMP=SECNDS(SECNDS_ZERO)  
+      TTMP=SECNDS(SECNDS_ZERO)
 C  
       IF(ISTRAN(1).EQ.1.AND.ISCDCA(1).LT.4)  
      &    CALL CALTRAN (ISTL_,IS2TL_,1,1,SAL,SAL1)  
@@ -210,6 +210,7 @@ C
         ENDDO  
       ENDIF  
       TSADV=TSADV+SECNDS(TTMP)  
+      
 C  
 C **  3D COSMIC ADVECTI0N TRANSPORT CALCULATION  
 C  
@@ -473,103 +474,59 @@ C
       IF(KC.EQ.1) GOTO 1500  
       TTMP=SECNDS(SECNDS_ZERO)  
       RCDZKK=-DELTD2*CDZKK(1)  
-        DO L= 2,LA
-          CCUBTMP=RCDZKK*HPI(L)*AB(L,1)  
-          CCMBTMP=1.-CCUBTMP  
-          EEB(L)=1./CCMBTMP  
-          CU1(L,1)=CCUBTMP*EEB(L)  
+      DO L= 2,LA
+        CCUBTMP=RCDZKK*HPI(L)*AB(L,1)  
+        CCMBTMP=1.-CCUBTMP  
+        EEB(L)=1./CCMBTMP  
+        CU1(L,1)=CCUBTMP*EEB(L)  
+      ENDDO  
+      IF(ISTRAN(1).GE.1)THEN  
+        DO L=2,LA  
+          SAL(L,1)=SAL(L,1)*EEB(L)  
         ENDDO  
-        IF(ISTRAN(1).GE.1)THEN  
-          DO L=2,LA  
-            SAL(L,1)=SAL(L,1)*EEB(L)  
-          ENDDO  
-        ENDIF  
-        IF(ISTRAN(2).GE.1)THEN  
-          DO L=2,LA  
-            TEM(L,1)=TEM(L,1)*EEB(L)  
-          ENDDO  
-        ENDIF  
-        IF(ISTRAN(3).GE.1)THEN  
-          DO L=2,LA  
-            DYE(L,1)=DYE(L,1)*EEB(L)  
-          ENDDO  
-        ENDIF  
-
-        IF(ISTRAN(5).GE.1)THEN  
-          DO NT=1,NTOX  
-            DO L=2,LA  
-              TOX(L,1,NT)=TOX(L,1,NT)*EEB(L)  
-            ENDDO  
-          ENDDO  
-        ENDIF  
-        IF(ISTRAN(6).GE.1)THEN  
-          DO NS=1,NSED  
-            DO L=2,LA  
-              SED(L,1,NS)=SED(L,1,NS)*EEB(L)  
-            ENDDO  
-          ENDDO  
-        ENDIF  
-        IF(ISTRAN(7).GE.1)THEN  
-          DO NS=1,NSND  
-            DO L=2,LA  
-              SND(L,1,NS)=SND(L,1,NS)*EEB(L)  
-            ENDDO  
-          ENDDO  
-        ENDIF  
-
-        DO K=2,KS  
-          RCDZKMK=-DELTD2*CDZKMK(K)  
-          RCDZKK=-DELTD2*CDZKK(K)  
-          DO L=2,LA
-            CCLBTMP(L)=RCDZKMK*HPI(L)*AB(L,K-1)  
-            CCUBTMP=RCDZKK*HPI(L)*AB(L,K)  
-            CCMBTMP=1.-CCLBTMP(L)-CCUBTMP  
-            EEB(L)=1./(CCMBTMP-CCLBTMP(L)*CU1(L,K-1))  
-            CU1(L,K)=CCUBTMP*EEB(L)  
-          ENDDO  
-          IF(ISTRAN(1).GE.1)THEN  
-            DO L=2,LA  
-              SAL(L,K)=(SAL(L,K)-CCLBTMP(L)*SAL(L,K-1))*EEB(L)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(2).GE.1)THEN  
-            DO L=2,LA  
-              TEM(L,K)=(TEM(L,K)-CCLBTMP(L)*TEM(L,K-1))*EEB(L)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(3).GE.1)THEN  
-            DO L=2,LA  
-              DYE(L,K)=(DYE(L,K)-CCLBTMP(L)*DYE(L,K-1))*EEB(L)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(5).GE.1)THEN  
-            DO NT=1,NTOX  
-              DO L=2,LA  
-               TOX(L,K,NT)=(TOX(L,K,NT)-CCLBTMP(L)*TOX(L,K-1,NT))*EEB(L)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(6).GE.1)THEN  
-            DO NS=1,NSED  
-              DO L=2,LA  
-               SED(L,K,NS)=(SED(L,K,NS)-CCLBTMP(L)*SED(L,K-1,NS))*EEB(L)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(7).GE.1)THEN  
-            DO NS=1,NSND  
-              DO L=2,LA
-               SND(L,K,NS)=(SND(L,K,NS)-CCLBTMP(L)*SND(L,K-1,NS))*EEB(L)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
+      ENDIF  
+      IF(ISTRAN(2).GE.1)THEN  
+        DO L=2,LA  
+          TEM(L,1)=TEM(L,1)*EEB(L)  
+        ENDDO 
+      ENDIF  
+      IF(ISTRAN(3).GE.1)THEN  
+        DO L=2,LA  
+          DYE(L,1)=DYE(L,1)*EEB(L)  
         ENDDO  
-      K=KC  
-      RCDZKMK=-DELTD2*CDZKMK(K)  
+      ENDIF  
+
+      IF(ISTRAN(5).GE.1)THEN  
+        DO NT=1,NTOX  
+          DO L=2,LA  
+            TOX(L,1,NT)=TOX(L,1,NT)*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(6).GE.1)THEN  
+        DO NS=1,NSED  
+          DO L=2,LA  
+            SED(L,1,NS)=SED(L,1,NS)*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(7).GE.1)THEN  
+        DO NS=1,NSND  
+          DO L=2,LA  
+            SND(L,1,NS)=SND(L,1,NS)*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+
+      DO K=2,KS  
+        RCDZKMK=-DELTD2*CDZKMK(K)  
+        RCDZKK=-DELTD2*CDZKK(K)  
         DO L=2,LA
           CCLBTMP(L)=RCDZKMK*HPI(L)*AB(L,K-1)  
-          CCMBTMP=1.-CCLBTMP(L)  
+          CCUBTMP=RCDZKK*HPI(L)*AB(L,K)  
+          CCMBTMP=1.-CCLBTMP(L)-CCUBTMP  
           EEB(L)=1./(CCMBTMP-CCLBTMP(L)*CU1(L,K-1))  
+          CU1(L,K)=CCUBTMP*EEB(L)  
         ENDDO  
         IF(ISTRAN(1).GE.1)THEN  
           DO L=2,LA  
@@ -578,74 +535,117 @@ C
         ENDIF  
         IF(ISTRAN(2).GE.1)THEN  
           DO L=2,LA  
-            TEM(L,K)=(TEM(L,K)-CCLBTMP(L)*TEM(L,K-1))*EEB(L)  
+            TEM(L,K)=(TEM(L,K)-CCLBTMP(L)*TEM(L,K-1))*EEB(L)
           ENDDO  
         ENDIF  
         IF(ISTRAN(3).GE.1)THEN  
           DO L=2,LA  
-            DYE(L,K)=(DYE(L,K)-CCLBTMP(L)*DYE(L,K-1))*EEB(L)  
+            DYE(L,K)=(DYE(L,K)-CCLBTMP(L)*DYE(L,K-1))*EEB(L)
           ENDDO  
         ENDIF  
         IF(ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
             DO L=2,LA  
-              TOX(L,K,NT)=(TOX(L,K,NT)-CCLBTMP(L)*TOX(L,K-1,NT))*EEB(L)  
+             TOX(L,K,NT)=(TOX(L,K,NT)-CCLBTMP(L)*TOX(L,K-1,NT))*EEB(L)  
             ENDDO  
           ENDDO  
         ENDIF  
         IF(ISTRAN(6).GE.1)THEN  
           DO NS=1,NSED  
             DO L=2,LA  
-              SED(L,K,NS)=(SED(L,K,NS)-CCLBTMP(L)*SED(L,K-1,NS))*EEB(L)  
+             SED(L,K,NS)=(SED(L,K,NS)-CCLBTMP(L)*SED(L,K-1,NS))*EEB(L)  
+            ENDDO  
+          ENDDO  
+        ENDIF  
+        IF(ISTRAN(7).GE.1)THEN  
+          DO NS=1,NSND  
+            DO L=2,LA
+             SND(L,K,NS)=(SND(L,K,NS)-CCLBTMP(L)*SND(L,K-1,NS))*EEB(L)  
+            ENDDO  
+          ENDDO  
+        ENDIF  
+      ENDDO  
+      K=KC  
+      RCDZKMK=-DELTD2*CDZKMK(K)  
+      DO L=2,LA
+        CCLBTMP(L)=RCDZKMK*HPI(L)*AB(L,K-1)  
+        CCMBTMP=1.-CCLBTMP(L)  
+        EEB(L)=1./(CCMBTMP-CCLBTMP(L)*CU1(L,K-1))  
+      ENDDO  
+      IF(ISTRAN(1).GE.1)THEN  
+        DO L=2,LA  
+          SAL(L,K)=(SAL(L,K)-CCLBTMP(L)*SAL(L,K-1))*EEB(L)  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(2).GE.1)THEN  
+        DO L=2,LA  
+          TEM(L,K)=(TEM(L,K)-CCLBTMP(L)*TEM(L,K-1))*EEB(L) 
+        ENDDO 
+      ENDIF  
+      IF(ISTRAN(3).GE.1)THEN  
+        DO L=2,LA  
+          DYE(L,K)=(DYE(L,K)-CCLBTMP(L)*DYE(L,K-1))*EEB(L)  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(5).GE.1)THEN  
+        DO NT=1,NTOX  
+          DO L=2,LA  
+            TOX(L,K,NT)=(TOX(L,K,NT)-CCLBTMP(L)*TOX(L,K-1,NT))*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(6).GE.1)THEN  
+        DO NS=1,NSED  
+          DO L=2,LA  
+            SED(L,K,NS)=(SED(L,K,NS)-CCLBTMP(L)*SED(L,K-1,NS))*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+      IF(ISTRAN(7).GE.1)THEN  
+        DO NS=1,NSND  
+          DO L=2,LA  
+            SND(L,K,NS)=(SND(L,K,NS)-CCLBTMP(L)*SND(L,K-1,NS))*EEB(L)  
+          ENDDO  
+        ENDDO  
+      ENDIF  
+      DO K=KC-1,1,-1  
+        IF(ISTRAN(1).GE.1)THEN  
+          DO L=2,LA  
+            SAL(L,K)=SAL(L,K)-CU1(L,K)*SAL(L,K+1)  
+          ENDDO  
+        ENDIF  
+        IF(ISTRAN(2).GE.1)THEN  
+          DO L= 2,LA
+            TEM(L,K)=TEM(L,K)-CU1(L,K)*TEM(L,K+1)  
+          ENDDO  
+        ENDIF  
+        IF(ISTRAN(3).GE.1)THEN  
+          DO L=2,LA  
+            DYE(L,K)=DYE(L,K)-CU1(L,K)*DYE(L,K+1)  
+          ENDDO  
+        ENDIF  
+        IF(ISTRAN(5).GE.1)THEN  
+          DO NT=1,NTOX  
+            DO L=2,LA  
+              TOX(L,K,NT)=TOX(L,K,NT)-CU1(L,K)*TOX(L,K+1,NT)  
+            ENDDO  
+          ENDDO  
+        ENDIF  
+        IF(ISTRAN(6).GE.1)THEN  
+          DO NS=1,NSED  
+            DO L=2,LA  
+              SED(L,K,NS)=SED(L,K,NS)-CU1(L,K)*SED(L,K+1,NS)  
             ENDDO  
           ENDDO  
         ENDIF  
         IF(ISTRAN(7).GE.1)THEN  
           DO NS=1,NSND  
             DO L=2,LA  
-              SND(L,K,NS)=(SND(L,K,NS)-CCLBTMP(L)*SND(L,K-1,NS))*EEB(L)  
+              SND(L,K,NS)=SND(L,K,NS)-CU1(L,K)*SND(L,K+1,NS)  
             ENDDO  
           ENDDO  
         ENDIF  
-
-        DO K=KC-1,1,-1  
-          IF(ISTRAN(1).GE.1)THEN  
-            DO L=2,LA  
-              SAL(L,K)=SAL(L,K)-CU1(L,K)*SAL(L,K+1)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(2).GE.1)THEN  
-            DO L= 2,LA
-              TEM(L,K)=TEM(L,K)-CU1(L,K)*TEM(L,K+1)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(3).GE.1)THEN  
-            DO L=2,LA  
-              DYE(L,K)=DYE(L,K)-CU1(L,K)*DYE(L,K+1)  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(5).GE.1)THEN  
-            DO NT=1,NTOX  
-              DO L=2,LA  
-                TOX(L,K,NT)=TOX(L,K,NT)-CU1(L,K)*TOX(L,K+1,NT)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(6).GE.1)THEN  
-            DO NS=1,NSED  
-              DO L=2,LA  
-                SED(L,K,NS)=SED(L,K,NS)-CU1(L,K)*SED(L,K+1,NS)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
-          IF(ISTRAN(7).GE.1)THEN  
-            DO NS=1,NSND  
-              DO L=2,LA  
-                SND(L,K,NS)=SND(L,K,NS)-CU1(L,K)*SND(L,K+1,NS)  
-              ENDDO  
-            ENDDO  
-          ENDIF  
-        ENDDO  
+      ENDDO  
       DO K=1,KB  
         DO L=1,LC  
           SEDBT(L,K)=0.  
@@ -1154,9 +1154,9 @@ C
 C
         IF(ISCDA(2).EQ.1)THEN
           DO K=1,KC
-          DO L=2,LA
-           TEM(L,K)=CDAWT(L)*TEMINIT(L,K)+(1.0-CDAWT(L))*TEM(L,K)
-          ENDDO
+            DO L=2,LA
+              TEM(L,K)=CDAWT(L)*TEMINIT(L,K)+(1.0-CDAWT(L))*TEM(L,K)
+            ENDDO
           ENDDO
 	  ENDIF
 C

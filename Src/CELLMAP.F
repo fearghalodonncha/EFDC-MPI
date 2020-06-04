@@ -49,7 +49,7 @@ C **  SET 1D CELL INDEX SEQUENCE AND MAPPINGS
             JL(L) = J
             LCT(L)=IJCT_GLOBAL(IL_GL(L),JL_GL(L))
             LIJ(I,J)=L
-            IF(PARTID==0) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
+            IF(PARTID==MASTER_TASK) write(37,*)I,J,IL_GL(L),JL_GL(L),LIJ(I,J),L,JC,IC
             L = L + 1
           END IF
         ENDDO

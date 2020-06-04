@@ -100,7 +100,9 @@ C **      GWATER.INP
 C  
 C *** EE BEGIN BLOCK  
       USE GLOBAL
+#ifdef key_ncdf
       USE IOM
+#endif
       USE DRIFTER,ONLY:DRIFTERINP,AREA_CENTRD
 
 
@@ -109,19 +111,30 @@ C *** EE BEGIN BLOCK
        USE parallel_mpi
 #endif
 #ifdef XLF
-       use xlfutility
-       real(4) elapsed_1
-       type(tb_type) etime_struct_1
+       USE XLFUTILITY
+       REAL(4)RLAPSED_1
+       TYPE(TB_TYPE)ETIME_STRUCT_1
 #endif
+      IMPLICIT NONE
 C 
 C *** WASP7 Linkage     
-CPMC      COMMON/WASPHYDRO/  IHL_HANDLE,ibegin,idays,ad,adcoeff,abwmax,abwmx
+CPMC  COMMON/WASPHYDRO/  IHL_HANDLE,ibegin,idays,ad,adcoeff,abwmax,abwmx
 CPMC	INCLUDE 'hydrolink_set.INT'
-CPMC      CHARACTER*256 errstring
+CPMC  CHARACTER*256 errstring
 C
       CHARACTER*80 TITLE  
 C
       REAL,ALLOCATABLE,DIMENSION(:,:)::SHOTS
+C      
+C *** VARIABLES DEFINED TO VERIFY MPI CODING
+C
+      REAL :: T0,T3,T4,T9,TA1,TA2,TCPU,TMPCOR,TMPVAL,TQCLT,TSHIFT,WTQCLT,XLNUTME,YLTUTMN
+      REAL :: CCUE,CCVE,CCUN,CCVN,DET,DETTMP,ETMP
+      REAL :: ANG,ANG1,ANG2,ANGTMP1,ANGTMP2,ZERO
+      REAL :: BELMIN,C1,DELVOL,FORCSUM,LBELMIN,VOLLDRY,TMP,WTM,WTMP
+      REAL :: DDXDDDY,DDYDDDX,DXVLN,DXVLS,DYUM1,DYUP1,DZPC
+      INTEGER :: I,IIN,IISTMP,ITMPVAL,IS,ISNAP,J,JIN,K,KK,KP,L,LL,LPBTMP,LN,LS,LT,M,NREST
+      INTEGER :: NFDCHIJ,NS,NSHOTS,NTMP,NT,NX
 C  
 C *** EE BEGIN BLOCK  
 C  
@@ -129,6 +142,7 @@ C
       REAL*4 TIME_END,TIME_START
       REAL*8 T1,T2,DELSNAP
       INTEGER COUNT
+      INTEGER iStat
       LOGICAL PAUSEIT
 	CHARACTER*20 BUFFER
 C
@@ -147,6 +161,7 @@ C *** EE BEGIN BLOCK
 C     IS_TIMING NEEDS TO BE BASED ON A FLAG IN EFDC.INP AS IN EFDC_DS  
 C     BUT WILL USE THIS AS A DEFAULT FOR NOW  
 C  
+      CPUTIME(1:2)=0.0
       IS_TIMING=.TRUE.  
       TIME_END=SECNDS(SECNDS_ZERO)  
 
@@ -166,13 +181,16 @@ C
 
 C  call mpi specific routines if applicable
       CALL VARINIT
+C  call MPI-specific routines, if applicable
 #ifdef key_mpi
       MPI_PAR_FLAG = 1
       CALL LORP
+      PRINT*,'CALLED LORP'
       CALL INITIALIZE_MPI
+      IF(PARTID==MASTER_TASK)PRINT*,'CALLED INITIALIZE_MPI'
       CALL DISTRIBUTE_MPI
-        DO ii = 1,PARTID2
-          write(ans(ii),'(I3.3)')ii
+        DO I = 1,PARTID2
+          write(ans(I),'(I3.3)') I
         END DO  
 #else
       MPI_PAR_FLAG = 0
@@ -184,7 +202,7 @@ C  call mpi specific routines if applicable
 C  
 C *** EE END BLOCK  
 C  
-      IF (PARTID == MASTER_TASK) CALL WELCOME
+      IF(PARTID == MASTER_TASK)CALL WELCOME
 C  
 !      IF(PAUSEIT)THEN
 !        WRITE(*,'(A)')'SETTING EXCEPTION TRAPS (TAP SPACEBAR TO QUIT)'  
@@ -193,7 +211,7 @@ C
 C  
 C **  OPEN OUTPUT FILES  
 C  
-      IF (PARTID ==MASTER_TASK) THEN
+      IF (PARTID == MASTER_TASK) THEN
         OPEN(9,FILE='TIME.LOG',STATUS='UNKNOWN') 
         CLOSE(9,STATUS='DELETE')  
         OPEN(1,FILE='DRYWET.LOG',STATUS='UNKNOWN') 
@@ -208,7 +226,7 @@ C
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE='ERROR.LOG',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')
-      end if
+      ENDIF
       OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
       CLOSE(8,STATUS='DELETE')
       OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
@@ -230,7 +248,7 @@ C INITIALIZE Open MP if relevant
 !$     NTHREADS = OMP_GET_NUM_THREADS()
 !$     CHUNKSIZE = NINT( (LA/(NTHREADS)) + 0.5)
 !$     TID = OMP_GET_THREAD_NUM()
-!$       PRINT *, "THE PROGRAM WILL BE RUN ON ", NTHREADS, " OPEN MP THREADS"
+!$     IF(TID==0)PRINT *, "THE PROGRAM WILL BE RUN ON ", NTHREADS, " OPEN MP THREADS"
 !$OMP END PARALLEL
 
 C  
@@ -242,7 +260,7 @@ C **  SET TIME RELATED PARAMETERS
 C **  THE PARAMETER NTC=NUMBER OF TIME CYCLES, CONTROLS  
 C **  THE LENGTH OF RUN (NUMBER OF TIME STEPS)  
 C  
-c      TCYCLE=0.0  
+C      TCYCLE=0.0  
       TLRPD=0.0  
       THDMT=0.0  
       TVDIF=0.0  
@@ -264,7 +282,7 @@ c      TCYCLE=0.0
       TWQSED=0.0  
       WTQCLT=0.0  
       CFMAX=CF  
-      PI=3.1415926535898  
+      PI=ACOS(-1.0)  
       NBAN=49  
 
       ! ***  NTC:     NUMBER OF REFERENCE TIME PERIODS IN RUN
@@ -297,21 +315,11 @@ c      TCYCLE=0.0
       NDISP=NTS-NTSPTC+2  
       NSHOWR=0  
       NSHOWC=0  
-      DO NS=1,NASER  
-        MATLAST(NS)=1  
-      ENDDO  
-      DO NS=1,NWSER  
-        MWTLAST(NS)=1  
-      ENDDO  
-      DO NS=1,NPSER  
-        MPTLAST(NS)=1  
-      ENDDO  
-      DO NS=1,NQSER  
-        MQTLAST(NS)=1  
-      ENDDO  
-      DO NS=1,NQWRSR  
-        MQWRTLST(NS)=1  
-      ENDDO  
+      MATLAST(1:NASER)=1  
+      MWTLAST(1:NWSER)=1  
+      MPTLAST(1:NPSER)=1  
+      MQTLAST(1:NQSER)=1  
+      MQWRTLST(1:NQWRSR)=1  
       NTMP=4+NSED+NSND+NTOX  
       DO NC=1,NTMP  
         DO NN=1,NCSER(NC)  
@@ -1322,8 +1330,8 @@ C
                CLOS(LL,K,M)=TOXINIT(L,K,NT)  
                NLOS(LL,K,M)=0  
                IF(NCSERS(LL,M).EQ.0)THEN  
-               TOX(L,K,NT)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
-               TOX1(L,K,NT)=TOX(L,K,NT)  
+                 TOX(L,K,NT)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
+                 TOX1(L,K,NT)=TOX(L,K,NT)  
                ENDIF  
               ENDDO  
             ENDDO  
@@ -1445,8 +1453,8 @@ C
                CLOS(LL,K,M)=SEDINIT(L,K,NS)  
                NLOS(LL,K,M)=0  
                IF(NCSERS(LL,M).EQ.0)THEN  
-               SED(L,K,NS)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
-               SED1(L,K,NS)=SED(L,K,NS)  
+                 SED(L,K,NS)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
+                 SED1(L,K,NS)=SED(L,K,NS)  
                ENDIF  
               ENDDO  
             ENDDO  
@@ -1568,8 +1576,8 @@ C
                CLOS(LL,K,M)=SNDINIT(L,K,NS)  
                NLOS(LL,K,M)=0  
                IF(NCSERS(LL,M).EQ.0)THEN  
-               SND(L,K,NS)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
-               SND1(L,K,NS)=SND(L,K,NS)  
+                 SND(L,K,NS)=WTCI(K,1)*CBS(LL,1,M)+WTCI(K,2)*CBS(LL,2,M)  
+                 SND1(L,K,NS)=SND(L,K,NS)  
                ENDIF  
               ENDDO  
             ENDDO  
@@ -2069,80 +2077,7 @@ C
           FVOLASM(I,J)=0.0  
           FTEMASM(I,J)=0.0  
         ENDDO  
-      ENDDO  
-C
-CGR **  Initialization of ISWSEDA Created by Greg Rocheleau, 5/31/2011
-C
-!      IF(ISWSEDA.GT.1)THEN
-!      N=1
-!C
-!      DO LL=1,NCBS
-!       IF(ISPBS(LL).EQ.2)THEN
-!          L=LCBS(LL)
-!          DO NSPNG=1,ISWSEDA      
-!            IF(K.GE.KGVCP(L))THEN
-!            ICWSEDA(N)=IL(L)
-!            JCWSEDA(N)=JL(L)
-!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(LL)
-!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
-!            N=N+1
-!            L=LNC(L)
-!             ENDIF
-!           ENDDO
-!        ENDIF
-!      ENDDO      
-!C
-!      DO LL=1,NCBW
-!        IF(ISPBW(LL).EQ.2)THEN
-!          L=LCBW(LL)
-!          DO NSPNG=1,ISWSEDA 
-!            IF(K.GE.KGVCP(L))THEN
-!            ICWSEDA(N)=IL(L)
-!            JCWSEDA(N)=JL(L)
-!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+LL)
-!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
-!            N=N+1
-!            L=L+1
-!            ENDIF
-!            ENDDO
-!          ENDIF
-!      ENDDO
-!C      
-!      DO LL=1,NCBE
-!        IF(ISPBE(LL).EQ.2)THEN
-!          L=LCBE(LL)
-!          DO NSPNG=1,ISWSEDA 
-!            IF(K.GE.KGVCP(L))THEN
-!            ICWSEDA(N)=IL(L)
-!            JCWSEDA(N)=JL(L)
-!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+NCBW+LL)
-!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
-!            N=N+1
-!            L=L-1
-!            ENDIF
-!            ENDDO
-!          ENDIF
-!      ENDDO
-!C
-!      DO LL=1,NCBN
-!        IF(ISPBN(LL).EQ.2)THEN
-!          L=LCBN(LL)
-!          DO NSPNG=1,ISWSEDA
-!            IF(K.GE.KGVCP(L))THEN
-!            ICWSEDA(N)=IL(L)
-!            JCWSEDA(N)=JL(L)
-!            NWSESERA(N)=(NCBS+NCBW+NCBE+NCBN)+(NCBS+NCBW+NCBE+LL)
-!            TSWSEDA(N)=0.75*(REAL(ISWSEDA+1-NSPNG)/REAL(ISWSEDA))**10
-!            N=N+1
-!            L=LSC(L)
-!            ENDIF
-!            ENDDO
-!          ENDIF
-!      ENDDO
-!C     MUST REDIFNE NLSWEDA=N IN ORDER TO RUN ASSIMILATION IN PUVDASM.FOR, ETC.      
-!      NLWSEDA=N
-!      ENDIF
-CGR      
+      ENDDO    
 C  
 C **  INITIALIZE WATER QUALITY MODEL AND READ INPUT  
 C  
@@ -2150,7 +2085,7 @@ C
 C  
 C **  INITIALIZE EFDC EXPLORER OUTPUT  
 C  
-      IF(ISSPH(8).EQ.1.OR.ISBEXP.EQ.1) CALL EEXPOUT(1)  
+      IF(ISSPH(8).EQ.1.AND.ISBEXP.EQ.1) CALL EEXPOUT(1)  
 C  
 C **  SELECT FULL HYDRODYNAMIC AND MASS TRANSPORT CALCULATION OR  
 C **  LONG-TERM MASS TRANSPORT CALCULATION  
@@ -2182,7 +2117,7 @@ C
        CPUTIME(2) = etime_struct_1%systime
 #else
       TCPU=TIME_END-TIME_START !DTIME(CPUTIME) !SCJ added this line
-      TCPU=TCPU/3600  
+      TCPU=TCPU/3600.0  
       CPUTIME(1)=CPUTIME(1)/3600.  !TCPU
       CPUTIME(2)=CPUTIME(2)/3600.
 #endif
@@ -2204,7 +2139,7 @@ C
       TWQDIF=TWQDIF/3600.
       TWQKIN=TWQKIN/3600.
       TWQSED=TWQSED/3600.
-      IF(PARTID==0) THEN
+      IF(PARTID==MASTER_TASK) THEN
         IF(LMHK)THEN
           ETMP=SUM(ESUP(1:TCOUNT,2:LA))
           WRITE(6,'("SUPPORT ENERGY LOSS    ",F10.4," MW-HR")')ETMP
@@ -2227,7 +2162,7 @@ C
         ENDIF
         WRITE(6,2003)CPUTIME(1),CPUTIME(2)  
         WRITE(6,2004)TIME_END,  TCPU
-      END IF  
+      ENDIF  
  1995 FORMAT('***TIMING (HOURS)',/,  
      &       'T HDMT      =',F7.3,'  T CONG GRAD =',F7.3)  
  1996 FORMAT('T P&UV VELS =',F7.3,'  T SSEDTOX   =',F7.3)  

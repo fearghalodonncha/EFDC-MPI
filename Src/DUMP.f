@@ -10,10 +10,14 @@ C
       REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
       REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
       REAL*8,ALLOCATABLE,DIMENSION(:) :: GLO_WS,GLO_VEL !Buffers for water surface and velocities
+      REAL*8,ALLOCATABLE,DIMENSION(:) :: GLO_SAL,GLO_TEM !Buffers for dalinity and temperature
       REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_WS !Local water surface vector 1D
       REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_VEL !Local velocity vector 1D
+      REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_ST !Local salinity and temperature
       REAL*8,ALLOCATABLE,DIMENSION(:) :: PAR_WS !Water surface 1D vector
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_VEL !Velocity vectors
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_TEM !Temperatures
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_SAL !Salinity
       INTEGER :: LVS !Local vector size in I*J
       INTEGER :: LVS_K !Local vector size in I*J*K
       INTEGER :: LVS_K_WQ !Local vector size in I*J*K*NWQV
@@ -223,6 +227,8 @@ C
       ENDIF  
       IF(ISADMP.EQ.0)THEN
        IF(PARTID == MASTER_TASK)THEN
+        OPEN(1,FILE=FNDTEM)  
+        CLOSE(1,STATUS='DELETE')
         OPEN(1,FILE=FNDSEL)  
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE=FNDUUU)  
@@ -232,8 +238,6 @@ C
         OPEN(1,FILE=FNDWWW)  
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE=FNDSAL)  
-        CLOSE(1,STATUS='DELETE')  
-        OPEN(1,FILE=FNDTEM)  
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE=FNDDYE)  
         CLOSE(1,STATUS='DELETE')  
@@ -284,28 +288,20 @@ C
       ENDIF  
       JSDUMP=0  
   300 CONTINUE  
-!      DO K=1,KC  
-!        DO L=1,LC-2  
-!          DMPVAL(L,K)=0.  
-!          IDMPVAL(L,K)=0  
-!          IB08VAL(L,K)=0  
-!          IB16VAL(L,K)=0  
-!        ENDDO  
-!      ENDDO  
-      DMPVAL(:,:)=0.0
-      IDMPVAL(:,:)=0
-      IB08VAL(:,:)=0
-      IB16VAL(:,:)=0
-!      DO L=1,LC-2  
-!        DMPVALL(L)=0.  
-!        IDMPVALL(L)=0  
-!        IB08VALL(L)=0  
-!        IB16VALL(L)=0  
-!      ENDDO
-      DMPVALL(:)=0.0
-      IDMPVALL(:)=0
-      IB08VALL(:)=0
-      IB16VALL(:)=0
+      DO K=1,KC  
+        DO L=1,LC-2  
+          DMPVAL(L,K)=0.  
+          IDMPVAL(L,K)=0  
+          IB08VAL(L,K)=0  
+          IB16VAL(L,K)=0  
+        ENDDO  
+      ENDDO  
+      DO L=1,LC-2  
+        DMPVALL(L)=0.  
+        IDMPVALL(L)=0  
+        IB08VALL(L)=0  
+        IB16VALL(L)=0  
+      ENDDO
       IF(ISDYNSTP.EQ.0)THEN  
         TIME=(DT*FLOAT(N)+TCON*TBEGIN)/86400.  
       ELSE  
@@ -1069,11 +1065,12 @@ C
           ENDIF
 !!!MPI
           IERROR=1
+          IF(PARTID==MASTER_TASK)PRINT*,'DUMPING DATA AT TIME',TIME
 #ifdef key_mpi
           ERROR=0
           LVS = (IC-4) * (JC-4) !NUMBER OF ELEMENTS TO BE SENT
           LVS_K = (IC - 4) * (JC - 4 ) * KC
-          LVS_K_WQ = (IC - 4) * (JC - 4 ) * KC * NWQV
+          LVS_K_WQ = (IC - 4) * (JC - 4 ) * KC * NWQVM
           GVS = IC_GLOBAL * JC_GLOBAL !NUMBER OF ELEMENTS TO BE SENT
           GVS_K = IC_GLOBAL * JC_GLOBAL * KC
           GVS_K_WQ = IC_GLOBAL * JC_GLOBAL * KC *NWQVM
@@ -1087,12 +1084,13 @@ C
             ALLOCATE(RCNTS_PART_K_WQ(NPARTS))
             ALLOCATE(PAR_WS(LCM))
             ALLOCATE(PAR_VEL(LCM,KCM))
+            ALLOCATE(PAR_SAL(LCM,KCM))
+            ALLOCATE(PAR_TEM(LCM,KCM))
           ENDIF
           IF(.NOT.ALLOCATED(GLO_WS) .AND. PARTID==MASTER_TASK)THEN
              ALLOCATE(GLO_WS(GVS))
  !             WRITE(*,*) 'Allocate = ',LVS,LVS_K,LVS_K_WQ
           ENDIF
-          LOC_WS(:)=0.0
           DISPL_STP(:)=0
           RCNTS_PART(:)=0
           GLO_WS(:)=0.0
@@ -1100,10 +1098,9 @@ C
           DO I = 3,IC-2
              DO J = 3,JC-2
                 L = LIJ(I,J)
-                IF(L>0)THEN !L must be in the domain
-                 II = II + 1
-                 LOC_WS(II) = GI*P(L)
-                ENDIF
+                II = II + 1
+                LOC_WS(II)=0.0
+                IF(L>0)LOC_WS(II) = GI*P(L)
              ENDDO
           ENDDO   
    ! We need to compute the size of the strip that is received from each MPI process.
@@ -1133,6 +1130,7 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
+          PAR_WS(:)=0.0
           IF(PARTID .EQ. MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
@@ -1147,10 +1145,8 @@ C
                     II = I + ISKIP
                     JJ = J + JSKIP
                     L = LIJ(II,JJ)
-                    IF(L>0)THEN !L must be in the domain
-                      III = III + 1
-                      PAR_WS(L) = GLO_WS(III)
-                    ENDIF
+                    III = III + 1
+                    IF(L>0)PAR_WS(L) = GLO_WS(III)
                   ENDDO
                 ENDDO
 555             CONTINUE
@@ -1199,16 +1195,16 @@ C
           IF(.NOT.ALLOCATED(GLO_VEL) .AND. PARTID==MASTER_TASK)THEN
              ALLOCATE(GLO_VEL(GVS_K))
           ENDIF
-          LOC_VEL(:)=0.0
           GLO_VEL(:)=0.0
           II = 0
           DO K = 1,KC
             DO I = 3,IC-2
                DO J = 3,JC-2
                   L = LIJ(I,J)
+                  II = II + 1
+                  LOC_VEL(II)=0.0
                   IF(L>0)THEN !L must be in the domain
                    LE=LEAST(L)
-                   II = II + 1
                    LOC_VEL(II) = 0.5*(U(L,K)+U(LE,K)) 
                   ENDIF
                ENDDO
@@ -1257,10 +1253,8 @@ C
                       II = I + ISKIP
                       JJ = J + JSKIP
                       L = LIJ(II,JJ)
-                      IF(L>0)THEN !L must be in the domain
-                        III = III + 1
-                        PAR_VEL(L,K) = GLO_VEL(III)
-                      ENDIF
+                      III = III + 1
+                      IF(L>0)PAR_VEL(L,K) = GLO_VEL(III)
                     ENDDO
                   ENDDO
                 ENDDO
@@ -1322,9 +1316,10 @@ C
             DO I = 3,IC-2
                DO J = 3,JC-2
                   L = LIJ(I,J)
+                  II = II + 1
+                  LOC_VEL(II)=0.0
                   IF(L>0)THEN !L must be in the domain
                    LN=LNC(L)
-                   II = II + 1
                    LOC_VEL(II) = 0.5*(V(L,K)+V(LN,K)) 
                   ENDIF
                ENDDO
@@ -1372,10 +1367,8 @@ C
                       II = I + ISKIP
                       JJ = J + JSKIP
                       L = LIJ(II,JJ)
-                      IF(L>0)THEN !L must be in the domain
-                        III = III + 1
-                        PAR_VEL(L,K) = GLO_VEL(III)
-                      ENDIF
+                      III = III + 1
+                      IF(L>0)PAR_VEL(L,K) = GLO_VEL(III)
                     ENDDO
                   ENDDO
                 ENDDO
@@ -1434,13 +1427,12 @@ C
           II = 0
           DO K = 1,KC
             DO I = 3,IC-2
-               DO J = 3,JC-2
-                  L = LIJ(I,J)
-                  IF(L>0)THEN !L must be in the domain
-                   II = II + 1
-                   LOC_VEL(II) = 0.5*(W(L,K)+W(L,K-1))   
-                  ENDIF
-               ENDDO
+              DO J = 3,JC-2
+                L = LIJ(I,J)
+                II = II + 1
+                LOC_VEL(II)=0.0
+                IF(L>0)LOC_VEL(II) = 0.5*(W(L,K)+W(L,K-1))   
+              ENDDO
             ENDDO   
           ENDDO
    ! We need to compute the size of the strip that is received from each MPI process.
@@ -1470,7 +1462,7 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_WS(:)=0.0
+          PAR_VEL(:,:)=0.0
           IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
@@ -1486,10 +1478,8 @@ C
                       II = I + ISKIP
                       JJ = J + JSKIP
                       L = LIJ(II,JJ)
-                      IF(L>0)THEN !L must be in the domain
-                        III = III + 1
-                        PAR_VEL(L,K) = GLO_VEL(III)
-                      ENDIF
+                      III = III + 1
+                      IF(L>0)PAR_VEL(L,K) = GLO_VEL(III)
                     ENDDO
                   ENDDO
                 ENDDO
@@ -1535,52 +1525,224 @@ C
 C  
 C **  SALINITY  
 C  
-        IF(ISDMPT.GE.1.AND.ISTRAN(1).GE.1)THEN  
-          IF(ISDUMP.EQ.3)THEN
-            OPEN(1,FILE=FNDSAL,POSITION='APPEND')  
-          ELSEIF(ISDUMP.EQ.4)THEN
-            OPEN(1,FILE=FNDSAL,POSITION='APPEND',FORM='UNFORMATTED')  
-          ENDIF
-          DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=SAL(L,K)  
-            ENDDO  
-          ENDDO  
-          IF(ISDUMP.EQ.3)THEN  
-            WRITE(1,*)TIME  
-            DO L=1,LA-1  
-              WRITE(1,111)(DMPVAL(L,K), K=1,KC)  
-            ENDDO  
-          ELSEIF(ISDUMP.EQ.4)THEN  
-            WRITE(1)TIME  
-            WRITE(1)DMPVAL  
+        IF(ISDMPT.GE.1.AND.ISTRAN(1).GE.1)THEN
+          IF(PARTID==MASTER_TASK)THEN
+            IF(ISDUMP.EQ.3)THEN
+              OPEN(1,FILE=FNDSAL,POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.4)THEN
+              OPEN(1,FILE=FNDSAL,POSITION='APPEND',FORM='UNFORMATTED')  
+            ENDIF
           ENDIF  
-          CLOSE(1)
+#ifdef key_mpi
+          IF(.NOT.ALLOCATED(LOC_ST))THEN
+            ALLOCATE(LOC_ST(LVS_K))
+          ENDIF
+          IF(.NOT.ALLOCATED(GLO_SAL) .AND. PARTID==MASTER_TASK)THEN
+             ALLOCATE(GLO_SAL(GVS_K))
+          ENDIF
+          GLO_SAL(:)=0.0
+          II = 0
+          DO K = 1,KC
+            DO I = 3,IC-2
+               DO J = 3,JC-2
+                  L = LIJ(I,J)
+                  II = II + 1
+                  LOC_ST(II)=0.0
+                  IF(L>0)LOC_ST(II) = SAL(L,K)  
+               ENDDO
+            ENDDO   
+          ENDDO
+   ! We need to compute the size of the strip that is received from each MPI process.
+   ! We can do this based on information from LORP.INP on
+   ! IC_LORP(ID) = number of I cells in domain ID
+   ! JC_LORP(ID) = number of J cells in domain JD
+          RCNTS_PART_K(:) = 0
+          DISPL_STP_K(:) = 0
+          II = 0
+          ID = 0
+          DO YD = 1,NPARTY
+            DO XD = 1,NPARTX
+              ID = ID + 1
+              IF(TILE2NODE(ID)/=-1)THEN ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
+                II = II + 1
+                RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
+                IF (II == 1) THEN
+                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                ELSE
+                  DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
+                ENDIF
+              ENDIF
+            ENDDO
+          ENDDO
+                          !Local data|Local data size|         |Global data|Size on each processor|Displacement for packing data
+          CALL MPI_GATHERv(LOC_ST,   LVS_K,          MPI_REAL8,GLO_SAL,    RCNTS_PART_K,          DISPL_STP_K,  
+     &MPI_REAL8, 0,EFDC_COMM,  IERROR)
+          III = 0
+          ID = 0
+          PAR_SAL(:,:)=0.0
+          IF(PARTID == MASTER_TASK)THEN
+            DO YLOP = 1,NPARTY
+              DO XLOP = 1,NPARTX
+                ID = ID + 1
+                IF( TILE2NODE(ID).EQ.-1)GOTO 559
+                DO K = 1,KC
+                  ILOOP =  IC_LORP(XLOP)-4
+                  JLOOP =  JC_LORP(YLOP)-4
+                  ISKIP =  IC_STRID(XLOP)
+                  JSKIP =  JC_STRID(YLOP)
+                  DO I = 1, ILOOP
+                    DO J = 1, JLOOP
+                      II = I + ISKIP
+                      JJ = J + JSKIP
+                      L = LIJ(II,JJ)
+                      III = III + 1
+                      IF(L>0)PAR_SAL(L,K) = GLO_SAL(III)
+                    ENDDO
+                  ENDDO
+                ENDDO
+559             CONTINUE
+              ENDDO 
+            ENDDO                 
+          ENDIF
+          IF(IERROR==0)then
+            DO K=1,KC  
+              DO L=2,LA
+                LW=LWEST(L)
+                DMPVAL(LW,K)=PAR_SAL(L,K) 
+              ENDDO  
+            ENDDO  
+          ENDIF
+#else
+          DO K=1,KC  
+            DO L=2,LA
+              LW=LWEST(L)  
+              DMPVAL(LW,K)=SAL(L,K)  
+            ENDDO  
+          ENDDO
+#endif
+          IF(PARTID==MASTER_TASK)THEN
+            IF(ISDUMP.EQ.3)THEN  
+              WRITE(1,*)TIME  
+              DO L=1,LA-1  
+                WRITE(1,111)(DMPVAL(L,K), K=1,KC)  
+              ENDDO  
+            ELSEIF(ISDUMP.EQ.4)THEN  
+              WRITE(1)TIME  
+              WRITE(1)DMPVAL  
+            ENDIF  
+            CLOSE(1)
+         ENDIF   
         ENDIF
 C  
 C **  TEMPERATURE  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(2).GE.1)THEN  
-          IF(ISDUMP.EQ.3)THEN
-            OPEN(1,FILE=FNDTEM,POSITION='APPEND')  
-          ELSEIF(ISDUMP.EQ.4)THEN
-            OPEN(1,FILE=FNDTEM,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(PARTID==MASTER_TASK)THEN
+            IF(ISDUMP.EQ.3)THEN
+              OPEN(1,FILE=FNDTEM,POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.4)THEN
+              OPEN(1,FILE=FNDTEM,POSITION='APPEND',FORM='UNFORMATTED')  
+            ENDIF
+          ENDIF  
+#ifdef key_mpi
+          IF(.NOT.ALLOCATED(LOC_ST))THEN
+            ALLOCATE(LOC_ST(LVS_K))
           ENDIF
+          IF(.NOT.ALLOCATED(GLO_TEM) .AND. PARTID==MASTER_TASK)THEN
+             ALLOCATE(GLO_TEM(GVS_K))
+          ENDIF
+          GLO_TEM(:)=0.0
+          II = 0
+          DO K = 1,KC
+            DO I = 3,IC-2
+               DO J = 3,JC-2
+                  L = LIJ(I,J)
+                  II = II + 1
+                  LOC_ST(II)=0.0
+                  IF(L>0)LOC_ST(II) =TEM(L,K)  
+               ENDDO
+            ENDDO   
+          ENDDO
+   ! We need to compute the size of the strip that is received from each MPI process.
+   ! We can do this based on information from LORP.INP on
+   ! IC_LORP(ID) = number of I cells in domain ID
+   ! JC_LORP(ID) = number of J cells in domain JD
+          RCNTS_PART_K(:) = 0
+          DISPL_STP_K(:) = 0
+          II = 0
+          ID = 0
+          DO YD = 1,NPARTY
+            DO XD = 1,NPARTX
+              ID = ID + 1
+              IF(TILE2NODE(ID)/=-1)THEN ! ID==-1 DENOTES A DOMAIN THAT IS ALL LAND AND REMOVED FROM COMPUTATION
+                II = II + 1
+                RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
+                IF (II == 1) THEN
+                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                ELSE
+                  DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
+                ENDIF
+              ENDIF
+            ENDDO
+          ENDDO
+                          !Local data|Local data size|         |Global data|Size on each processor|Displacement for packing data
+          CALL MPI_GATHERv(LOC_ST,   LVS_K,          MPI_REAL8,GLO_TEM,    RCNTS_PART_K,          DISPL_STP_K,  
+     &MPI_REAL8, 0,EFDC_COMM,  IERROR)
+          III = 0
+          ID = 0
+          PAR_TEM(:,:)=0.0
+          IF(PARTID == MASTER_TASK)THEN
+            DO YLOP = 1,NPARTY
+              DO XLOP = 1,NPARTX
+                ID = ID + 1
+                IF( TILE2NODE(ID).EQ.-1)GOTO 560
+                DO K = 1,KC
+                  ILOOP =  IC_LORP(XLOP)-4
+                  JLOOP =  JC_LORP(YLOP)-4
+                  ISKIP =  IC_STRID(XLOP)
+                  JSKIP =  JC_STRID(YLOP)
+                  DO I = 1, ILOOP
+                    DO J = 1, JLOOP
+                      II = I + ISKIP
+                      JJ = J + JSKIP
+                      L = LIJ(II,JJ)
+                      III = III + 1
+                      IF(L>0)PAR_TEM(L,K) = GLO_TEM(III)
+                    ENDDO
+                  ENDDO
+                ENDDO
+560             CONTINUE
+              ENDDO 
+            ENDDO                 
+          ENDIF
+          IF(IERROR==0)then
+            DO K=1,KC  
+              DO L=2,LA
+                LW=LWEST(L)
+                DMPVAL(LW,K)=PAR_TEM(L,K) 
+              ENDDO  
+            ENDDO  
+          ENDIF
+#else
           DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=TEM(L,K)  
+            DO L=2,LA
+              LW-LWEST(L)  
+              DMPVAL(LW,K)=TEM(L,K)  
             ENDDO  
           ENDDO  
-          IF(ISDUMP.EQ.3)THEN  
-            WRITE(1,*)TIME  
-            DO L=1,LA-1  
-              WRITE(1,111)(DMPVAL(L,K), K=1,KC)  
-            ENDDO  
-          ELSEIF(ISDUMP.EQ.4)THEN  
-            WRITE(1)TIME  
-            WRITE(1)DMPVAL  
+#endif
+          IF(PARTID==MASTER_TASK)THEN
+            IF(ISDUMP.EQ.3)THEN  
+              WRITE(1,*)TIME  
+              DO L=1,LA-1  
+                WRITE(1,111)(DMPVAL(L,K), K=1,KC)  
+              ENDDO  
+            ELSEIF(ISDUMP.EQ.4)THEN  
+              WRITE(1)TIME  
+              WRITE(1)DMPVAL  
+            ENDIF  
+            CLOSE(1)  
           ENDIF  
-          CLOSE(1)  
         ENDIF  
 C  
 C **  DYE  
@@ -1951,9 +2113,9 @@ C
 C **  WATER QUALTIY 3D DISSOLVED OXYGEN !Greg Rocheleau Feb 2019
 C **  WATER QUALTIY 2D ALL VARIABLES
 C
-          IF(ISDMPT.GE.1.AND.ISTRAN(8).GE.1)THEN
+      IF(ISDMPT.GE.1.AND.ISTRAN(8).GE.1)THEN
 !!!MPI
-          ierror=1
+           IERRROR=1
 #ifdef key_mpi
 !          LVS_K_WQ = (IC-4) * (JC-4) * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
 !          GVS_K_WQ = IC_GLOBAL * JC_GLOBAL * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
@@ -1964,17 +2126,15 @@ C
              ALLOCATE(WQV_GLOBAL_VEC(GVS_K_WQ))
           ENDIF
           II = 0
-          WQV_LOC_VEC(:)=0.0
    ! Pack the 3D array WQV(LCM,KC,NWQVM) into 1D vector to implement MPI Gather
           DO NW = 1, NWQVM
             DO K = 1,KC
               DO I = 3,IC-2
                 DO J = 3,JC-2
                   L = LIJ(I,J) 
-                  IF(L>0)THEN
-                    II = II + 1
-                    WQV_LOC_VEC(II) = WQVO(L,K,NW)  !Store all WQ variables (1-23 where 23 is macroalgae) into a column vector
-                  ENDIF
+                  II = II + 1
+                  WQV_LOC_VEC(II) = 0.0 ! Cache efficient way to initiatlize to zero before acting on array
+                  IF(L>0)WQV_LOC_VEC(II) = WQV(L,K,NW)  !Store all WQ variables (1-23 where 23 is macroalgae) into a column vector
                 ENDDO
               ENDDO
             ENDDO
@@ -2075,12 +2235,12 @@ C
 C          WRITE(1,111)DMPVAL
             DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
               DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
-              L=LIJ(I,J) 
-              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 3),K=1,KC)
+                L=LIJ(I,J) 
+                IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 3),K=1,KC)
+              ENDDO
             ENDDO
-          ENDDO
-	    CLOSE(1)
-	  ENDIF
+	      CLOSE(1)
+	    ENDIF
 C
         IF(ISDUMP.EQ.3.AND.ISTRWQ(15).EQ.1.AND.PARTID==MASTER_TASK)THEN
           OPEN(1,FILE=FNDWQN,POSITION='APPEND')
@@ -2151,13 +2311,6 @@ C          WRITE(1,111)DMPVAL
         ENDIF
 C	END OF WRITE STATEMENTS FOR 3D WQ
 C
-!	  DO M=1,NWQV+1     !GR removed this section WQVO=2.*WQVO
-!	    DO L=2,LA
-!	    DO K=1,KC
-!            WQVO(L,K,M)=2.*WQVO(L,K,M)
-!          ENDDO
-!          ENDDO
-!	  ENDDO
       ENDIF
 C
 C **  CHECK BY READING BINARY FILES  

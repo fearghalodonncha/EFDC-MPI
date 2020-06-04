@@ -9,16 +9,23 @@ C **  THE NUMBER OF TIME LEVELS IN THE STEP
 C  
       USE GLOBAL
       USE OMP_LIB
-
-      DIMENSION CON(LCM,KCM),CON1(LCM,KCM)  
+      IMPLICIT NONE
+      REAL,DIMENSION(LCM,KCM)::CON,CON1  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::CONTMN  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::CONTMX  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::FQCPAD  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::QSUMNAD  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::QSUMPAD  
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::POS
-
       REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::WQBCCON
+      INTEGER MVAR,L,M,MO,ISTL_,IS2TL_,IOBC,K,LS,LL,LN,LE,NSID
+      INTEGER LST,LW,LNW,LSE,LWE
+      REAL AWW,BSMALL,DELTA,DELTD2,DELTA4,RDZIC,LEA,CTMP,CBT
+      REAL CBWTMP,CBETMP,CBNTMP,CBSTMP
+      REAL SSCORUE,SSCORUW,SSCORVN,SSCORVS,SSCORU,SSCORV,SSCORWA,SSCORWB,SSCORW
+      REAL RDZIG,AUHU,AVHV,WTERM,UTERM,VTERM,UHU,VHV,WW
+      REAL CMINT,CWMAX,CEMAX,CSMAX,CWMIN,CEMIN,CNMAX,CCMAX,CCMIN,CMAXT,CSMIN,CNMIN
+      REAL RDZICLE
 
       IF(.NOT.ALLOCATED(CONTMN))THEN
         ALLOCATE(CONTMN(LCM,KCM))  
@@ -41,7 +48,6 @@ C
         POS=0.0
         WQBCCON=0.0
       ENDIF
-
 C  
       BSMALL=1.0E-6  
       ISUD=1  
@@ -226,7 +232,7 @@ C
       IF(ISCDCA(MVAR).EQ.0)THEN  
         IF(ISTL_.EQ.2)THEN  
           IF(IDRYTBP.EQ.0)THEN  
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC) 
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC,LE,LN) 
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -276,7 +282,7 @@ C
 C ELSE ON TIME LEVEL CHOICE FOR ISCDCA=0   (i.e. ISTL_ == 2) 
 C  
         ELSE
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC,LE,LN)
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -318,7 +324,9 @@ C
 
         ! *** UPDATE NEW CONCENTRATIONS        
         DO K=1,KC
-          CON(2:LA,K)=CH(2:LA,K)*HPI(2:LA)
+          DO L=2,LA
+            CON(L,K)=CH(L,K)*HPI(L)
+          ENDDO
         ENDDO 
 
 C  
@@ -331,7 +339,7 @@ C BEGIN IF ON TIME LEVEL CHOICE FOR ISCDCA.NE.0
 C  
         IF(ISTL_.EQ.2)THEN  
           IF(IDRYTBP.EQ.0)THEN
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC,LE,LN)
             DO K=1,KC  
               RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(static,chunksize)
@@ -374,7 +382,7 @@ C
 C ELSE ON TIME LEVEL CHOICE FOR ISCDCA.NE.0 AND ISTL.EQ.3
 C  
         ELSE  
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC)
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC,LE,LN,DELT)
           DO K=1,KC  
             RDZIC=DZIC(K)  
 !$OMP DO schedule(static,chunksize)
@@ -391,29 +399,33 @@ C
           IF(ISFCT(MVAR).GE.1)THEN  
             CON2=CON    ! *** ARRAYS
           ENDIF  
-        ENDIF  
+      ENDIF  
 C  
 C ENDIF ON TIME LEVEL CHOICE FOR ISCDCA.NE.0  
 C  
-        IF(ISUD.EQ.1.AND.MVAR.NE.8)THEN  
+        IF(ISUD.EQ.1.AND.MVAR.NE.8)THEN
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(L)
           DO K=1,KC
+!$OMP DO schedule(static,chunksize)
             DO IOBC=1,NBCSOP  
               L=LOBCS(IOBC)  
               CON(L,K)=CON1(L,K)  
             ENDDO  
-
             DO L=2,LA
               CON1(L,K)=CON(L,K)
-            ENDDO  
-          ENDDO  
-        ENDIF
+            ENDDO 
+          ENDDO 
+!$OMP END PARALLEL
+      ENDIF
         ! *** PMC-BOUNDARY CONDITIONS APPLIED BELOW
-        DO K=1,KC  
+!$OMP PARALLEL DEFAULT(SHARED)
+        DO K=1,KC 
+!$OMP DO schedule(static,chunksize)
           DO L=2,LA  
             CON(L,K)=CH(L,K)*HPI(L)  
-          ENDDO  
+          ENDDO 
         ENDDO  
-
+!$OMP END PARALLEL
       ENDIF  
 
 C  
@@ -598,7 +610,6 @@ C
           ENDIF  
         ENDDO  
       ENDDO  
-
 C  
 C **  ANTI-DIFFUSIVE ADVECTIVE FLUX CALCULATION  
 C  
@@ -620,12 +631,11 @@ C
 
       ! *** PMC BEGIN BLOCK
       ! *** GET ONLY POSITIVE CONCENTRATIONS
-!      DO L=2,LA
-!        DO K=1,KC
-!          POS(L,K)=MAX(CON(L,K),0.)
-!        ENDDO
-!      ENDDO
-      POS(:,:)=MAX(CON(:,:),0.0)
+      DO L=2,LA
+        DO K=1,KC
+          POS(L,K)=MAX(CON(L,K),0.)
+        ENDDO
+      ENDDO
       ! *** PMC END BLOCK
 
       IF(IDRYTBP.EQ.0)THEN  
@@ -652,10 +662,10 @@ C
             LW=LWEST(L)
             UUU(L,K)=U2(L,K)*(POS(L,K)-POS(LW,K))*DXIU(L)  
             VVV(L,K)=V2(L,K)*(POS(L,K)-POS(LS,K))*DYIV(L)  
- !           WWW(L,K)=W2(L,K)*(POS(L,K+1)-POS(L,K))*HPI(L)*RDZIG  
+            WWW(L,K)=W2(L,K)*(POS(L,K+1)-POS(L,K))*HPI(L)*RDZIG  
           ENDDO  
 !$OMP END DO
-          WWW(:,K)=W2(:,K)*(POS(:,K+1)-POS(:,K))*HPI(:)*RDZIG
+!          WWW(:,K)=W2(:,K)*(POS(:,K+1)-POS(:,K))*HPI(:)*RDZIG
         ENDDO 
         DO K=1,KC  
           RDZIC=DZIC(K) 
@@ -852,7 +862,8 @@ C
             LS=LSC(L)  
             LN=LNC(L)
             LE=LEAST(L)
-            CWMAX=SUB(L)*CONTMX(LWEST(L),K)  
+            LW=LWEST(L)
+            CWMAX=SUB(L)*CONTMX(LW,K)  
             CEMAX=SUB(LE)*CONTMX(LE,K)  
             CSMAX=SVB(L)*CONTMX(LS,K)  
             CNMAX=SVB(LN)*CONTMX(LN,K)  
@@ -860,7 +871,7 @@ C
             CMAXT=MAX(CMAXT,CSMAX)  
             CMAXT=MAX(CMAXT,CWMAX)  
             CMAX(L,K)=MAX(CMAX(L,K),CMAXT)  
-            CWMIN=SUB(L)*CONTMN(LWEST(L),K)+1.E+6*(1.-SUB(L))  
+            CWMIN=SUB(L)*CONTMN(LW,K)+1.E+6*(1.-SUB(L))  
             CEMIN=SUB(LE)*CONTMN(LE,K)+1.E+6*(1.-SUB(LE))  
             CSMIN=SVB(L)*CONTMN(LS,K)+1.E+6*(1.-SVB(L))  
             CNMIN=SVB(LN)*CONTMN(LN,K)+1.E+6*(1.-SVB(LN))  
@@ -901,6 +912,16 @@ C
 
 C **  CALCULATE BETA COEFFICIENTS WITH BETAUP AND BETADOWN IN DU AND DV  
 C  
+      if(pos(l,k)>1e3.or.pos(l,k)<-1e3)then
+       print*,'a',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
+       endif
+      if(cmax(l,k)>1e3.or.cmax(l,k)<-1e3)then
+       print*,'b',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
+      endif
+       if(du(l,k)>1e3.or.du(l,k)<=-1e-6)then
+       print*,'c',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
+       endif
+
           IF(DU(L,K).GT.0.)DU(L,K)=MIN(1.0,(CMAX(L,K)-POS(L,K))/(DU(L,K)+BSMALL))
             !DU(L,K)=MIN(DU(L,K),1.)
           IF(DV(L,K).GT.0.)DV(L,K)=MIN(1.0,(CON(L,K)-CMIN(L,K))/(DV(L,K)+BSMALL))
@@ -969,7 +990,7 @@ C **  ANTI-DIFFUSIVE ADVECTION CALCULATION
 C  
  1100   CONTINUE  
 C    
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZIC) 
+!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(RDZICLE,LN) 
         DO K=1,KC
           RDZIC=DZIC(K)  
 !$OMP DO SCHEDULE(STATIC,CHUNKSIZE)  
@@ -982,8 +1003,9 @@ C
      &          +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
             CON(L,K)=SCB(L)*CH(L,K)*HPI(L)+(1.-SCB(L))*CON(L,K)  
           ENDDO  
-        ENDDO  
+      ENDDO  
 !$OMP END PARALLEL
+
 C  
 C **  ADD REMAINING SEDIMENT SETTLING AND FLUX  
 C  
@@ -1148,7 +1170,7 @@ C
      1                 fuhu(LWEST(L),k),fuhu(l,k),fuhu(LEAST(L),k),
      1                 UHDY2(LWEST(L),k),UHDY2(l,k),UHDY2(LEAST(L),k),
      1                 VHDX2(LWEST(L),k),VHDX2(l,k),VHDX2(LEAST(L),k)
-    ! 1                 fwu(LWEST(L),k),fwu(l,k),fwu(LEAST(L),k)
+!     1                 fwu(LWEST(L),k),fwu(l,k),fwu(LEAST(L),k)
  9999 format(i5,6f12.2/5x,6f12.2)
         endif
 
@@ -1385,7 +1407,8 @@ C
               CON(L,K)=SCB(L)*CH(L,K)*HPI(L)+(1.-SCB(L))*CON(L,K)
             ENDIF  
           ENDDO  
-        ENDDO  
+        ENDDO
+      print*,'1397',maxval(con(2:la,1:kc))
 C  
 C **  ADD REMAINING SEDIMENT SETTLING AND FLUX  
 C  

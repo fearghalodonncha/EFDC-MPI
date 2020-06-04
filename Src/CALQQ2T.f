@@ -148,7 +148,6 @@ C
      &                 +MIN(VHVW,0.)*QQ(L ,K)  
               FUHV(L,K)=MAX(UHUW,0.)*QQL(LW,K)*H1P(LW)  
      &                 +MIN(UHUW,0.)*QQL(L ,K)*H1P(L )  
-      print*,'d',FVHV(L,K),UHUW,QQL(LW,K),H1P(LW)
               FVHV(L,K)=MAX(VHVW,0.)*QQL(LS,K)*H1P(LS)  
      &                 +MIN(VHVW,0.)*QQL(L ,K)*H1P(L )
             ELSE  
