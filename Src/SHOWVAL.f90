@@ -29,19 +29,12 @@ SUBROUTINE SHOWVAL
     READ(1,*)NSHTYPE,NSHOWR,ICSHOW_DUM,JCSHOW_DUM,ISHPRT
     ICSHOW = XLOC(ICSHOW_DUM)
     JCSHOW = YLOC(JCSHOW_DUM)
-    L=LIJ(ICSHOW,JCSHOW)
-    IF(CELL_INSIDE_DOMAIN_AND_GHOSTZONE(L))THEN  ! We want to check if the
-        NSHOWPROC=PARTID
-    ELSE
-        RETURN
-    ENDIF
     READ(1,*)ZSSMIN,ZSSMAX,SSALMAX
     CLOSE(1)
     NSHOWR=20
     NSHOWC=NSHOWR
     IF(ISHPRT.LT.1)ISHPRT=1
     JSHPRT=ISHPRT
-
     IF(NSHTYPE.GT.0.AND.NSHTYPE.LE.3)THEN
       SCALE=1.0
       UNITS='PPT'
@@ -68,11 +61,17 @@ SUBROUTINE SHOWVAL
       IF(NSHTYPE.EQ.7)PARM='TSS'
       IF(NSHTYPE.EQ.8)PARM='DYE'
     ENDIF
-
+    L=LIJ(ICSHOW,JCSHOW)
+    IF(CELL_INSIDE_DOMAIN_AND_GHOSTZONE(L))THEN  ! We want to determined which MPI prccessor contains ICSHOW_DUM,JCSHOW_DUM within its domain
+        NSHOWPROC=PARTID
+    ELSE
+        RETURN
+    ENDIF
   ENDIF
 
-  !! Note that the check above sees if the ISHOW,JSHOW location is within my computational domain.
-  !! If not there is nothing to do and I can return
+  !! Note that the check above sees if the ISHOW,JSHOW location is within my computational domain for MPI.
+  !! Only the MPI process containing this cell writes to screen.
+  !! All other MPI processes can just return to main program
   IF (NSHOWPROC /= PARTID) RETURN
 
   NITERAT=NITERAT+1
