@@ -912,15 +912,6 @@ C
 
 C **  CALCULATE BETA COEFFICIENTS WITH BETAUP AND BETADOWN IN DU AND DV  
 C  
-      if(pos(l,k)>1e3.or.pos(l,k)<-1e3)then
-       print*,'a',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
-       endif
-      if(cmax(l,k)>1e3.or.cmax(l,k)<-1e3)then
-       print*,'b',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
-      endif
-       if(du(l,k)>1e3.or.du(l,k)<=-1e-6)then
-       print*,'c',ans(partid2),k,l,DU(l,k),pos(l,k),cmax(l,k)
-       endif
 
           IF(DU(L,K).GT.0.)DU(L,K)=MIN(1.0,(CMAX(L,K)-POS(L,K))/(DU(L,K)+BSMALL))
             !DU(L,K)=MIN(DU(L,K),1.)

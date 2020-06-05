@@ -85,5 +85,38 @@ C    return (i,j)
 
       END SUBROUTINE PARENTGRID
 
+      FUNCTION CELL_INSIDE_DOMAIN(L) RESULT(INSIDE)   ! **********************************************
+        USE GLOBAL
+        LOGICAL::INSIDE
+        INTEGER,INTENT(IN)::L
+        INTEGER:: ILOCATION, JLOCATION
+        ILOCATION = IL(L)
+        JLOCATION = JL(L)
+        INSIDE=.FALSE.
+        IF (ILOCATION >0 .AND. ILOCATION <= IC) THEN
+           IF (JLOCATION >0 .AND. JLOCATION <= JC) THEN
+              INSIDE=.TRUE.
+           ENDIF
+        ENDIF
+        RETURN
+      END FUNCTION
+
+      FUNCTION CELL_INSIDE_DOMAIN_AND_GHOSTZONE(L) RESULT(INSIDE)   ! **********************************************
+        USE GLOBAL
+        LOGICAL::INSIDE
+        INTEGER,INTENT(IN)::L
+        INTEGER:: ILOCATION, JLOCATION
+        ILOCATION = IL(L)
+        JLOCATION = JL(L)
+        INSIDE=.FALSE.
+        IF (ILOCATION >2 .AND. ILOCATION <= IC-2) THEN
+           IF (JLOCATION >2 .AND. JLOCATION <= JC-2) THEN
+              INSIDE=.TRUE.
+           ENDIF
+        ENDIF
+        RETURN
+      END FUNCTION
+
+
 
 

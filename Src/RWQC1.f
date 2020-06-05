@@ -2115,20 +2115,6 @@ C
       END  
 
 
-      FUNCTION CELL_INSIDE_DOMAIN(L) RESULT(INSIDE)   ! **********************************************
-        USE GLOBAL
-        LOGICAL::INSIDE
-        INTEGER,INTENT(IN)::L
-        INTEGER:: ILOCATION, JLOCATION
-        ILOCATION = IL(L)
-        JLOCATION = JL(L)
-        INSIDE=.FALSE.
-        IF (ILOCATION >0 .AND. ILOCATION <= IC) THEN
-           IF (JLOCATION >0 .AND. JLOCATION <= JC) THEN
-              INSIDE=.TRUE.
-           ENDIF
-        ENDIF
-        RETURN
-      END FUNCTION
+
 
 

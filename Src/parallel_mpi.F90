@@ -100,7 +100,6 @@ MODULE PARALLEL_MPI
       IERR=0
       DO II = 1,PARTID2
         WRITE(ANS(II),'(I3.3)')II
-!        PRINT*,II,ANS(II)
       ENDDO  
 
 ! determine the number of processors and check if exceed prescribed values
