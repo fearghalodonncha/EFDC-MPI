@@ -17,7 +17,7 @@ DEBUG ?= 0 # Let's use the DEBUG flag to denote DEBUG build
            # make DEBUG=0   | for release build (default)
            # make DEBUG=1   | for Debug build
 
-F90 = gfortran
+FC = gfortran
 CPPFLAGS =-cpp
 
 # Path to relevant libraries
