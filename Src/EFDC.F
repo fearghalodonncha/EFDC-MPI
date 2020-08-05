@@ -239,6 +239,7 @@ C **  CALL INPUT SUBROUTINE
 
   
       CALL INPUT(TITLE)  
+      if (PARTID == MASTER_TASK) write(*, 1114)
 1114  FORMAT('   MODEL INITIALIZATION AND SETUP COMPLETE')
 
        
@@ -402,7 +403,7 @@ C
       IF (ISPPH .GE. 0 ) THEN ! For ISSPH=0, we start from TBEGIN and from ISSPH we start from TBEGIN+NTC-1
         ! *** HIGH FREQUENCY SNAPSHOTS
         IF(ISPPH.EQ.100)THEN
-          PRINT *, 'HIGH FREQ SNAPSHOTS USED'
+          if (PARTID == MASTER_TASK) PRINT *, 'HIGH FREQ SNAPSHOTS USED'
           NS=0
           OPEN(1,FILE='SNAPSHOTS.INP',STATUS='UNKNOWN',ERR=999)  
           DO NS=1,4  
@@ -867,6 +868,7 @@ C
  6263 FORMAT('  I,J =',2I10/)  
         CLOSE(1)  
       ENDIF
+        IF (PARTID ==0) PRINT *,'FINISHED READ OF LXLY.INP'
 C *** DSLLC BEGIN BLOCK
       ISCURVATURE=.FALSE.
       FORCSUM=0.

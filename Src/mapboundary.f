@@ -406,8 +406,8 @@ C ** to child partition
            BEGIN_CELL = 1
            END_CELL = 0
         END IF
-        IF ( III.GE.BEGIN_CELL. AND. III .LT. (IC-END_CELL)) THEN
-          IF ( JJJ.GE.BEGIN_CELL. AND. JJJ .LT. (JC-END_CELL)) THEN
+        IF ( III.GE.BEGIN_CELL. AND. III .LE. (IC-END_CELL)) THEN
+          IF ( JJJ.GE.BEGIN_CELL. AND. JJJ .LE. (JC-END_CELL)) THEN
             II = II + 1
             MLTMSR = MLTMSR + 1
             ILTMSR(II) = III
