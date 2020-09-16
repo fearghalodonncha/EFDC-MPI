@@ -150,6 +150,7 @@ C
         IF(ISO.GT.0) GOTO 100  
       ENDDO  
 C  
+
 C7**  READ TIME-RELATED INTEGER PARAMETERS
       NCARD='7' 
       CALL SEEK('C7')  
@@ -1169,7 +1170,7 @@ C45*  READ TOXIC CONTAMINANT-SEDIMENT INTERACTION PARAMETERS
         ENDDO  
       ENDIF
 C  
-
+!        write(*,*) 'READ C45'
 C45A*  READ TOXIC CONTAMINANT ORGANIC CARBON PARAMETERS
         NCARD='45A'  
         CALL SEEK('C45A')   
@@ -1613,7 +1614,7 @@ C66A*  READ CONCENTRATION DATA ASSIMILATION PARAMETERS
 C
 C66B*  READ CONCENTRATION DATA ASSIMILATION LOCATIONS AND
 C      SERIES IDENTIFIERS
-      IF(NLCDA.GT.0)THEN  
+      IF(NLCDA.GT.0.AND.NUVSER==0)THEN  !SCJ check this it is problematic
         NCARD='66B'  
         CALL SEEK('C66B')  
         WRITE(7,1002)NCARD
@@ -1740,7 +1741,7 @@ C73*  CONTROLS FOR HORIZONTAL PLANE VELOCITY PLOTTING
       CALL CHECK_OUTPUT_FREQUENCY
 #ifdef key_ncdf
       ! We need information on I & J location in cell to manage reconciliation
-      ! Ensure these present for velocity elevation and transported solutes
+      ! Ensure these are present for velocity elevation and transported solutes
       DO N=1,7
         IF(ISSPH(N)==1.AND.ISPHXY(N)/=1)THEN
           IF(PARTID==MASTER_TASK)THEN
@@ -2310,15 +2311,15 @@ C
 C  
 C **  SKIP OVER TITLE AND AND HEADER LINES  
 C 
-        DXP_GLOB=1.0; DYP_GLOB=1.0 !Initialize vectors
-        HMP_GLOB=HMIN !Initialize matrix
+        DXP_GLOB(0:GNX,0:GNY)=1.0; DYP_GLOB(0:GNX,0:GNY)=1.0 !Initialize vectors
+        HMP_GLOB(0:GNX,0:GNY)=HMIN !Initialize matrix
         DO IS=1,4  
           READ(1,*)  
         ENDDO  
         IF(ISVEG.EQ.0)THEN  
           DO LT=1,LVC 
-            READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ  
-            IF(ISO.GT.0) GOTO 830  
+            READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ,MVEGIJT  
+            IF(ISO.GT.0) GOTO 830
             I = XLOC(IGL)
             J = YLOC(JGL)
             IF (I >0 .AND. I <= IC) THEN
@@ -3788,7 +3789,7 @@ C
         IF(EXIST)THEN
           OPEN(1,FILE='UVSER.INP',STATUS='UNKNOWN')
         ELSE
-          PRINT*,"NUVSER>=1, BUT NO NUVSER.INP FILE"
+          PRINT*,"NUVSER>=1, BUT NO UVSER.INP FILE"
           PAUSE
           STOP
         ENDIF
@@ -3799,7 +3800,7 @@ C
         DO IS=1,19
           READ(1,'(A120)')
         ENDDO
-6669  FORMAT('READING UVSER.INP: NS,MUVSER,TC,TA,RM,AD',2I3,4F10.2)
+6669  FORMAT('READING UVSER.INP: NS,MUVSER,TC,TA,RM,AD',1X,I4,1X,I2,1X,4F9.2)
 C
         DO NS=1,NUVSER
           READ(1,*,IOSTAT=ISO) ITYPE,MUVSER(NS),TCUVSER(NS),TAUVSER(NS),

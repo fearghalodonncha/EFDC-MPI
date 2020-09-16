@@ -225,12 +225,21 @@ C
         OPEN(1,FILE='ERROR.LOG',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')
       ENDIF
+#ifdef key_mpi
       OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
       CLOSE(8,STATUS='DELETE')
       OPEN(8,FILE='EFDCLOG'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
       OPEN(7,FILE='EFDC'//ans(partid2)//'.OUT')
       CLOSE(7,STATUS='DELETE')
       OPEN(7,FILE='EFDC'//ans(partid2)//'.OUT',STATUS='UNKNOWN')
+#else
+      OPEN(8,FILE='EFDCLOG.OUT',STATUS='UNKNOWN')
+      CLOSE(8,STATUS='DELETE')
+      OPEN(8,FILE='EFDCLOG.OUT',STATUS='UNKNOWN')
+      OPEN(7,FILE='EFDC.OUT')
+      CLOSE(7,STATUS='DELETE')
+      OPEN(7,FILE='EFDC.OUT',STATUS='UNKNOWN')
+#endif
 
   
 C **  CALL INPUT SUBROUTINE  
@@ -387,7 +396,7 @@ C
         T0=T1
         T9=T2
         NN=(T2-T1)/DELSNAP+2
-      ELSE   ! *** IF(ISPPH.EQ.1)THEN
+      ELSE   ! *** IF(ISPPH.EQ.1)THEN  
         NCPPH=NTSPTC/NPPPH/NFLTMT  
         JSPPH=1
 
@@ -401,7 +410,7 @@ C
       IF (ISPPH .GE. 0 ) THEN ! For ISSPH=0, we start from TBEGIN and from ISSPH we start from TBEGIN+NTC-1
         ! *** HIGH FREQUENCY SNAPSHOTS
         IF(ISPPH.EQ.100)THEN
-          if (PARTID == MASTER_TASK) PRINT *, 'HIGH FREQ SNAPSHOTS USED'
+          IF(PARTID == MASTER_TASK)PRINT *, 'HIGH FREQ SNAPSHOTS USED'
           NS=0
           OPEN(1,FILE='SNAPSHOTS.INP',STATUS='UNKNOWN',ERR=999)  
           DO NS=1,4  
@@ -819,7 +828,7 @@ C
                 IF(DETTMP.EQ.0.0)THEN  
                   WRITE(6,6262)  
                   WRITE(6,6263)IL(L),JL(L)  
-                  STOP  
+                  STOP  'EFDC.F LINE 831'
                 ENDIF  
               END IF
             END IF
@@ -856,7 +865,7 @@ C
                 IF(DETTMP.EQ.0.0)THEN  
                   WRITE(6,6262)  
                   WRITE(6,6263)IL(L),JL(L)  
-                  STOP  
+                  STOP  'EFDC.F LINE 868'
                 ENDIF 
               END IF
             END IF 
@@ -866,7 +875,7 @@ C
  6263 FORMAT('  I,J =',2I10/)  
         CLOSE(1)  
       ENDIF
-        IF (PARTID ==0) PRINT *,'FINISHED READ OF LXLY.INP'
+      IF (PARTID ==0) PRINT *,'FINISHED READ OF LXLY.INP'
 C *** DSLLC BEGIN BLOCK
       ISCURVATURE=.FALSE.
       FORCSUM=0.
