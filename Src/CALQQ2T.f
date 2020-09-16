@@ -192,19 +192,20 @@ C
             FUHV(L,K)=0.0  
           ENDIF  
         ENDDO  
-        DO LL=1,NCBN  
-          L=LCBN(LL)  
-          IF(FVHU(L,K).LT.0.)THEN  
-            FVHU(L,K)=0.0  
-            FVHV(L,K)=0.0  
-          ENDIF  
-        ENDDO  
+!        DO LL=1,NCBN  
+!          L=LCBN(LL)  
+!          IF(FVHU(L,K).LT.0.)THEN  
+!            FVHU(L,K)=0.0  
+!            FVHV(L,K)=0.0  
+!          ENDIF  
+!        ENDDO  
       ENDDO
-      WHERE(FVHU(LCBN(1:NCBN),1:KC)<0.0)
-        FVHU(LCBN(1:NCBN),1:KC)=0.0
-        FVHV(LCBN(1:NCBN),1:KC)=0.0
-      ENDWHERE
+!      WHERE(FVHU(LCBN(1:NCBN),1:KC)<0.0)
+!        FVHU(LCBN(1:NCBN),1:KC)=0.0
+!        FVHV(LCBN(1:NCBN),1:KC)=0.0
+!      ENDWHERE
       FVHU(LCBN(1:NCMB),1:KC)=MAX(FVHU(LCBN(1:NCMB),1:KC),0.0)
+      FVHV(LCBN(1:NCMB),1:KC)=MAX(FVHV(LCBN(1:NCMB),1:KC),0.0)
       IF(ISVEG.GT.0)THEN !SCJ vegetative/MHK impact on K-epsilon
         DO K=1,KS  
           DO L=2,LA

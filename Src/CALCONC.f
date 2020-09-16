@@ -696,15 +696,9 @@ C
         TEMASM=0.0  
         DYEASM=0.0  
         SFLASM=0.0  
-!        DO NT=1,NTOX  
-          TOXASM(:)=0.0  
-!        ENDDO  
-!        DO NS=1,NSED  
-          SEDASM(:)=0.0  
-!        ENDDO  
-!        DO NS=1,NSND  
-          SNDASM(:)=0.0  
-!        ENDDO  
+         TOXASM(1:NTOX)=0.0  
+         SEDASM(1:NSED)=0.0  
+         SNDASM(1:NSND)=0.0  
 C  
         IWASM=0  
 C  
@@ -713,13 +707,9 @@ C
           CLOSE(1,STATUS='DELETE')  
           OPEN(1,FILE='CDATASM.DIA')  
           IWASM=1  
-!          DO NLC=1,NLCDA  
-!            DO NDAYA=1,NTC  
-              FSALASM(:,:)=0.  
-              FVOLASM(:,:)=0.  
-              FTEMASM(:,:)=0.  
-!            ENDDO  
-!          ENDDO  
+          FSALASM(1:NTC,1:NLCDA)=0.  
+          FVOLASM(1:NTC,1:NLCDA)=0.  
+          FTEMASM(1:NTC,1:NLCDA)=0.  
         ENDIF  
 C  
         NDAYA=MOD(N,NTSPTC)  

@@ -811,11 +811,12 @@ C
       DO K=1,KC  
         RDZIC=DZIC(K)  
         DO L=2,LA  
-          LN=LNC(L)  
-          DU(L,K)=DELT*( DXYIP(L)*(FUHU(L,K)-FUHV(LEAST(L),K)  
+          LN=LNC(L)
+          LE=LEAST(L)
+          DU(L,K)=DELT*( DXYIP(L)*(FUHU(L,K)-FUHV(LE,K)  
      &        +FVHU(L,K)-FVHV(LN,K))  
      &        +RDZIC*(FWU(L,K-1)-FWV(L,K)) )*HPI(L)  
-          DV(L,K)=DELT*( DXYIP(L)*(FUHU(LEAST(L),K)-FUHV(L,K)  
+          DV(L,K)=DELT*( DXYIP(L)*(FUHU(LE,K)-FUHV(L,K)  
      &        +FVHU(LN,K)-FVHV(L,K))  
      &        +RDZIC*(FWU(L,K)-FWV(L,K-1)) )*HPI(L)  
         ENDDO  
@@ -836,14 +837,16 @@ C
           DV(LN,K)=0.  
         ENDDO  
         DO LL=1,NCBW  
-          L=LCBW(LL)  
-          DU(LEAST(L),K)=0.  
-          DV(LEAST(L),K)=0.  
+          L=LCBW(LL)
+          LE=LEAST(L)
+          DU(LE,K)=0.  
+          DV(LE,K)=0.  
         ENDDO  
         DO LL=1,NCBE  
           L=LCBE(LL)  
-          DU(LWEST(L),K)=0.  
-          DV(LWEST(L),K)=0.  
+          LW=LWEST(L)
+          DU(LW,K)=0.  
+          DV(LW,K)=0.  
         ENDDO  
         DO LL=1,NCBN  
           L=LCBN(LL)  
@@ -879,9 +882,10 @@ C **  LIMIT FLUXES
 C  
       DO K=1,KC  
         DO L=2,LA  
-          LS=LSC(L)  
-          FUHU(L,K)=MIN(DV(LWEST(L),K),DU(L,K))*FUHU(L,K)  
-     &        +MIN(DU(LWEST(L),K),DV(L,K))*FUHV(L,K)  
+          LS=LSC(L)
+          LW=LWEST(L)
+          FUHU(L,K)=MIN(DV(LW,K),DU(L,K))*FUHU(L,K)  
+     &        +MIN(DU(LW,K),DV(L,K))*FUHV(L,K)  
           FVHU(L,K)=MIN(DV(LS,K),DU(L,K))*FVHU(L,K)  
      &        +MIN(DU(LS,K),DV(L,K))*FVHV(L,K)  
         ENDDO  
@@ -916,8 +920,9 @@ C
       DO K=1,KC  
         RDZIC=DZIC(K)  
         DO L=2,LA  
+          LE=LEAST(L)
           CH(L,K)=CON(L,K)*HP(L)  
-     &        +DELT*( (FUHU(L,K)-FUHU(LEAST(L),K)  
+     &        +DELT*( (FUHU(L,K)-FUHU(LE,K)  
      &        +FVHU(L,K)-FVHU(LNC(L),K))*DXYIP(L)  
      &        +(FWU(L,K-1)-FWU(L,K))*RDZIC )  
           !CON(L,K)=SCB(L)*CH(L,K)*HPI(L)+(1.-SCB(L))*CON(L,K)  

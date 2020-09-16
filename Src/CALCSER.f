@@ -54,10 +54,9 @@ C **  CONCENTRATION SERIES INTERPOLATION for SAL,TEM,DYE,SFL
           TDIFF=TCSER(M2,NS,NC)-TCSER(M1,NS,NC)  
           WTM1=(TCSER(M2,NS,NC)-TIME)/TDIFF  
           WTM2=(TIME-TCSER(M1,NS,NC))/TDIFF  
-         DO K=1,KC
-          CSERT(K,NS,NC)=WTM1*CSER(M1,K,NS,NC)+WTM2*CSER(M2,K,NS,NC)  
-
-        ENDDO  
+          DO K=1,KC
+            CSERT(K,NS,NC)=WTM1*CSER(M1,K,NS,NC)+WTM2*CSER(M2,K,NS,NC)  
+          ENDDO  
 
           
         ENDDO  
@@ -66,7 +65,7 @@ C **  CONCENTRATION SERIES INTERPOLATION for SAL,TEM,DYE,SFL
 
 C* CONCENTION SERIES INTERPOLATION FOR TEMPERATURE WHEN USING FRANK RUNOFF MODEL
       IF (FLIU) THEN   ! interpolate from strm_temp as allocating sufficiently large CSER(:,:,:,:) was prohibitive
-        NC = 2
+        NC = 2 !Temperature 
         DO NS=1,NCSER(NC)  
           IF(ISTL_.EQ.2)THEN  
             IF(ISDYNSTP.EQ.0)THEN  
@@ -223,7 +222,7 @@ C
       ENDIF  
 
 C  
-C **  CONCENTRATION SERIES INTERPOLTATION FOR WATER QUALITY
+C **  CONCENTRATION SERIES INTERPOLATION FOR WATER QUALITY
 C  
       IF(ISTRAN(8).GE.1)THEN   ! .AND.IWQPSL.EQ.2)THEN  
         DO NQ=1,NWQV  
@@ -231,16 +230,14 @@ C
           DO NS=1,NCSER(NC)  
             IF(ISTL_.EQ.2)THEN  
               IF(ISDYNSTP.EQ.0)THEN 
-                TIME=DT*(FLOAT(N)-0.5)/TCCSER(NS,NC)  
-     &              +TBEGIN*(TCON/TCCSER(NS,NC))  
+                TIME=DT*(FLOAT(N)-0.5)/TCCSER(NS,NC)+TBEGIN*(TCON/TCCSER(NS,NC))  
               ELSE  
                 ! *** VARIABLE TIME STEPPING CURRENTLY NOT OPERATIONAL FOR WQ 
                 TIME=TIMESEC/TCCSER(NS,NC)  
               ENDIF  
             ELSE  
               IF(ISDYNSTP.EQ.0)THEN  
-                TIME=DT*(FLOAT(N-1))/TCCSER(NS,NC)  
-     &              +TBEGIN*(TCON/TCCSER(NS,NC))  
+                TIME=DT*(FLOAT(N-1))/TCCSER(NS,NC)+TBEGIN*(TCON/TCCSER(NS,NC))  
               ELSE  
                 TIME=TIMESEC/TCCSER(NS,NC)  
               ENDIF  
@@ -256,10 +253,8 @@ C
             ENDIF  
             TDIFF=TCSER(M2,NS,NC)-TCSER(M1,NS,NC)  
             WTM1=(TCSER(M2,NS,NC)-TIME)/TDIFF  
-            WTM2=(TIME-TCSER(M1,NS,NC))/TDIFF  
-            DO K=1,KC  
-              CSERT(K,NS,NC)=WTM1*CSER(M1,K,NS,NC)+WTM2*CSER(M2,K,NS,NC)  
-            ENDDO  
+            WTM2=(TIME-TCSER(M1,NS,NC))/TDIFF
+            CSERT(1:KC,NS,NC)=WTM1*CSER(M1,1:KC,NS,NC)+WTM2*CSER(M2,1:KC,NS,NC)  
           ENDDO  
         ENDDO  
       ENDIF  
@@ -270,7 +265,7 @@ C
         OPEN(1,FILE='CDIAG.OUT',STATUS='UNKNOWN')  
         CLOSE(1,STATUS='DELETE')  
         OPEN(1,FILE='CDIAG.OUT',STATUS='UNKNOWN')  
-        DO NC=1,NTT  
+        DO NC=1,NTT+NWQV  
           WRITE(1,1001)NC  
           DO NS=1,NCSER(NC)  
             WRITE(1,1002)NS,(CSERT(K,NS,NC),K=1,KC)  
@@ -279,7 +274,7 @@ C
         CLOSE(1)  
       ENDIF  
  1001 FORMAT(/' TRANSPORT VARIABLE ID =',I5/)  
- 1002 FORMAT(I5,2X,12E12.4)  
+ 1002 FORMAT(I5,2X,20E12.4)  
 C  
 C **  SHELL FISH LARVAE BEHAVIOR TIME SERIES INTERPOLTATION  
 C  

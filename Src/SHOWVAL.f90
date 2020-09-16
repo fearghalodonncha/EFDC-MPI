@@ -69,10 +69,9 @@ SUBROUTINE SHOWVAL
     ENDIF
   ENDIF
 
-  !! Note that the check above sees if the ISHOW,JSHOW location is within my computational domain for MPI.
-  !! Only the MPI process containing this cell writes to screen.
-  !! All other MPI processes can just return to main program
-  IF (NSHOWPROC /= PARTID) RETURN
+  !! Note that the check above sees if the ISHOW,JSHOW location is within my computational domain.
+  !! If not there is nothing to do and I can return
+  IF(PARTID /= NSHOWPROC)RETURN
 
   NITERAT=NITERAT+1
 
@@ -106,9 +105,9 @@ SUBROUTINE SHOWVAL
       WRITE(*,'(A)')' STEP                        (CM)       &              (PPT)            (PPT)'
       WRITE(*,'(16X,I3,26X,I3,'' 0'',15X,I3,'' 0'',15X,I3)') IZSMIN,IZSMAX,ISALMAX,ISALMAX
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT   ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT   ",F10.4," MW-hr")')SUM(EMHK(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(1:TCOUNT,2:LA))*1E-3
 
     ELSEIF(NSHTYPE==2)THEN
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
@@ -122,9 +121,9 @@ SUBROUTINE SHOWVAL
         WRITE(*,'(A)')' STEP     I   J   CM   CM/S  CM/S  PPT   CM/S  CM/S  CM/S  CM/S   PPT  CM/S  CM/S'
       ENDIF
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(1:TCOUNT,2:LA))*1E-3
 
     ELSEIF(NSHTYPE.LT.9)THEN
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
@@ -138,9 +137,9 @@ SUBROUTINE SHOWVAL
         WRITE(*,'(A)')'    DAYS      SEC   CM  CM/S CM/S  '//UNITS//' CM/S  CM/S   CM/S  CM/S  '//UNITS//'  CM/S CM/S'
       ENDIF
       WRITE(*,'(A)')'-------------------------------------------------------------------------------'
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(:,:))
-  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(:,:))*1E-3
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("SUPPORT ENERGY LOSS",F10.4," MW-hr")')SUM(ESUP(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK ENERGY OUTPUT  ",F10.4," MW-hr")')SUM(EMHK(1:TCOUNT,2:LA))
+  IF(LMHK.AND.TIME>0.01)WRITE(*,'("MHK POWER OUTPUT   ",F10.4," kW")')SUM(PMHK(1:TCOUNT,2:LA))*1E-3
     ENDIF
   ENDIF
   ! *** INCREMENT THE SCREEN COUNTER
