@@ -21,7 +21,6 @@ C
 C **  SET LAND-WATER BOUNDARY SWITCHES  
 C  
       ITRICELL=0  ! PMC
-      
       DO L=2,LA  
         I=IL(L)  
         J=JL(L)  
@@ -35,6 +34,7 @@ C
           IF(IJCT(I-1,J).EQ.4) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.5) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)GOTO 5551
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=1.  
@@ -42,7 +42,7 @@ C
           IF(IJCT(I,J-1).EQ.5) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0.  
         ENDIF  
-        IF(LCT(L).EQ.2)THEN  
+5551    IF(LCT(L).EQ.2)THEN  
           STCUV(L)=0.  
           ITRICELL=1  
           STCAP(L)=0.5  
@@ -52,6 +52,7 @@ C
           IF(IJCT(I-1,J).EQ.4) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.5) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)GOTO 5552
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=0.  
@@ -59,7 +60,7 @@ C
           IF(IJCT(I,J-1).EQ.5) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0.  
         ENDIF  
-        IF(LCT(L).EQ.3)THEN  
+5552    IF(LCT(L).EQ.3)THEN
           STCUV(L)=0.  
           ITRICELL=1  
           STCAP(L)=0.5  
@@ -69,6 +70,7 @@ C
           IF(IJCT(I-1,J).EQ.4) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.5) SUB(L)=0.  
+          IF(J-1<1)GOTO 5553
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=0.  
@@ -76,7 +78,7 @@ C
           IF(IJCT(I,J-1).EQ.5) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0.  
         ENDIF  
-        IF(LCT(L).EQ.4)THEN  
+5553    IF(LCT(L).EQ.4)THEN  
           STCUV(L)=0.  
           ITRICELL=1  
           STCAP(L)=0.5  
@@ -86,6 +88,7 @@ C
           IF(IJCT(I-1,J).EQ.4) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.5) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)GOTO 5554
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=1.  
@@ -93,13 +96,14 @@ C
           IF(IJCT(I,J-1).EQ.5) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0.  
         ENDIF  
-        IF(LCT(L).EQ.5)THEN  
+5554    IF(LCT(L).EQ.5)THEN  
           IF(IJCT(I-1,J).EQ.1) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.2) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.3) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.4) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.5) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)GOTO 5555
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=1.  
@@ -107,7 +111,7 @@ C
           IF(IJCT(I,J-1).EQ.5) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0. 
         ENDIF  
-        IF(LCT(L).EQ.6)THEN  
+5555    IF(LCT(L).EQ.6)THEN  
           IF(IJCT(I-1,J).EQ.1) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.2) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.3) SUB(L)=1.  
@@ -116,6 +120,7 @@ C
           IF(IJCT(I-1,J).EQ.6) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.7) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)GOTO 5556
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=1.  
@@ -125,7 +130,7 @@ C
           IF(IJCT(I,J-1).EQ.7) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.9) SVB(L)=0.  
         ENDIF  
-        IF(LCT(L).EQ.7)THEN  
+5556    IF(LCT(L).EQ.7)THEN  
           IF(IJCT(I-1,J).EQ.1) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.2) SUB(L)=0.  
           IF(IJCT(I-1,J).EQ.3) SUB(L)=1.  
@@ -134,6 +139,7 @@ C
           IF(IJCT(I-1,J).EQ.6) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.7) SUB(L)=1.  
           IF(IJCT(I-1,J).EQ.9) SUB(L)=0.  
+          IF(J-1<1)CYCLE
           IF(IJCT(I,J-1).EQ.1) SVB(L)=0.  
           IF(IJCT(I,J-1).EQ.2) SVB(L)=1.  
           IF(IJCT(I,J-1).EQ.3) SVB(L)=1.  
@@ -158,7 +164,6 @@ C
           SVBO(LS)=1.  
         ENDDO  
       ENDIF  
-
       CALL MAPBOUNDARY
       CALL MAPRIVER
       CALL MAPCONC
@@ -166,7 +171,6 @@ C
 
 
       IF (IDA_FLAG  == 1) CALL MAPASSIMPOINTS
-
 C  
 C **  SET WATER-WATER (P OR SURFACE ELEVATION) BOUNDARY SWITCHES  
 C  
@@ -245,7 +249,7 @@ C
         SAAX(L)=0.  ! PMC
         SAAY(L)=0.  
         !SDY(L)=0.  
-      ENDDO  
+      ENDDO
 C
 C *********************************************************************
 C *** SET THE CELL FACES SWITCHES FOR HEAD CONTROL STRUCTURES
@@ -323,28 +327,41 @@ C *** SET THE CELL FACES SWITCHES FOR HEAD CONTROL STRUCTURES
             ENDIF
           ENDDO
         ENDIF
-      ENDDO  
+      ENDDO
 C  
 C ** RESET DXU,DYU,DXV,DYV BASED ON BOUNDARY CONDITION SWITCHES  
 C  
       DO L=2,LA  
-        IF(SUB(L).GT.0.5)THEN  
+        IF(L==0)THEN
+          PRINT*,'SETBCS LINE 336; L=',L
+ !         PAUSE
+        ENDIF
+        LE=LEAST(L)
+!        IF(SUB(L).GT.0.5)THEN  
 !          DXU(L)=0.5*(DXP(L)+DXP(LWEST(L)))  
 !          DYU(L)=0.5*(DYP(L)+DYP(LWEST(L)))  
-        ENDIF  
-        IF(SUB(L).LT.0.5.AND.SUB(LEAST(L)).GT.0.5)THEN  
+!        ENDIF  
+        IF(SUB(L).LT.0.5.AND.SUB(LE).GT.0.5)THEN  
           DXU(L)=DXP(L)  
-          DDYDDDX=2.*(DYP(LEAST(L))-DYP(L))/(DXP(L)+DXP(LEAST(L)))  
+          DDYDDDX=2.*(DYP(LE)-DYP(L))/(DXP(L)+DXP(LE))  
           DYU(L)=DYP(L)-0.5*DXP(L)*DDYDDDX  
         ENDIF  
-        IF(SUB(L).LT.0.5.AND.SUB(LEAST(L)).LT.0.5)THEN  
+        IF(SUB(L).LT.0.5.AND.SUB(LE).LT.0.5)THEN  
           DXU(L)=DXP(L)  
           DYU(L)=DYP(L)  
         ENDIF  
       ENDDO  
       DO L=2,LA  
+        IF(L==0)THEN
+            PRINT*,'SETBCS LINE 356; L=',L
+!            PAUSE
+        ENDIF
         LN=LNC(L)  
         LS=LSC(L)  
+        IF(LS==0.OR.LN==0)THEN
+          PRINT*,'SETBCS LINE 356; LS,LN,L=',LS,LN,L
+ !         PAUSE
+        ENDIF
         IF(SVB(L).GT.0.5)THEN  
           DXV(L)=0.5*(DXP(L)+DXP(LS))  
           DYV(L)=0.5*(DYP(L)+DYP(LS))  
@@ -358,7 +375,7 @@ C
           DXV(L)=DXP(L)  
           DYV(L)=DYP(L)  
         ENDIF  
-      ENDDO  
+      ENDDO
 C  
 C **  SET THIN BARRIERS BY CALLING CELLMASK  
 C **  CALL MOVED FROM AAEFDC ON 23 JAN 2004  
@@ -387,7 +404,7 @@ C
         IF(NQCMUL(NCTL).EQ.1)RQCMUL(NCTL)=DYP(LTMP)  
         IF(NQCMUL(NCTL).EQ.2)RQCMUL(NCTL)=DXP(LTMP)  
         IF(NQCMUL(NCTL).EQ.3)RQCMUL(NCTL)=DXP(LTMP)+DYP(LTMP)  
-      ENDDO  
+      ENDDO
 C
 C *********************************************************************
 C *** SET THE VELOCITY AVERAGING FACTORS
@@ -556,7 +573,7 @@ C *** SET THE VELOCITY AVERAGING FACTORS
             RSSBCN(L)=0.0  
           ENDIF  
         ENDIF  
-      ENDDO  
+      ENDDO
 
       ! *** SET BOUNDARY MOMENTUM SWITCHES FOR FLOW & HEAD CONTROL
 
@@ -817,7 +834,7 @@ C
           NBCS=NBCS+1
           LBCS(NBCS)=L
         ENDDO  
-      ENDIF  
+      ENDIF
 C  
 C **  SET CELL FACE WET DEPTHS  
 C  

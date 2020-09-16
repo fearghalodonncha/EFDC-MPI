@@ -2318,7 +2318,7 @@ C
         ENDDO  
         IF(ISVEG.EQ.0)THEN  
           DO LT=1,LVC 
-            READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ,MVEGIJT  
+            READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ
             IF(ISO.GT.0) GOTO 830
             I = XLOC(IGL)
             J = YLOC(JGL)

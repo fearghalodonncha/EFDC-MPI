@@ -212,7 +212,6 @@ CONTAINS
 
         END IF
 #endif
-
         ! *** WRITE THE CURRENT TRACK POSITION
         IF (TIMEDAY>=TIMENEXT_WRITE_DR) THEN
 #ifdef key_mpi
@@ -293,7 +292,6 @@ CONTAINS
           END DO
         END IF
         IF (PARTID == MASTER_TASK)  PRINT *,'DRIFTER: NUMBER OF DRIFTERS INITIALZED: ',NPD_TOT
-
         IF(LA_PRAN>0) RANVAL = RAND()
         RETURN
 999     STOP 'DRIFTER.INP READING ERROR!'
@@ -632,16 +630,17 @@ CONTAINS
                     UKT1=0.5*STCUV(L)*(RSSBCE(L)*U1(LEAST(L),K2)*SUB(LEAST(L))+RSSBCW(L)*U1(L,K2)*SUB(L))
                     VKT =0.5*STCUV(L)*(RSSBCN(L)*V (LN, K2)*SVB(LN) +RSSBCS(L)*V (L,K2)*SVB(L))
                     VKT1=0.5*STCUV(L)*(RSSBCN(L)*V1(LN, K2)*SVB(LN) +RSSBCS(L)*V1(L,K2)*SVB(L))
-
-                    UTMPB = (UKT -UKB )*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1))+UKB
-                    UTMPB1= (UKT1-UKB1)*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1))+UKB1
-                    VTMPB = (VKT -VKB )*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1))+VKB
-                    VTMPB1= (VKT1-VKB1)*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1))+VKB1
+                    UTMPB = (UKT -UKB )*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1)+EPSILON(ZCTR))+UKB
+                    UTMPB1= (UKT1-UKB1)*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1)+EPSILON(ZCTR))+UKB1
+                    VTMPB = (VKT -VKB )*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1)+EPSILON(ZCTR))+VKB
+                    VTMPB1= (VKT1-VKB1)*(ZSIG-ZCTR(KZ1))/(ZCTR(KZ2)-ZCTR(KZ1)+EPSILON(ZCTR))+VKB1
         
                     !INTERPOLATION FOR VERTICAL VELOCITY COMPONENT
-                    WTMPB = (W (L,KNI)-W (L,KNI-1))*(ZSIG-Z(KNI-1))/(Z(KNI)-Z(KNI-1))+W (L,KNI-1)
-                    WTMPB1= (W1(L,KNI)-W1(L,KNI-1))*(ZSIG-Z(KNI-1))/(Z(KNI)-Z(KNI-1))+W1(L,KNI-1)
-
+                    
+                    IF(KNI>=1)THEN
+                        WTMPB = (W (L,KNI)-W (L,KNI-1))*(ZSIG-Z(KNI-1))/(Z(KNI)-Z(KNI-1))+W (L,KNI-1)
+                        WTMPB1= (W1(L,KNI)-W1(L,KNI-1))*(ZSIG-Z(KNI-1))/(Z(KNI)-Z(KNI-1))+W1(L,KNI-1)
+                    ENDIF
                     !ROTATION
                     VELEK=CUE(L)*UTMPB+CVE(L)*VTMPB
                     VELNK=CUN(L)*UTMPB+CVN(L)*VTMPB

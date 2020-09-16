@@ -18,7 +18,6 @@ C
          YPAR(J) = J
       END DO
 #endif
-
       DO J =1,JC
         DO I =1,IC   
           IJCT(I,J)=IJCT_GLOBAL(XPAR(I),YPAR(J))
@@ -178,11 +177,6 @@ C
         ELSE  
           LNC(L)=LIJ(I,J+1)  
         ENDIF  
-        IF(IJCT(I,J-1).EQ.9)THEN  
-          LSC(L)=LC  
-        ELSE  
-          LSC(L)=LIJ(I,J-1)  
-        ENDIF  
         IF(IJCT(I+1,J+1).EQ.9)THEN  
           LNEC(L)=LC  
         ELSE  
@@ -192,16 +186,6 @@ C
           LNWC(L)=LC  
         ELSE  
           LNWC(L)=LIJ(I-1,J+1)  
-        ENDIF  
-        IF(IJCT(I+1,J-1).EQ.9)THEN  
-          LSEC(L)=LC  
-        ELSE  
-          LSEC(L)=LIJ(I+1,J-1)  
-        ENDIF  
-        IF(IJCT(I-1,J-1).EQ.9)THEN  
-          LSWC(L)=LC  
-        ELSE  
-          LSWC(L)=LIJ(I-1,J-1)  
         ENDIF  
         IF(IJCT(I-1,J).EQ.9)THEN
           LWEST(L)=LC
