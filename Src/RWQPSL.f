@@ -26,9 +26,8 @@ C
           READ(1,1)  
         ENDDO  
         DO NS=1,NPSTMSR  
-          MWQPTLT(NS)=1  
-          READ(1,*,IOSTAT=ISO)MWQPSR(NS),TCWQPSR(NS),  
-     &                        TAWQPSR,RMULADJ,ADDADJ  
+          MWQPTLT(NS)=1  !Interpolator
+          READ(1,*,IOSTAT=ISO)MWQPSR(NS),TCWQPSR(NS),TAWQPSR,RMULADJ,ADDADJ ! !MWQPSR(NS) = # of data points (usually days) from NPSTMSR inputs, TAWQPSR(NS) = time multiplier if you don't want days, TAWQPSR = additive time adjustment before unit conversion, TAPSER = quantity scalar, RMULADJ = multiplying covnersion factor, ADDADJ = additive conversion to loads BEFORE applying multiplier 
           IF(ISO.GT.0) GOTO 900  
 
           ! *** CONVERT WQ VAR 1-19, 22 FROM KG/D TO G/D	!VB
@@ -73,8 +72,8 @@ C
             DO NW=1,20  
               WQPSSER(M,NW,NS)=RMULADJ*RLDTMP(NW)  
             ENDDO  
-            WQPSSER(M,21,NS)=RMULADJ*RLDTMP(21)/1000.
-            IF(ISTRWQ(22)==1)WQPSSER(M,22,NS)=RMULADJ*RLDTMP(22)
+            WQPSSER(M,21,NS)=RMULADJ*RLDTMP(21)/1000.0
+            IF(ISTRWQ(22)==1)WQPSSER(M,22,NS)=RMULADJ*RLDTMP(22) !CO2 adjustment
           ENDDO  
         ENDDO  
         CLOSE(1)  
@@ -106,14 +105,14 @@ C
         ELSE  
           TIME=TIMESEC/TCWQPSR(NS)  
         ENDIF  
-        M1=MWQPTLT(NS)  
+        M1=MWQPTLT(NS)  !Interpolation
   100   CONTINUE  
         M2=M1+1  
         IF(TIME.GT.TWQPSER(M2,NS))THEN  
           M1=M2  
           GOTO 100  
         ELSE  
-          MWQPTLT(NS)=M1  
+          MWQPTLT(NS)=M1  !Interpolation
         ENDIF  
         TDIFF=TWQPSER(M2,NS)-TWQPSER(M1,NS)  
         WTM1=(TWQPSER(M2,NS)-TIME)/TDIFF  
@@ -188,7 +187,7 @@ C *** LOOP OVER THE WQ BOUNDARY CELLS
           ENDDO  
         ELSE
           ! *** K=0, DISTRIBUTE OVER ALL THE LAYERS  
-          TMPVAL=1./FLOAT(KC)  
+          TMPVAL=1.0/FLOAT(KC)  
           DO KK=1,KC  
             DO NW=1,NWQV  
               WQWPSL(L,KK,NW) = WQWPSL(L,KK,NW)  

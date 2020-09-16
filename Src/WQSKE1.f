@@ -644,11 +644,11 @@ C
         ENDIF  
 C  
         IF(ISTRWQ(22)==1)THEN
-	    PPCDO=-3.45	!PARTIAL PRES OF CO2 IN 10^ppcdo ATM; TEMPORARILY DECLARED HERE. SHOULD BE READ IN FROM INPUT FILE
+          PPCDO=-3.45 !PARTIAL PRES OF CO2 IN 10^ppcdo ATM; TEMPORARILY DECLARED HERE. SHOULD BE READ IN FROM INPUT FILE
           DO L=2,LA  
             IZ=IWQZMAP(L,K)  
-            WQO18(L)= -DTWQO2*WQKCOD(IWQT(L),IZ)*O2WQ(L) /  
-     &          (WQKHCOD(IZ) + O2WQ(L) + 1.E-18)  
+            WQO18(L)= -DTWQO2*WQKCOD(IWQT(L),IZ)*O2WQ(L)/
+     &                 (WQKHCOD(IZ) + O2WQ(L) + 1.E-18)
 C  
 ! *** DO Saturation, MOD BY TT, SEE CHAPRA (1997) PG. 3 
 !          TVAL1=1./(TWQ(L)+273.15)  
@@ -677,7 +677,7 @@ C
 !************* CO2 parameters
 	      CDOSATIDX(L) = -2385.73/(TWQ(L) + 273.15) -	!VB COMPUTING THE pK FOR SAT CONC OF CO2; K - HENRY'S CONST
      &	                       0.0152642 * (TWQ(L) + 273.15) + 14.0184
-!          K * MOL WT OF CO2 * PARTAL PRES OF CO2 IN ATM
+!          K * MOL WT OF CO2 * PARTIAL PRES OF CO2 IN ATM
 	      WQCDOS(L) = 10.**(-CDOSATIDX(L)+PPCDO) * (44.* 1000.) !VB EVALUATING CONC OF CO2 IN G/M^3 
 !************* CO2 parameters
           ! *** Compute Reaeration

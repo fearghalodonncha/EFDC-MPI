@@ -327,7 +327,7 @@ C
 C  
 C **  UPDATE TIME IN DAYS  
 C  
-      ITNWQ = ITNWQ + 2  
+      ITNWQ = ITNWQ + 2  !Integer time number in days
 C  
 C **  ENDIF ON KINETIC AND SEDIMENT UPDATE  
 C **  INSERT TIME CALL  

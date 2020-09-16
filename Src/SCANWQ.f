@@ -44,7 +44,7 @@
         STOP ' IWQTS.GT.NWQTSM'
       ENDIF
 
-C  *** C29
+C  *** C29 This is screwy because it is really reading C30 because "C30" only appears twice in that card, not three times like the rest of the cards.
       CALL SEEK('C29')  
       DO M=1,19
         READ(1,9)LINE
@@ -86,7 +86,7 @@ C *** C48
           READ(1,'(A120)')LINE  
         ENDDO  
         DO NS=1,NPSTMSR  
-   10     READ(1,*,ERR=10,END=20)M,TM,TA,RMULADJ,ADDADJ  
+   10     READ(1,*,ERR=10,END=20)M,TM,TA,RMULADJ,ADDADJ  !M = # of data points (days), TM = time multiplier if you don't want days, TA = additive time adjustment before unit conversion quantity scalar, RMULADJ = multiplying covnersion factor, ADDADJ = additive conversion to loads BEFORE applying multiplier
           NDWQPSR=MAX(NDWQPSR,M)
           DO J=1,M  
             !READ(1,*)T,(RLDTMP(K),K=1,NWQV)  
@@ -117,13 +117,20 @@ C
             READ(1,1)  
           ENDDO  
           DO NS=1,1000  
-   30       READ(1,*,ERR=30,END=40)ISTYP,M,T1,T2,RMULADJ,ADDADJ  
-            if (ISTYP == 1) READ (1,*,ERR=30,END=40)  ! Skip read of weights
+   30       READ(1,*,ERR=30,END=40)ISTYP,M,T1,T2,RMULADJ,ADDADJ
             NDWQCSR=MAX(NDWQCSR,M)
-            DO J=1,M  
-              !READ(1,*)T,(RLDTMP(K),K=1,NWQV)  
+            IF(ISTYP==0)THEN
+              DO J=1,M  
+                !READ(1,*)T,(RLDTMP(K),K=1,NWQV)  
+                READ(1,9)LINE
+              ENDDO  
+            ELSEIF(ISTYP==1)THEN
               READ(1,9)LINE
-            ENDDO  
+              DO J=1,M  
+                !READ(1,*)T,(RLDTMP(K),K=1,NWQV)  
+                READ(1,9)LINE
+              ENDDO
+            ENDIF                  
           ENDDO
    40     CONTINUE
           CLOSE(1)
