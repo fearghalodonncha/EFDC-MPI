@@ -1167,9 +1167,9 @@ C45*  READ TOXIC CONTAMINANT-SEDIMENT INTERACTION PARAMETERS
             ENDDO  
           ENDIF  
         ENDDO  
-        ENDIF
+      ENDIF
 C  
-!        write(*,*) 'READ C45'
+
 C45A*  READ TOXIC CONTAMINANT ORGANIC CARBON PARAMETERS
         NCARD='45A'  
         CALL SEEK('C45A')   
@@ -2218,18 +2218,18 @@ C
           I = XLOC(ID)
           J = YLOC(JD)
           IF (I > 0 .AND. I <=IC) THEN
-             IF (J > 0 .AND.J <=JC) THEN
-               L = LIJ(I,J)
-              ATMWHT(L,:) = ATMWHT_TEMP(:)
-          END IF
+            IF (J > 0 .AND.J <=JC) THEN
+              L = LIJ(I,J)
+              ATMWHT(L,1:KC) = ATMWHT_TEMP(1:KC)
+            END IF
           END IF
         ENDDO  
         CLOSE(121)  
       ENDIF
-!       do L = 2,LA
-!         if (partid == 1) write(*,*)XPAR(IL(L)), YPAR(JL(L)), sum((ATMWHT(L,:)))
-!       end do 
-      IF(NWSER.LE.1)THEN  
+!      DO L = 2,LA
+!         IF (PARTID == 1) WRITE(*,*)XPAR(IL(L)), YPAR(JL(L)), SUM((ATMWHT(L,:)))
+!      ENDDO 
+      IF(NWSER<=1)THEN  
         DO L=2,LA  
           WNDWHT(L,1)=1.  
         ENDDO  
@@ -2247,7 +2247,7 @@ C
           IF (I > 0 .AND. I <=IC) THEN
              IF (J > 0 .AND.J <=JC) THEN
                L = LIJ(I,J)
-               WNDWHT(L,:) = WNDWHT_TEMP(:)
+               WNDWHT(L,1:KC) = WNDWHT_TEMP(1:KC)
             END IF
           END IF
         ENDDO  
@@ -2310,8 +2310,8 @@ C
 C  
 C **  SKIP OVER TITLE AND AND HEADER LINES  
 C 
-        DXP_GLOB(:,:)=1.; DYP_GLOB(:,:)=1.;
-        HMP_GLOB(:,:)=HMIN;
+        DXP_GLOB=1.0; DYP_GLOB=1.0 !Initialize vectors
+        HMP_GLOB=HMIN !Initialize matrix
         DO IS=1,4  
           READ(1,*)  
         ENDDO  
@@ -3186,9 +3186,9 @@ C
               I = XLOC(IDUM)
               J = YLOC(JDUM)
               LMAP = LIJ(I,J)
-              if(lmap >= 2 .and. Lmap<=LA)THEN
-                SALINIT(LMAP,:) = CONINIT(:) 
-              end if
+              IF(LMAP >= 2 .AND. LMAP<=LA)THEN
+                SALINIT(LMAP,1:KC) = CONINIT(1:KC) 
+              ENDIF
               IF(ISO.GT.0) GOTO 840  
             ENDDO  
           ENDIF  
@@ -3227,16 +3227,16 @@ C
               READ(1,*,IOSTAT=ISO)LDUM,IDUM,JDUM,(CONINIT(K),K=1,KC) 
               I = XLOC(IDUM)
               J = YLOC(JDUM)
-             IF (I >0 .AND. I <= IC) THEN
-              IF (J > 0 .AND. J <= JC )THEN  
-              LMAP = LIJ(I,J)
-              if(lmap >= 2 .and. Lmap<=LA)THEN
-                TEMINIT(LMAP,:) = CONINIT(:) 
-              end if
-              IF(ISO.GT.0) GOTO 842  
-               END IF
-             END IF 
-           ENDDO  
+              IF (I >0 .AND. I <= IC) THEN
+                IF (J > 0 .AND. J <= JC )THEN  
+                  LMAP = LIJ(I,J)
+                  IF(LMAP >= 2 .AND. LMAP<=LA)THEN
+                    TEMINIT(LMAP,1:KC) = CONINIT(1:KC) 
+                  END IF
+                  IF(ISO.GT.0) GOTO 842  
+                END IF
+              END IF 
+            ENDDO  
           ENDIF  
           CLOSE(1)  
         ENDIF  
@@ -3272,11 +3272,11 @@ C
               READ(1,*,IOSTAT=ISO)LDUM,IDUM,JDUM,(CONINIT(K),K=1,KC) 
               I = XLOC(IDUM)
               J = YLOC(JDUM)
-              IF (I > 0 .and. I <= IC .and. J > 0 .and. J <=JC) THEN
+              IF (I > 0 .AND. I <= IC .AND. J > 0 .AND. J <=JC) THEN
                 LMAP = LIJ(I,J)
-                if(lmap >= 2 .and. Lmap<=LA)THEN
+                IF(LMAP >= 2 .AND. LMAP<=LA)THEN
                   DYEINIT(LMAP,1:KC) = CONINIT(1:KC) 
-                end if
+                END IF
               END IF
               IF(ISO.GT.0) GOTO 844  
             ENDDO  

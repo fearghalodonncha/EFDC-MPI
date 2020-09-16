@@ -145,27 +145,25 @@ C
       INTEGER iStat
       LOGICAL PAUSEIT
 	CHARACTER*20 BUFFER
-C
-
-C      INTERFACE TO INTEGER FUNCTION ATEXIT  
-C     &    [C,ALIAS:'_atexit'](FUN)  
-C      EXTERNAL FUN                ! this interface block is components of Scott
-C      END                         ! James pauese model capabilities; don't wo
-C      EXTERNAL QUIT               ! work Linux
-
+C     INTERFACE FOR KEYBOARD INERRUPT USEFUL, BUT DOES NOT WORK WITH x64 or Linux
+!      INTERFACE TO INTEGER FUNCTION ATEXIT  
+!     &    [C,ALIAS:'_atexit'](FUN)  
+!      EXTERNAL FUN                ! This interface block facilitates
+!      END                         ! model-pause capabilities, but it does
+!      EXTERNAL QUIT               ! not work with Linux ot 64-bit compilation.
 
 C  
 C *** EE END BLOCK  
-C **  SET IEEE EXCEPTION TRAPS (SUN SYSTEMS ONLY)  
+C **  SET IEEE EXCEPTION TRAPS (x86 SYSTEMS ONLY)  
 C *** EE BEGIN BLOCK  
 C     IS_TIMING NEEDS TO BE BASED ON A FLAG IN EFDC.INP AS IN EFDC_DS  
-C     BUT WILL USE THIS AS A DEFAULT FOR NOW  
+C     BUT USES THIS AS A DEFAULT HERE  
 C  
       CPUTIME(1:2)=0.0
       IS_TIMING=.TRUE.  
       TIME_END=SECNDS(SECNDS_ZERO)  
 
-      CALL CPU_TIME(TIME_START)        ! *** Intel Version 11.066 Bug - Work Around
+      CALL CPU_TIME(TIME_START)        ! *** Intel Version 11.066
 
 !      COUNT = NARGS()
 !	PAUSEIT = .false. !Set to .FALSE. to turn off hang-on-exit for calibration or sensitivity runs
@@ -194,9 +192,9 @@ C  call MPI-specific routines, if applicable
         END DO  
 #else
       MPI_PAR_FLAG = 0
-        ans(1) =''
-        partid = 0
-        partid2=1
+      ANS(1) = ''
+      PARTID = 0
+      PARTID2 = 1
 #endif
 
 C  
