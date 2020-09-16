@@ -7,17 +7,17 @@ C
       USE GLOBAL
 #ifdef key_mpi
       USE MPI
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: GLO_WS,GLO_VEL !Buffers for water surface and velocities
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: GLO_SAL,GLO_TEM !Buffers for dalinity and temperature
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_WS !Local water surface vector 1D
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_VEL !Local velocity vector 1D
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: LOC_ST !Local salinity and temperature
-      REAL*8,ALLOCATABLE,DIMENSION(:) :: PAR_WS !Water surface 1D vector
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_VEL !Velocity vectors
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_TEM !Temperatures
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: PAR_SAL !Salinity
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: WQV_LOC_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: WQV_GLOBAL_VEC  ! ALLOCATE THIS VARIABLE TO STORE THE ENTIRE WQ ARRAY IN VECTOR
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: GLO_WS,GLO_VEL !Buffers for water surface and velocities
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: GLO_SAL,GLO_TEM !Buffers for dalinity and temperature
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: LOC_WS !Local water surface vector 1D
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: LOC_VEL !Local velocity vector 1D
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: LOC_ST !Local salinity and temperature
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:) :: PAR_WS !Water surface 1D vector
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:,:) :: PAR_VEL !Velocity vectors
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:,:) :: PAR_TEM !Temperatures
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:,:) :: PAR_SAL !Salinity
       INTEGER :: LVS !Local vector size in I*J
       INTEGER :: LVS_K !Local vector size in I*J*K
       INTEGER :: LVS_K_WQ !Local vector size in I*J*K*NWQV
@@ -27,55 +27,50 @@ C
       INTEGER :: GVS !Global vector size in I*J
       INTEGER :: GVS_K !Global vector size in I*J*K
       INTEGER :: GVS_K_WQ !Global vector size in I*J*K*NWQV
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STP !Displacement steps I*J
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STP_K !Displacement steps I*J*K
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: DISPL_STP_K_WQ !Displacement steps I*J*K*NWQV
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART_K
-      INTEGER,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART_K_WQ
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: DISPL_STP !Displacement steps I*J
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: DISPL_STP_K !Displacement steps I*J*K
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: DISPL_STP_K_WQ !Displacement steps I*J*K*NWQV
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART_K
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:) :: RCNTS_PART_K_WQ
 #endif
       INTEGER::I,J,K,L,NW
-      REAL,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:,:,:,:) :: WQV_ARRAY_OUT
       
       CHARACTER*1 CZTT(0:9)  
       CHARACTER*1 CCHTMF,CCHTMS  
       
 C  
-      CHARACTER*2,SAVE,ALLOCATABLE,DIMENSION(:)::CNTTOX  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IB08VALL  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IB16VALL  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IDMPVALL  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IB08VAL  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IB16VAL  
-      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IDMPVAL  
-      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:)::DMPVALL  
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXBMAX  
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXBMIN  
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXWMAX  
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXWMIN  
-      REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::DMPVAL 
+      CHARACTER*2,SAVE,ALLOCATABLE,DIMENSION(:)::CNTTOX  !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IB08VALL    !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IB16VALL    !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:)::IDMPVALL    !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IB08VAL   !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IB16VAL   !No deallocation needed
+      INTEGER,SAVE,ALLOCATABLE,DIMENSION(:,:)::IDMPVAL   !No deallocation needed
+      REAL*8,SAVE,ALLOCATABLE,DIMENSION(:)::DMPVALL      !No deallocation needed
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXBMAX         !No deallocation needed
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXBMIN         !No deallocation needed
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXWMAX         !No deallocation needed
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:)::TXWMIN         !No deallocation needed
+      REAL,SAVE,ALLOCATABLE,DIMENSION(:,:)::DMPVAL       !No deallocation needed
       IF(.NOT.ALLOCATED(CNTTOX))THEN
-        ALLOCATE(CNTTOX(NTXM))  
-        ALLOCATE(DMPVAL(LCM,KCM))  
-        ALLOCATE(DMPVALL(LCM))  
-        ALLOCATE(IB08VAL(LCM,KCM))  
-        ALLOCATE(IB08VALL(LCM))  
-        ALLOCATE(IB16VAL(LCM,KCM))  
-        ALLOCATE(IB16VALL(LCM))  
-        ALLOCATE(IDMPVAL(LCM,KCM))  
-        ALLOCATE(IDMPVALL(LCM))  
-        ALLOCATE(TXBMAX(NTXM))  
-        ALLOCATE(TXBMIN(NTXM))  
-        ALLOCATE(TXWMAX(NTXM))  
-        ALLOCATE(TXWMIN(NTXM))  
+        ALLOCATE(CNTTOX(NTXM))     !No deallocation needed
+        ALLOCATE(DMPVAL(LCM,KCM))  !No deallocation needed
+        ALLOCATE(DMPVALL(LCM))     !No deallocation needed
+        ALLOCATE(IB08VAL(LCM,KCM)) !No deallocation needed
+        ALLOCATE(IB08VALL(LCM))    !No deallocation needed
+        ALLOCATE(IB16VAL(LCM,KCM)) !No deallocation needed
+        ALLOCATE(IB16VALL(LCM))    !No deallocation needed
+        ALLOCATE(IDMPVAL(LCM,KCM)) !No deallocation needed
+        ALLOCATE(IDMPVALL(LCM))    !No deallocation needed
+        ALLOCATE(TXBMAX(NTXM))     !No deallocation needed
+        ALLOCATE(TXBMIN(NTXM))     !No deallocation needed
+        ALLOCATE(TXWMAX(NTXM))     !No deallocation needed
+        ALLOCATE(TXWMIN(NTXM))     !No deallocation needed
       ENDIF
-      CNTTOX="  ";DMPVAL=0.0;TXBMAX=0.0;TXBMIN=0.0;TXWMAX=0.0;TXWMIN=0.0
-      IB08VAL=0;IB08VALL=0;IB16VAL=0;IB16VALL=0;IDMPVAL=0;IDMPVALL=0
-! MPI output      
-      IF(.NOT.ALLOCATED(WQV_ARRAY_OUT))THEN
-        ALLOCATE(WQV_ARRAY_OUT(IC_GLOBAL, JC_GLOBAL, KC, NWQVM))
-        !WQV_ARRAY_OUT(:,:,:,:)=-9999.0
-      ENDIF
+      CNTTOX="  ";DMPVAL=0.0;TXBMAX=0.0;TXBMIN=0.0;TXWMAX=0.0;TXWMIN=0.0 !Zero tese vectors
+      IB08VAL=0;IB08VALL=0;IB16VAL=0;IB16VALL=0;IDMPVAL=0;IDMPVALL=0 !Zero these matrices
 
 C  
 C **  INFORMATION FOR TESTING AS STAND ALONE PROGRAM  
@@ -313,7 +308,7 @@ C
 C **  IF(ISDUMP EQUAL 1 OR 2, SCALE VARIABLES AND WRITE INTEGER  
 C **  DUMP FILES  
 C  
-      IF(ISDUMP.LE.2)THEN  
+      isdump_le_2 : IF(ISDUMP.LE.2)THEN  
 C  
 C **  SCALE VARIABLES  
 C  
@@ -478,8 +473,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SELMAX,SELMIN  
             WRITE(1,101)IDMPVALL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO L=2,LA  
               IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
             ENDDO  
@@ -492,9 +486,11 @@ C
 C **  U VELOCITY COMPONENT  
 C  
         IF(ISDMPU.GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDUUU,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDUUU,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDUUU,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDUUU,POSITION='APPEND',FORM='UNFORMATTED')  
+          ENDIF
           SCALE=RSCALE/(UUUMAX-UUUMIN)  
           DO K=1,KC  
             DO L=2,LA  
@@ -506,8 +502,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,UUUMAX,UUUMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -522,9 +517,11 @@ C
 C **  V VELOCITY COMPONENT  
 C  
         IF(ISDMPU.GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDVVV,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDVVV,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDVVV,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDVVV,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(VVVMAX-VVVMIN)  
           DO K=1,KC  
             DO L=2,LA  
@@ -536,8 +533,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,VVVMAX,VVVMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -552,22 +548,24 @@ C
 C **  W VELOCITY COMPONENT  
 C  
         IF(ISDMPW.GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDWWW,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDWWW,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDWWW,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+             OPEN(1,FILE=FNDWWW,POSITION='APPEND',FORM='UNFORMATTED')  
+          ENDIF
           SCALE=RSCALE/(WWWMAX-WWWMIN)  
           DO K=1,KC  
-            DO L=2,LA  
+            DO L=2,LA
+              LW=LWEST(L)
               WWWTMP=0.5*(W(L,K)+W(L,K-1))  
-              DMPVAL(LWEST(L),K)=SCALE*(WWWTMP-WWWMIN)  
-              IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+              DMPVAL(LW,K)=SCALE*(WWWTMP-WWWMIN)  
+              IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
             ENDDO  
           ENDDO  
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,WWWMAX,WWWMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -582,10 +580,12 @@ C
 C **  SALINITY  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(1).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDSAL,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDSAL,POSITION='APPEND',FORM='UNFORMATTED')  
-          SCALE=RSCALE/(SALMAX-SALMIN)  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDSAL,POSITION='APPEND')
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDSAL,POSITION='APPEND',FORM='UNFORMATTED')  
+          ENDIF
+          CALE=RSCALE/(SALMAX-SALMIN)  
           DO K=1,KC  
             DO L=2,LA  
               DMPVAL(LWEST(L),K)=SCALE*(SAL(L,K)-SALMIN)  
@@ -595,8 +595,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SALMAX,SALMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -611,24 +610,27 @@ C
 C **  TEMPERATURE  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(2).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTEM,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDTEM,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDTEM,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDTEM,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(TEMMAX-TEMMIN)  
           DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=SCALE*(TEM(L,K)-TEMMIN)  
-              IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+            DO L=2,LA 
+              LW=LWEST(L)
+              DMPVAL(LW,K)=SCALE*(TEM(L,K)-TEMMIN)  
+              IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
             ENDDO  
           ENDDO  
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,TEMMAX,TEMMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
-              DO L=2,LA  
-                IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+              DO L=2,LA
+                LW=LWEST(L)
+                IB16VAL(LW,K)=IDMPVAL(LW,K)+IADJDMP  
               ENDDO  
             ENDDO  
             WRITE(1)TIME,TEMMAX,TEMMIN  
@@ -640,24 +642,27 @@ C
 C **  DYE  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(3).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDDYE,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDDYE,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDDYE,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDDYE,POSITION='APPEND',FORM='UNFORMATTED')  
+          ENDIF
           SCALE=RSCALE/(DYEMAX-DYEMIN)  
           DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=SCALE*(DYE(L,K)-DYEMIN)  
-              IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+            DO L=2,LA 
+              LW=LWEST(L)  
+              DMPVAL(LW,K)=SCALE*(DYE(L,K)-DYEMIN)  
+              IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
             ENDDO  
           ENDDO  
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,DYEMAX,DYEMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
-              DO L=2,LA  
-                IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+              DO L=2,LA
+                  LW=LWEST(L)
+                IB16VAL(LW,K)=IDMPVAL(LW,K)+IADJDMP  
               ENDDO  
             ENDDO  
             WRITE(1)TIME,DYEMAX,DYEMIN  
@@ -669,9 +674,11 @@ C
 C **  TOTAL COHESIVE SEDIMENT WATER COLUMN  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(6).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDSDW,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDSDW,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDSDW,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN
+            OPEN(1,FILE=FNDSDW,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(SDWMAX-SDWMIN)  
           DO K=1,KC  
             DO L=2,LA  
@@ -682,8 +689,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SDWMAX,SDWMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -698,9 +704,11 @@ C
 C **  TOTAL NONCOHESIVE SEDIMENT IN WATER COLUMN  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(7).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDSNW,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDSNW,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDSNW,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDSNW,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(SNWMAX-SNWMIN)  
           DO K=1,KC  
             DO L=2,LA  
@@ -711,8 +719,7 @@ C
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SNWMAX,SNWMIN  
             WRITE(1,101)IDMPVAL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
+          ELSEIF(ISDUMP.EQ.2)THEN  
             DO K=1,KC  
               DO L=2,LA  
                 IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
@@ -728,25 +735,27 @@ C **  TOTAL TOXIC CONTAMINANTS IN WATER COLUMN
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTWT(NT),POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDTWT(NT),POSITION='APPEND',
-     &          FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDTWT(NT),POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN
+              OPEN(1,FILE=FNDTWT(NT),POSITION='APPEND',FORM='UNFORMATTED')  
+            ENDIF
             SCALE=RSCALE/(TXWMAX(NT)-TXWMIN(NT))  
             DO K=1,KC  
-              DO L=2,LA  
-                DMPVAL(LWEST(L),K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
-                IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+              DO L=2,LA
+                  LW=LWEST(L)
+                DMPVAL(LW,K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
+                IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
               ENDDO  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXWMAX(NT),TXWMIN(NT)  
               WRITE(1,101)IDMPVAL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
+            ELSEIF(ISDUMP.EQ.2)THEN  
               DO K=1,KC  
-                DO L=2,LA  
-                  IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+                DO L=2,LA 
+                    LW=LWEST(L)
+                  IB16VAL(LW,K)=IDMPVAL(LW,K)+IADJDMP  
                 ENDDO  
               ENDDO  
               WRITE(1)TIME,TXWMAX(NT),TXWMIN(NT)  
@@ -760,25 +769,27 @@ C **  FREE DISSOLVED TOXIC CONTAMINANTS IN WATER COLUMN
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTWF(NT),POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDTWF(NT),POSITION='APPEND',
-     &          FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDTWF(NT),POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN
+              OPEN(1,FILE=FNDTWF(NT),POSITION='APPEND',FORM='UNFORMATTED')
+            ENDIF
             SCALE=RSCALE/(TXWMAX(NT)-TXWMIN(NT))  
             DO K=1,KC  
-              DO L=2,LA  
-                DMPVAL(LWEST(L),K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
-                IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+              DO L=2,LA
+                LW=LWEST(L)
+                DMPVAL(LW,K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
+                IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
               ENDDO  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXWMAX(NT),TXWMIN(NT)  
               WRITE(1,101)IDMPVAL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
+            ELSEIF(ISDUMP.EQ.2)THEN  
               DO K=1,KC  
-                DO L=2,LA  
-                  IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+                DO L=2,LA
+                  LW=LWEST(L)
+                  IB16VAL(LW,K)=IDMPVAL(LW,K)+IADJDMP  
                 ENDDO  
               ENDDO  
               WRITE(1)TIME,TXWMAX(NT),TXWMIN(NT)  
@@ -792,25 +803,27 @@ C **  COMPLEXED DISSOLVED TOXIC CONTAMINANTS IN WATER COLUMN
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTWC(NT),POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDTWC(NT),POSITION='APPEND',
-     &          FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDTWC(NT),POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN  
+              OPEN(1,FILE=FNDTWC(NT),POSITION='APPEND',FORM='UNFORMATTED')
+            ENDIF
             SCALE=RSCALE/(TXWMAX(NT)-TXWMIN(NT))  
             DO K=1,KC  
-              DO L=2,LA  
-                DMPVAL(LWEST(L),K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
-                IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+              DO L=2,LA 
+                LW=LWEST(L)
+                DMPVAL(LW,K)=SCALE*(TOX(L,K,NT)-TXWMIN(NT))  
+                IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
               ENDDO  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXWMAX(NT),TXWMIN(NT)  
               WRITE(1,101)IDMPVAL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
+            ELSEIF(ISDUMP.EQ.2)THEN  
               DO K=1,KC  
-                DO L=2,LA  
-                  IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+                DO L=2,LA
+                  LW=LWEST(L)  
+                  IB16VAL(LW,K)=IDMPVAL(L,K)+IADJDMP  
                 ENDDO  
               ENDDO  
               WRITE(1)TIME,TXWMAX(NT),TXWMIN(NT)  
@@ -824,28 +837,30 @@ C **  PARTICULATE TOXIC CONTAMINANT IN WATER COLUMN
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTWP(NT),POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDTWP(NT),POSITION='APPEND',
-     &          FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDTWP(NT),POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN  
+              OPEN(1,FILE=FNDTWP(NT),POSITION='APPEND',FORM='UNFORMATTED')  
+            ENDIF
 C  
 C        SCALE=100.  
 C  
             SCALE=RSCALE  
             DO K=1,KC  
-              DO L=2,LA  
-                DMPVAL(LWEST(L),K)=SCALE*TOXPFTW(L,K,NT)  
-                IDMPVAL(LWEST(L),K)=NINT(DMPVAL(LWEST(L),K))  
+              DO L=2,LA
+                LW=LWEST(L)
+                DMPVAL(LW,K)=SCALE*TOXPFTW(L,K,NT)  
+                IDMPVAL(LW,K)=NINT(DMPVAL(LW,K))  
               ENDDO  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,R1,R0  
               WRITE(1,101)IDMPVAL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
+            ELSEIF(ISDUMP.EQ.2)THEN  
               DO K=1,KC  
-                DO L=2,LA  
-                  IB16VAL(LWEST(L),K)=IDMPVAL(LWEST(L),K)+IADJDMP  
+                DO L=2,LA
+                  LW=LWEST(L)
+                  IB16VAL(LW,K)=IDMPVAL(LW,K)+IADJDMP  
                 ENDDO  
               ENDDO  
               WRITE(1)TIME,R1,R0  
@@ -858,21 +873,24 @@ C
 C **  TOTAL COHESIVE SEDIMENT IN BED  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(6).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDSDB,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDSDB,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDSDB,POSITION='APPEND')  
+          ELSEIF(ISDUMP.EQ.2)THEN
+            OPEN(1,FILE=FNDSDB,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(SDBMAX-SDBMIN)  
-          DO L=2,LA  
-            DMPVALL(LWEST(L))=SCALE*(SEDBT(L,KBT(L))-SDBMIN)  
-            IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+          DO L=2,LA
+            LW=LWEST(L)
+            DMPVALL(LW)=SCALE*(SEDBT(L,KBT(L))-SDBMIN)  
+            IDMPVALL(LW)=NINT(DMPVALL(LW))  
           ENDDO  
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SDBMAX,SDBMIN  
             WRITE(1,101)IDMPVALL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
-            DO L=2,LA  
-              IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            DO L=2,LA
+              LW=LWEST(L)
+              IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
             ENDDO  
             WRITE(1)TIME,SDBMAX,SDBMIN  
             WRITE(1)IB16VALL  
@@ -883,21 +901,24 @@ C
 C **  TOTAL NONCOHESIVE SEDIMENT IN BED  
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(7).GE.1)THEN  
-          IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDSNB,POSITION='APPEND')  
-          IF(ISDUMP.EQ.2)  
-     &        OPEN(1,FILE=FNDSNB,POSITION='APPEND',FORM='UNFORMATTED')  
+          IF(ISDUMP.EQ.1)THEN
+            OPEN(1,FILE=FNDSNB,POSITION='APPEND')
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            OPEN(1,FILE=FNDSNB,POSITION='APPEND',FORM='UNFORMATTED')
+          ENDIF
           SCALE=RSCALE/(SNBMAX-SNBMIN)  
-          DO L=2,LA  
-            DMPVALL(LWEST(L))=SCALE*(SNDBT(L,KBT(L))-SNBMIN)  
-            IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+          DO L=2,LA
+            LW=LWEST(L)
+            DMPVALL(LW)=SCALE*(SNDBT(L,KBT(L))-SNBMIN)  
+            IDMPVALL(LW)=NINT(DMPVALL(LW))  
           ENDDO  
           IF(ISDUMP.EQ.1)THEN  
             WRITE(1,*)TIME,SNBMAX,SNBMIN  
             WRITE(1,101)IDMPVALL  
-          ENDIF  
-          IF(ISDUMP.EQ.2)THEN  
-            DO L=2,LA  
-              IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+          ELSEIF(ISDUMP.EQ.2)THEN  
+            DO L=2,LA
+              LW=LWEST(L)
+              IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
             ENDDO  
             WRITE(1)TIME,SNBMAX,SNBMIN  
             WRITE(1)IB16VALL  
@@ -909,21 +930,24 @@ C **  THICKNESS OF SEDIMENT BED
 C  
         IF(ISDMPT.GE.1)THEN  
           IF(ISTRAN(6).GE.1.OR.ISTRAN(7).GE.1)THEN  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDBDH,POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDBDH,POSITION='APPEND',FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDBDH,POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN
+              OPEN(1,FILE=FNDBDH,POSITION='APPEND',FORM='UNFORMATTED')
+            ENDIF
             SCALE=RSCALE/(BDHMAX-BDHMIN)  
-            DO L=2,LA  
-              DMPVALL(LWEST(L))=SCALE*(VOLBW2(L,KBT(L))-BDHMIN)  
-              IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVALL(LW)=SCALE*(VOLBW2(L,KBT(L))-BDHMIN)  
+              IDMPVALL(LW)=NINT(DMPVALL(LW))  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,BDHMAX,BDHMIN  
               WRITE(1,101)IDMPVALL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
-              DO L=2,LA  
-                IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+            ELSEIF(ISDUMP.EQ.2)THEN  
+              DO L=2,L
+                LW=LWEST(L)  
+                IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
               ENDDO  
               WRITE(1)TIME,BDHMAX,BDHMIN  
               WRITE(1)IB16VALL  
@@ -936,22 +960,24 @@ C **  TOTAL TOXIC CONTAMINANTS IN SEDIMENT BED
 C  
         IF(ISDMPT.GE.1.AND.ISTRAN(5).GE.1)THEN  
           DO NT=1,NTOX  
-            IF(ISDUMP.EQ.1) OPEN(1,FILE=FNDTBT(NT),POSITION='APPEND')  
-            IF(ISDUMP.EQ.2)  
-     &          OPEN(1,FILE=FNDTBT(NT),POSITION='APPEND',
-     &          FORM='UNFORMATTED')  
+            IF(ISDUMP.EQ.1)THEN
+              OPEN(1,FILE=FNDTBT(NT),POSITION='APPEND')  
+            ELSEIF(ISDUMP.EQ.2)THEN
+              OPEN(1,FILE=FNDTBT(NT),POSITION='APPEND',FORM='UNFORMATTED')
+            ENDIF
             SCALE=RSCALE/(TXBMAX(NT)-TXBMIN(NT))  
-            DO L=2,LA  
-              DMPVALL(LWEST(L))=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
-              IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVALL(LW)=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
+              IDMPVALL(LW)=NINT(DMPVALL(LW))  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1,101)IDMPVALL  
-            ENDIF  
-            IF(ISDUMP.EQ.2)THEN  
-              DO L=2,LA  
-                IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+            ELSEIF(ISDUMP.EQ.2)THEN  
+              DO L=2,LA
+                LW=LWEST(L)
+                IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
               ENDDO  
               WRITE(1)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1)IB16VALL  
@@ -969,17 +995,19 @@ C
      &          OPEN(1,FILE=FNDTBF(NT),POSITION='APPEND',
      &          FORM='UNFORMATTED')  
             SCALE=RSCALE/(TXBMAX(NT)-TXBMIN(NT))  
-            DO L=2,LA  
-              DMPVALL(LWEST(L))=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
-              IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVALL(LW)=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
+              IDMPVALL(LW)=NINT(DMPVALL(LW))  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1,101)IDMPVALL  
             ENDIF  
             IF(ISDUMP.EQ.2)THEN  
-              DO L=2,LA  
-                IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+              DO L=2,LA
+                LW=LWEST(L)
+                IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
               ENDDO  
               WRITE(1)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1)IB16VALL  
@@ -997,17 +1025,19 @@ C
      &          OPEN(1,FILE=FNDTBC(NT),POSITION='APPEND',
      &          FORM='UNFORMATTED')  
             SCALE=RSCALE/(TXBMAX(NT)-TXBMIN(NT))  
-            DO L=2,LA  
-              DMPVALL(LWEST(L))=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
-              IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVALL(LW)=SCALE*(TOXB(L,KBT(L),NT)-TXBMIN(NT))  
+              IDMPVALL(LW)=NINT(DMPVALL(LW))  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1,101)IDMPVALL  
             ENDIF  
             IF(ISDUMP.EQ.2)THEN  
-              DO L=2,LA  
-                IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+              DO L=2,LA
+                LW=LWEST(L)
+                IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
               ENDDO  
               WRITE(1)TIME,TXBMAX(NT),TXBMIN(NT)  
               WRITE(1)IB16VALL  
@@ -1028,17 +1058,19 @@ C
 C        SCALE=100.  
 C  
             SCALE=RSCALE  
-            DO L=2,LA  
-              DMPVALL(LWEST(L))=SCALE*TOXPFTB(L,KB,NT)  
-              IDMPVALL(LWEST(L))=NINT(DMPVALL(LWEST(L)))  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVALL(LW)=SCALE*TOXPFTB(L,KB,NT)  
+              IDMPVALL(LW)=NINT(DMPVALL(LW))  
             ENDDO  
             IF(ISDUMP.EQ.1)THEN  
               WRITE(1,*)TIME,R1,R0  
               WRITE(1,101)IDMPVALL  
             ENDIF  
             IF(ISDUMP.EQ.2)THEN  
-              DO L=2,LA  
-                IB16VALL(LWEST(L))=IDMPVALL(LWEST(L))+IADJDMP  
+              DO L=2,LA
+                LW=LWEST(L)
+                IB16VALL(LW)=IDMPVALL(LW)+IADJDMP  
               ENDDO  
               WRITE(1)TIME,R1,R0  
               WRITE(1)IB16VALL  
@@ -1046,12 +1078,12 @@ C
             CLOSE(1)  
           ENDDO  
         ENDIF  
-      ENDIF  
+      ENDIF isdump_le_2 
 C  
 C **  IF ISDUMP EQUAL 3 OR 4, WRITE FLOATING POINT  
 C **  DUMP FILES  
 C  
-      IF(ISDUMP.GE.3)THEN  !Endif on line 1653
+      dump_ge_3 : IF(ISDUMP.GE.3)THEN  !Endif on line 1653
 C  
 C **  WATER SURFACE ELEVATION  
 C  
@@ -1091,24 +1123,24 @@ C
              ALLOCATE(GLO_WS(GVS))
  !             WRITE(*,*) 'Allocate = ',LVS,LVS_K,LVS_K_WQ
           ENDIF
-          DISPL_STP(:)=0
-          RCNTS_PART(:)=0
-          GLO_WS(:)=0.0
+          RCNTS_PART=0 !Zero these vectors
+          GLO_WS=0.0 !Zero this vector
+          LOC_WS=0.0 !Zero this vector
           II = 0
           DO I = 3,IC-2
              DO J = 3,JC-2
                 L = LIJ(I,J)
                 II = II + 1
-                LOC_WS(II)=0.0
-                IF(L>0)LOC_WS(II) = GI*P(L)
+                IF(L>0)THEN
+                   LOC_WS(II) = GI*P(L)
+!                 print*,PARTID,I,J,II,L,LVS,LOC_WS(II)
+                ENDIF
              ENDDO
           ENDDO   
    ! We need to compute the size of the strip that is received from each MPI process.
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART(:) = 0
-          DISPL_STP(:) = 0
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1118,7 +1150,7 @@ C
                 II = II + 1
                 RCNTS_PART(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4)        ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP = 0 ! Avoid access of zero array in DISPL_STP and zero this vector
                 ELSE
                   DISPL_STP(II) = DISPL_STP(II-1) + RCNTS_PART(II-1)
                 ENDIF
@@ -1130,12 +1162,12 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_WS(:)=0.0
-          IF(PARTID .EQ. MASTER_TASK)THEN
+          PAR_WS=0.0 !Zero this vector
+          IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
                 ID = ID + 1
-                IF( TILE2NODE(ID).EQ.-1)GOTO 555
+                IF( TILE2NODE(ID)==-1)GOTO 555
                 ILOOP =  IC_LORP(XLOP)-4
                 JLOOP =  JC_LORP(YLOP)-4
                 ISKIP =  IC_STRID(XLOP)
@@ -1180,7 +1212,7 @@ C
 C
 C **  U VELOCITY COMPONENT  
 C  
-        IF(ISDMPU.GE.1)THEN
+        isdumpu_ge_1 : IF(ISDMPU.GE.1)THEN
           IF(PARTID==MASTER_TASK)THEN
             IF(ISDUMP.EQ.3)THEN
               OPEN(1,FILE=FNDUUU,POSITION='APPEND')
@@ -1195,7 +1227,7 @@ C
           IF(.NOT.ALLOCATED(GLO_VEL) .AND. PARTID==MASTER_TASK)THEN
              ALLOCATE(GLO_VEL(GVS_K))
           ENDIF
-          GLO_VEL(:)=0.0
+          GLO_VEL=0.0 !Zero this vector
           II = 0
           DO K = 1,KC
             DO I = 3,IC-2
@@ -1214,8 +1246,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART_K(:) = 0
-          DISPL_STP_K(:) = 0
+          RCNTS_PART_K = 0 !Zero this vector
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1225,7 +1256,7 @@ C
                 II = II + 1
                 RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP_K = 0 ! Avoid access of zero array in DISPL_STP and initializes this vector
                 ELSE
                   DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
                 ENDIF
@@ -1237,7 +1268,7 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_VEL(:,:)=0.0
+          PAR_VEL=0.0 !Zero this matrix
           IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
@@ -1298,11 +1329,11 @@ C
             ENDIF  
             CLOSE(1)
           ENDIF
-        ENDIF
+        ENDIF  isdumpu_ge_1
 C
 C **  V VELOCITY COMPONENT  
 C  
-        IF(ISDMPU.GE.1)THEN  
+       isdumpv_gt_1 : IF(ISDMPU.GE.1)THEN  
           IF(PARTID==MASTER_TASK)THEN
             IF(ISDUMP.EQ.3)THEN
               OPEN(1,FILE=FNDVVV,POSITION='APPEND')  
@@ -1329,8 +1360,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART_K(:) = 0
-          DISPL_STP_K(:) = 0
+          RCNTS_PART_K = 0 !Zero this vector
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1340,7 +1370,7 @@ C
                 II = II + 1
                 RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP_K = 0 ! Avoid access of zero array in DISPL_STP and zero this vector
                 ELSE
                   DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
                 ENDIF
@@ -1411,7 +1441,7 @@ C
             ENDIF
             CLOSE(1)    
           ENDIF  
-        ENDIF
+        ENDIF isdumpv_gt_1
 C  
 C **  W VELOCITY COMPONENT  
 C  
@@ -1439,8 +1469,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART_K(:) = 0
-          DISPL_STP_K(:) = 0
+          RCNTS_PART_K = 0 !Zero this vector
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1450,7 +1479,7 @@ C
                 II = II + 1
                 RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP_K = 0 ! Avoid access of zero array in DISPL_STP and zero this array
                 ELSE
                   DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
                 ENDIF
@@ -1462,7 +1491,7 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_VEL(:,:)=0.0
+          PAR_VEL=0.0 !initialize matrix
           IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
@@ -1525,7 +1554,7 @@ C
 C  
 C **  SALINITY  
 C  
-        IF(ISDMPT.GE.1.AND.ISTRAN(1).GE.1)THEN
+        is_sal : IF(ISDMPT.GE.1.AND.ISTRAN(1).GE.1)THEN
           IF(PARTID==MASTER_TASK)THEN
             IF(ISDUMP.EQ.3)THEN
               OPEN(1,FILE=FNDSAL,POSITION='APPEND')  
@@ -1540,7 +1569,7 @@ C
           IF(.NOT.ALLOCATED(GLO_SAL) .AND. PARTID==MASTER_TASK)THEN
              ALLOCATE(GLO_SAL(GVS_K))
           ENDIF
-          GLO_SAL(:)=0.0
+          GLO_SAL=0.0 !Zero this vector
           II = 0
           DO K = 1,KC
             DO I = 3,IC-2
@@ -1556,8 +1585,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART_K(:) = 0
-          DISPL_STP_K(:) = 0
+          RCNTS_PART_K = 0 !Zero this vector
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1567,7 +1595,7 @@ C
                 II = II + 1
                 RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP_K = 0 ! Avoid access of zero array in DISPL_STP and zero this array
                 ELSE
                   DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
                 ENDIF
@@ -1579,12 +1607,12 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_SAL(:,:)=0.0
+          PAR_SAL=0.0 !Zero this matrix
           IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
                 ID = ID + 1
-                IF( TILE2NODE(ID).EQ.-1)GOTO 559
+                IF( TILE2NODE(ID)==-1)GOTO 559
                 DO K = 1,KC
                   ILOOP =  IC_LORP(XLOP)-4
                   JLOOP =  JC_LORP(YLOP)-4
@@ -1632,11 +1660,12 @@ C
             ENDIF  
             CLOSE(1)
          ENDIF   
-        ENDIF
+        ENDIF is_sal
+
 C  
 C **  TEMPERATURE  
 C  
-        IF(ISDMPT.GE.1.AND.ISTRAN(2).GE.1)THEN  
+        isdumpt_gw_1 :IF(ISDMPT.GE.1.AND.ISTRAN(2).GE.1)THEN  
           IF(PARTID==MASTER_TASK)THEN
             IF(ISDUMP.EQ.3)THEN
               OPEN(1,FILE=FNDTEM,POSITION='APPEND')  
@@ -1667,8 +1696,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART_K(:) = 0
-          DISPL_STP_K(:) = 0
+          RCNTS_PART_K = 0 !Zero this vector 
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -1678,7 +1706,7 @@ C
                 II = II + 1
                 RCNTS_PART_K(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC       ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY 0F SIZE NPARTITION)
                 IF (II == 1) THEN
-                  DISPL_STP_K(:) = 0 ! Avoid access of zero array in DISPL_STP
+                  DISPL_STP_K = 0 ! Avoid access of zero array in DISPL_STP and zero this vector
                 ELSE
                   DISPL_STP_K(II) = DISPL_STP_K(II-1) + RCNTS_PART_K(II-1)
                 ENDIF
@@ -1690,7 +1718,7 @@ C
      &MPI_REAL8, 0,EFDC_COMM,  IERROR)
           III = 0
           ID = 0
-          PAR_TEM(:,:)=0.0
+          PAR_TEM=0.0 !initialize matrix
           IF(PARTID == MASTER_TASK)THEN
             DO YLOP = 1,NPARTY
               DO XLOP = 1,NPARTX
@@ -1726,7 +1754,7 @@ C
 #else
           DO K=1,KC  
             DO L=2,LA
-              LW-LWEST(L)  
+              LW=LWEST(L)  
               DMPVAL(LW,K)=TEM(L,K)  
             ENDDO  
           ENDDO  
@@ -1743,7 +1771,7 @@ C
             ENDIF  
             CLOSE(1)  
           ENDIF  
-        ENDIF  
+        ENDIF  isdumpt_gw_1
 C  
 C **  DYE  
 C  
@@ -1754,8 +1782,9 @@ C
             OPEN(1,FILE=FNDDYE,POSITION='APPEND',FORM='UNFORMATTED')  
           ENDIF
           DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=DYE(L,K)  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVAL(LW,K)=DYE(L,K)  
             ENDDO  
           ENDDO  
           IF(ISDUMP.EQ.3)THEN  
@@ -1779,8 +1808,9 @@ C
             OPEN(1,FILE=FNDSDW,POSITION='APPEND',FORM='UNFORMATTED')  
           ENDIF
           DO K=1,KC  
-            DO L=2,LA  
-              DMPVAL(LWEST(L),K)=SEDT(L,K)  
+            DO L=2,LA
+              LW=LWEST(L)
+              DMPVAL(LW,K)=SEDT(L,K)  
             ENDDO  
           ENDDO  
           IF(ISDUMP.EQ.3)THEN  
@@ -1887,8 +1917,9 @@ C
               OPEN(1,FILE=FNDTWC(NT),POSITION='APPEND',FORM='UNFORMATTED')
             ENDIF
             DO K=1,KC  
-              DO L=2,LA  
-                DMPVAL(LWEST(L),K)=TOX(L,K,NT)  
+              DO L=2,LA
+                LW=LWEST(L)
+                DMPVAL(LW,K)=TOX(L,K,NT)  
               ENDDO  
             ENDDO  
             IF(ISDUMP.EQ.3)THEN  
@@ -2109,7 +2140,7 @@ C
             CLOSE(1)  
           ENDDO  
         ENDIF  
-      ENDIF  !If on line 1033
+      ENDIF  dump_ge_3
 C **  WATER QUALTIY 3D DISSOLVED OXYGEN !Greg Rocheleau Feb 2019
 C **  WATER QUALTIY 2D ALL VARIABLES
 C
@@ -2119,11 +2150,8 @@ C
 #ifdef key_mpi
 !          LVS_K_WQ = (IC-4) * (JC-4) * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
 !          GVS_K_WQ = IC_GLOBAL * JC_GLOBAL * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
-          IF(.NOT.ALLOCATED(WQV_LOC_VEC))THEN
-            ALLOCATE(WQV_LOC_VEC(LVS_K_WQ))
-          ENDIF
-          IF(.NOT.ALLOCATED(WQV_GLOBAL_VEC) .AND. PARTID==MASTER_TASK)THEN
-             ALLOCATE(WQV_GLOBAL_VEC(GVS_K_WQ))
+          IF(.NOT.ALLOCATED(WQV_LOC_VEC))ALLOCATE(WQV_LOC_VEC(LVS_K_WQ))
+          IF(.NOT.ALLOCATED(WQV_GLOBAL_VEC) .AND. PARTID==MASTER_TASK)ALLOCATE(WQV_GLOBAL_VEC(GVS_K_WQ))
           ENDIF
           II = 0
    ! Pack the 3D array WQV(LCM,KC,NWQVM) into 1D vector to implement MPI Gather
@@ -2133,7 +2161,7 @@ C
                 DO J = 3,JC-2
                   L = LIJ(I,J) 
                   II = II + 1
-                  WQV_LOC_VEC(II) = 0.0 ! Cache efficient way to initiatlize to zero before acting on array
+                  WQV_LOC_VEC(II) = 0.0 ! Cache-efficient way to initiatlize to zero before acting on array
                   IF(L>0)WQV_LOC_VEC(II) = WQV(L,K,NW)  !Store all WQ variables (1-23 where 23 is macroalgae) into a column vector
                 ENDDO
               ENDDO
@@ -2143,7 +2171,7 @@ C
    ! We can do this based on information from LORP.INP on
    ! IC_LORP(ID) = number of I cells in domain ID
    ! JC_LORP(ID) = number of J cells in domain JD
-          RCNTS_PART(:) = 0
+          RCNTS_PART = 0 !Zero this vector
           II = 0
           ID = 0
           DO YD = 1,NPARTY
@@ -2153,15 +2181,15 @@ C
                 II = II + 1
                 RCNTS_PART_K_WQ(II) =  (IC_LORP(XD)-4) * (JC_LORP(YD)-4) * KC *  NWQVM        ! SIZE OF EACH ARRAY COMMUNICATED (ARRAY OF SIZE NPARTITION)
                 IF(II==1)THEN
-                  DISPL_STP_K_WQ(:) = 0
+                  DISPL_STP_K_WQ = 0 !Zero this vector
                 ELSE
                   DISPL_STP_K_WQ(II) = DISPL_STP_K_WQ(II-1) + RCNTS_PART_K_WQ(II-1)
                 ENDIF
               ENDIF
             ENDDO
           ENDDO
-                          !Local data    Local data size         Global data     Size on each processor  Displacement for packing data
-          CALL MPI_GATHERv(WQV_LOC_VEC , LOC_VEC_SIZE, MPI_REAL, WQV_GLOBAL_VEC, RCNTS_PART_K_WQ,        DISPL_STP_K_WQ, 
+                          !Local data   Local data size         Global data     Size on each processor  Displacement for packing data
+          CALL MPI_GATHERv(WQV_LOC_VEC, LVS_K_WQ, MPI_REAL, WQV_GLOBAL_VEC, RCNTS_PART_K_WQ,        DISPL_STP_K_WQ, 
      &                   MPI_REAL, 0, MPI_COMM_WORLD, ERROR)
           III = 0
           ID = 0
@@ -2311,7 +2339,7 @@ C          WRITE(1,111)DMPVAL
         ENDIF
 C	END OF WRITE STATEMENTS FOR 3D WQ
 C
-      ENDIF
+      !ENDIF
 C
 C **  CHECK BY READING BINARY FILES  
 C        READ(1)TIME,RMAX,RMIN  
@@ -2334,7 +2362,6 @@ C
   203 FORMAT(//,' CHECK 2D 16 BIT VARIABLE',/)  
   204 FORMAT(//,' CHECK 3D 16 BIT VARIABLE',/)  
   205 FORMAT(8F8.2)
-      DEALLOCATE(WQV_ARRAY_OUT)
       RETURN  
       END  
 
