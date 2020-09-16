@@ -145,7 +145,7 @@ c      CLOSE(1)
         LALT=L-1  
         LCLT=L  
       ENDIF  
-      WRITE(7,1616)LALT,LCLT  
+      WRITE(7,1616)LALT,LCLT
   
 C **  ASSIGN RED AND BLACK CELL SEQUENCES  (PMC - NOT FUNCTIONAL)
 C  
@@ -213,7 +213,23 @@ C
         ELSE
           LEAST(L)=MAX(LIJ(I+1,J),1)
         ENDIF
-      ENDDO  
+        IF(J-1<1)CYCLE
+        IF(IJCT(I+1,J-1).EQ.9)THEN  
+          LSEC(L)=LC  
+        ELSE  
+          LSEC(L)=LIJ(I+1,J-1)  
+        ENDIF 
+        IF(IJCT(I-1,J-1).EQ.9)THEN  
+          LSWC(L)=LC  
+        ELSE  
+          LSWC(L)=LIJ(I-1,J-1)  
+        ENDIF  
+        IF(IJCT(I,J-1).EQ.9)THEN  
+          LSC(L)=LC  
+        ELSE  
+          LSC(L)=LIJ(I,J-1)  
+        ENDIF  
+      ENDDO
 C  
 C **  MODIFY NORTH-SOUTH CELL MAPPING FOR PERIOD GRID IN N-S DIRECTION  
 C  
@@ -254,18 +270,19 @@ C
       LSCLT(LC)=1  
       DO L=2,LALT  
         I=ILLT(L)  
-        J=JLLT(L)  
+        J=JLLT(L)
         IF(IJCTLT(I,J+1).EQ.9)THEN  
           LNCLT(L)=LCLT  
         ELSE  
           LNCLT(L)=LIJLT(I,J+1)  
         ENDIF  
+        IF(J-1<1)CYCLE
         IF(IJCTLT(I,J-1).EQ.9)THEN  
           LSCLT(L)=LCLT  
         ELSE  
           LSCLT(L)=LIJLT(I,J-1)  
         ENDIF  
-      ENDDO  
+      ENDDO
 
 C
 C  hnr start modification may 2002---------------------------------C

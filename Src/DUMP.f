@@ -1131,10 +1131,8 @@ C
              DO J = 3,JC-2
                 L = LIJ(I,J)
                 II = II + 1
-                IF(L>0)THEN
-                   LOC_WS(II) = GI*P(L)
-!                 print*,PARTID,I,J,II,L,LVS,LOC_WS(II)
-                ENDIF
+                LOC_WS(II)=0.0
+                IF(L>0)LOC_WS(II) = GI*P(L)
              ENDDO
           ENDDO   
    ! We need to compute the size of the strip that is received from each MPI process.
@@ -1661,7 +1659,6 @@ C
             CLOSE(1)
          ENDIF   
         ENDIF is_sal
-
 C  
 C **  TEMPERATURE  
 C  
@@ -1688,7 +1685,7 @@ C
                   L = LIJ(I,J)
                   II = II + 1
                   LOC_ST(II)=0.0
-                  IF(L>0)LOC_ST(II) =TEM(L,K)  
+                  IF(L>0)LOC_ST(II)=TEM(L,K)  
                ENDDO
             ENDDO   
           ENDDO
@@ -2146,13 +2143,13 @@ C **  WATER QUALTIY 2D ALL VARIABLES
 C
       IF(ISDMPT.GE.1.AND.ISTRAN(8).GE.1)THEN
 !!!MPI
-           IERRROR=1
+          IERRROR=1
 #ifdef key_mpi
 !          LVS_K_WQ = (IC-4) * (JC-4) * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
 !          GVS_K_WQ = IC_GLOBAL * JC_GLOBAL * KC * NWQVM   !NUMBER OF ELEMENTS TO BE SENT
           IF(.NOT.ALLOCATED(WQV_LOC_VEC))ALLOCATE(WQV_LOC_VEC(LVS_K_WQ))
           IF(.NOT.ALLOCATED(WQV_GLOBAL_VEC) .AND. PARTID==MASTER_TASK)ALLOCATE(WQV_GLOBAL_VEC(GVS_K_WQ))
-          ENDIF
+!         ENDIF
           II = 0
    ! Pack the 3D array WQV(LCM,KC,NWQVM) into 1D vector to implement MPI Gather
           DO NW = 1, NWQVM
@@ -2212,8 +2209,8 @@ C
                     ENDDO
                   ENDDO
                 ENDIF
-              ENDDO   !  \  End do loop through the partitions
-            ENDDO     !  /
+              ENDDO  !  \  End do loop through the partitions
+            ENDDO    !  /
           ENDIF          
 #else
           WQV_ARRAY_OUT(:,:,:,:) = 0.0
@@ -2231,60 +2228,59 @@ C
 C
 C     WQVO(2:LA,1:KC,1:MNWQV+1)=WQVO(2:LA,1:KC,1:NWQV+1)*0.5
 C	DUMP 3D WQ VARIABLE TO UNIQUE FILENAMES
-          IF(ISDUMP.EQ.3.AND.ISTRWQ(1).EQ.1.AND.PARTID==MASTER_TASK)THEN
-            OPEN(1,FILE=FNDWQAS,POSITION='APPEND')
-            WRITE(1,*)TIME
-C        WRITE(1,111)DMPVAL
-            DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
-              DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
-                L=LIJ(I,J) 
-                IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 1),K=1,KC)
-              ENDDO
-            ENDDO
-            CLOSE(1)
-          ENDIF
-C
-          IF(ISDUMP.EQ.3.AND.IDNOTRVA>0.AND.PARTID==MASTER_TASK)THEN
-            OPEN(1,FILE=FNDWQD,POSITION='APPEND')
-            WRITE(1,*)TIME
-C          WRITE(1,111)DMPVAL
-            DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
-              DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
-                L=LIJ(I,J) 
-                IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, IDNOTRVA),K=1,KC)
-              ENDDO
-            ENDDO
-	      CLOSE(1)
-          ENDIF
-C
-	    IF(ISTRWQ(3).EQ.1.AND.ISTRWQ(3).EQ.1.AND.PARTID==MASTER_TASK)THEN
-            OPEN(1,FILE=FNDWQAL,POSITION='APPEND')
-            WRITE(1,*)TIME
-C          WRITE(1,111)DMPVAL
-            DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
-              DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
-                L=LIJ(I,J) 
-                IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 3),K=1,KC)
-              ENDDO
-            ENDDO
-	      CLOSE(1)
-	    ENDIF
-C
-        IF(ISDUMP.EQ.3.AND.ISTRWQ(15).EQ.1.AND.PARTID==MASTER_TASK)THEN
-          OPEN(1,FILE=FNDWQN,POSITION='APPEND')
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(1).EQ.1.AND.PARTID==MASTER_TASK)THEN !cyanobacteria
+          OPEN(1,FILE=FNDWQAS,POSITION='APPEND')
           WRITE(1,*)TIME
 C          WRITE(1,111)DMPVAL
           DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
             DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
               L=LIJ(I,J) 
-              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 15),K=1,KC)
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 1),K=1,KC)
+            ENDDO
+          ENDDO
+          CLOSE(1)
+        ENDIF
+C
+	  IF(ISTRWQ(3).EQ.1.AND.ISTRWQ(3).EQ.1.AND.PARTID==MASTER_TASK)THEN !green algae
+          OPEN(1,FILE=FNDWQAL,POSITION='APPEND')
+          WRITE(1,*)TIME
+C        WRITE(1,111)DMPVAL
+          DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
+            DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
+              L=LIJ(I,J) 
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 3),K=1,KC)
+            ENDDO
+          ENDDO
+	    CLOSE(1)
+	  ENDIF
+C
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(11).EQ.1.AND.PARTID==MASTER_TASK)THEN !refractory particulate organic nitrogen
+          OPEN(1,FILE=FNDWQDON,POSITION='APPEND')
+          WRITE(1,*)TIME
+C          WRITE(1,111)DMPVAL
+          DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
+            DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
+              L=LIJ(I,J) 
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 11),K=1,KC)
             ENDDO
           ENDDO
 	    CLOSE(1)
         ENDIF
 C
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(12).EQ.1.AND.PARTID==MASTER_TASK)THEN !labile particulate organic nitrogen
+          OPEN(1,FILE=FNDWQPON,POSITION='APPEND')
+          WRITE(1,*)TIME
+C          WRITE(1,111)DMPVAL
+          DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
+            DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
+              L=LIJ(I,J) 
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 12),K=1,KC)
+            ENDDO
+          ENDDO
+	    CLOSE(1)
+        ENDIF
 C
-        IF(ISDUMP.EQ.3.AND.ISTRWQ(14).EQ.1.AND.PARTID==MASTER_TASK)THEN
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(14).EQ.1.AND.PARTID==MASTER_TASK)THEN !ammonia nitrogen
           OPEN(1,FILE=FNDWQNH,POSITION='APPEND')
           WRITE(1,*)TIME
 C          WRITE(1,111)DMPVAL
@@ -2298,34 +2294,20 @@ C          WRITE(1,111)DMPVAL
         ENDIF
 C
 C
-        IF(ISDUMP.EQ.3.AND.ISTRWQ(12).EQ.1.AND.PARTID==MASTER_TASK)THEN
-          OPEN(1,FILE=FNDWQPON,POSITION='APPEND')
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(15).EQ.1.AND.PARTID==MASTER_TASK)THEN !nitrate nitrogen
+          OPEN(1,FILE=FNDWQN,POSITION='APPEND')
           WRITE(1,*)TIME
 C          WRITE(1,111)DMPVAL
           DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
             DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
               L=LIJ(I,J) 
-              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 12),K=1,KC)
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 15),K=1,KC)
             ENDDO
           ENDDO
 	    CLOSE(1)
         ENDIF
 C
-C
-        IF(ISDUMP.EQ.3.AND.ISTRWQ(11).EQ.1.AND.PARTID==MASTER_TASK)THEN
-          OPEN(1,FILE=FNDWQDON,POSITION='APPEND')
-          WRITE(1,*)TIME
-C          WRITE(1,111)DMPVAL
-          DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
-            DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
-              L=LIJ(I,J) 
-              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, 11),K=1,KC)
-            ENDDO
-          ENDDO
-	    CLOSE(1)
-        ENDIF
-C
-        IF(ISDUMP.EQ.3.AND.ISTRWQ(19).EQ.1.AND.PARTID==MASTER_TASK)THEN
+        IF(ISDUMP.EQ.3.AND.ISTRWQ(19).EQ.1.AND.PARTID==MASTER_TASK)THEN !dissolved oxygen
           OPEN(1,FILE=FNDWQO,POSITION='APPEND')
           WRITE(1,*)TIME
 C          WRITE(1,111)DMPVAL
@@ -2337,9 +2319,23 @@ C          WRITE(1,111)DMPVAL
           ENDDO
 	    CLOSE(1)
         ENDIF
+C
+        IF(ISDUMP.EQ.3.AND.IDNOTRVA>0.AND.PARTID==MASTER_TASK)THEN !nacroalgae
+          OPEN(1,FILE=FNDWQD,POSITION='APPEND')
+          WRITE(1,*)TIME
+C          WRITE(1,111)DMPVAL
+          DO I = 2,IC_GLOBAL    ! IC values for domain [XD, YD]
+            DO J = 2,JC_GLOBAL  ! JC values for domain [XD, YD]
+              L=LIJ(I,J) 
+              IF(L/=0)WRITE(1,111)(WQV_ARRAY_OUT(I, J, K, IDNOTRVA),K=1,KC)
+            ENDDO
+          ENDDO
+	    CLOSE(1)
+        ENDIF
+C
 C	END OF WRITE STATEMENTS FOR 3D WQ
 C
-      !ENDIF
+      ENDIF !End of IF statemement on line 
 C
 C **  CHECK BY READING BINARY FILES  
 C        READ(1)TIME,RMAX,RMIN  

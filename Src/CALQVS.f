@@ -570,13 +570,13 @@ C
           J=JL(L)  
           WRITE(1,102)I,J  
           WRITE(1,216)LL,L,(QSS(K,LL),K=1,KC)  
-          DO NT=1,NTT  
+          DO NT=1,NTT+NWQV
             WRITE(1,217)LL,NT,(CQS(K,LL,NT),K=1,KC)  
           ENDDO  
           WRITE(1,104)  
           WRITE(1,105)I,J  
           WRITE(1,206)LL,L,(QSERCELL(K,LL),K=1,KC)  
-          DO NT=1,NTT  
+          DO NT=1,NTT+NWQV
             NCSTMP=NCSERQ(LL,NT)  
             WRITE(1,207)LL,NT,NCSTMP,(CSERT(K,NCSTMP,NT),K=1,KC)  
           ENDDO  
@@ -650,10 +650,10 @@ C
   105 FORMAT(3X,'TIME VAR NQSIJ SOURCE/SINK FLOW AT I =',I5,' J=',I5,/)  
   106 FORMAT(5X,'K =',I5,5X,'QSERT(K) = ',E12.4,  
      &    5X,'CSERT(K,1) = ',E12.4,5X,'CSERT(K,5) = ',E12.4)  
-  206 FORMAT(5X,'NQ,LQ     =',2I4,7X,'QSERT() = ',12E12.4)  
-  207 FORMAT(5X,'NQ,NT,NCQ =',3I4,3X,'CSERT() = ',12E12.4)  
-  216 FORMAT(5X,'NQ,LQ =',2I4,3X,'QSS() = ',12E12.4)  
-  217 FORMAT(5X,'NQ,NT =',2I4,3X,'CQS() = ',12E12.4)  
+  206 FORMAT(5X,'NQ,LQ     =',2I5,5X,'QSERT() = ',20E12.4)  
+  207 FORMAT(5X,'NQ,NT,NCQ =',3I4,3X,'CSERT() = ',20E12.4)  
+  216 FORMAT(5X,'NQ,LQ =',2I5,1X,'QSS() = ',20E12.4)  
+  217 FORMAT(5X,'NQ,NT =',2I4,3X,'CQS() = ',20E12.4)  
   107 FORMAT(3X,'UPSTRM CONTROLED SINK FLOW AT I =',I5,' J =',I5,  
      &    ' L =',I5,'  NQCTLT =',I5,'  HUP = ',E12.4/)  
   108 FORMAT(5X,'K =',I5,5X,'QCTL(K) = ',2E12.4)  

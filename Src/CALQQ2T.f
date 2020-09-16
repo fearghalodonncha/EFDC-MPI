@@ -192,13 +192,13 @@ C
             FUHV(L,K)=0.0  
           ENDIF  
         ENDDO  
-!        DO LL=1,NCBN  
-!          L=LCBN(LL)  
-!          IF(FVHU(L,K).LT.0.)THEN  
-!            FVHU(L,K)=0.0  
-!            FVHV(L,K)=0.0  
-!          ENDIF  
-!        ENDDO  
+        DO LL=1,NCBN  
+          L=LCBN(LL)  
+          IF(FVHU(L,K).LT.0.)THEN  
+            FVHU(L,K)=0.0  
+            FVHV(L,K)=0.0  
+          ENDIF  
+        ENDDO  
       ENDDO
 !      WHERE(FVHU(LCBN(1:NCBN),1:KC)<0.0)
 !        FVHU(LCBN(1:NCBN),1:KC)=0.0
