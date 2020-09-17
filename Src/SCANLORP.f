@@ -21,13 +21,14 @@
       END DO
 
       CLOSE(1)  
-      NGHOST = 2
-      PNX = PNX + 4
-      PNY = PNY + 4
-      GNX = ICM + 4
-      GNY = JCM + 4
-      ICM = PNX
-      JCM = PNY
+      ! From SCANLORP, we need to update our allocation bounds cognisant of global domain, and child subdomains
+      NGHOST = 2 ! Number of ghost cells is structurally = 2
+      PNX = PNX + NGHOST ! PNX is the number of cells in the X (or I) direction in each child domain (+2 Ghost cells)
+      PNY = PNY + NGHOST ! PNY is the number of cells in the Y (or J) direction in each child domain (+2 Ghost cells)
+      GNX = ICM + NGHOST ! GNX is the number of cells in the X direction in global domain (+2 Ghost cells)
+      GNY = JCM + NGHOST ! GNY is the number of cells in theYX direction in global domain (+2 Ghost cells)
+      ICM = PNX  ! In the MPI grid ICM, JCM now act on the child domains so we
+      JCM = PNY  ! update ICM, JCM = PNX, PNY
       LCGLOB = LCM
       NPARTS = NPARTX*NPARTY
       RETURN  
