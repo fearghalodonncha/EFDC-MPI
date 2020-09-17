@@ -677,7 +677,6 @@ SUBROUTINE VARZEROReal
       RMOLTX=0.0
       RNH4WQ=0.0
       RNO3WQ=0.0
-      RNULL=0.0
       ROUSE=0.0
       RQCMUL=0.0
       RQSMUL=0.0

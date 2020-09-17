@@ -45,13 +45,14 @@
       INTEGER,ALLOCATABLE,DIMENSION(:)::IE
       INTEGER,ALLOCATABLE,DIMENSION(:)::JB
       INTEGER,ALLOCATABLE,DIMENSION(:)::JE
+      INTEGER,ALLOCATABLE,DIMENSION(:,:)::IJCT_DUM
       ALLOCATE(I_PART(NPARTX))
       ALLOCATE(J_PART(NPARTY))
       ALLOCATE(JB(NPARTY))
       ALLOCATE(JE(NPARTY))
       ALLOCATE(IB(NPARTX))
       ALLOCATE(IE(NPARTX))
-      ALLOCATE(IJCT(IC,JC))
+      ALLOCATE(IJCT_DUM(GNX,GNY))
  ! read in CELL.INP data and allocate LCM based on maximum 
       OPEN(1,FILE='CELL.INP',STATUS='UNKNOWN')
 
@@ -68,7 +69,7 @@
             IF(ILAST.GT.IC) ILAST=IC
               DO J=JC,1,-1
                 READ(1,66,IOSTAT=ISO)JDUMY,
-     &          (IJCT(I,J),I=IFIRST,ILAST)
+     &          (IJCT_DUM(I,J),I=IFIRST,ILAST)
                 IF(ISO.GT.0) THEN
                   WRITE(6,*)'  READ ERROR FOR FILE CELL.INP '
                   STOP
@@ -79,7 +80,7 @@
           IFIRST=1
           ILAST=IC
           DO J=JC,1,-1
-             READ(1,66,IOSTAT=ISO)JDUMY,(IJCT(I,J),I=IFIRST,ILAST)
+             READ(1,66,IOSTAT=ISO)JDUMY,(IJCT_DUM(I,J),I=IFIRST,ILAST)
              IF(ISO.GT.0) THEN
                 WRITE(6,*) '  READ ERROR FOR FILE CELL.INP '
                 STOP
@@ -133,7 +134,7 @@
            L = 0
            DO J = JBEG,JEND
              DO I = IBEG,IEND
-               IF (IJCT(i,j) == 5) L = L + 1
+               IF (IJCT_DUM(I,J) == 5) L = L + 1
              END DO
            END DO
            LCM = MAX(LCM,L)
@@ -141,7 +142,7 @@
        END DO
       LCM = LCM + 4
 !
-      DEALLOCATE(IJCT)
+      DEALLOCATE(IJCT_DUM)
       DEALLOCATE(I_PART)
       DEALLOCATE(J_PART)
  5    FORMAT(10I5)

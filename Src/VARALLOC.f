@@ -527,8 +527,8 @@ C
       ALLOCATE(ICSMTS(NTSSMVM,NSMTSM))  
       ALLOCATE(ICWQTS(0:NWQVM,NWQTSM))  
       ALLOCATE(IDRICM(2*LCM*KCM))  
-      ALLOCATE(IJCT(ICM,JCM))  
-      ALLOCATE(IJCTLT(ICM,JCM))  
+      ALLOCATE(IJCT(-1:ICM,-1:JCM)) !Indices start at -1 to avoid exceeding aray bounds in CELLMAP when LNWC, LNEC, LSEC, LSWC are specified in CELLMAP and SETBCS
+      ALLOCATE(IJCTLT(-1:ICM,-1:JCM))  
       ALLOCATE(IL(LCM))  
       ALLOCATE(ILLSHA(MLM))  
       ALLOCATE(ILLT(LCM))  
@@ -705,7 +705,7 @@ C     ALLOCATE(ISLUSED(LCM))
       ALLOCATE(LCTLT(LCM))  
       ALLOCATE(LFEFDC(2*LCM*KCM))  
       ALLOCATE(LIJ(0:GNX,0:GNY))  
-      ALLOCATE(LIJLT(ICM,JCM))  
+      ALLOCATE(LIJLT(0:ICM,0:JCM)) !Start index at 0 to avoid exceeding array bounds in CELLMAP around line 260 
       ALLOCATE(LJUNX(NJUNXM))  
       ALLOCATE(LJUNY(NJUNYM))  
       ALLOCATE(LLBC(LCM))  
@@ -1051,7 +1051,7 @@ C     ALLOCATE(ISLUSED(LCM))
       ALLOCATE(RNH4NO3(LCM))  
       ALLOCATE(RNH4WQ(LCM))  
       ALLOCATE(RNO3WQ(LCM))  
-      ALLOCATE(RNULL(LCM))       ! PMC - NOT USED 
+      !ALLOCATE(RNULL(LCM))       ! PMC - NOT USED 
       ALLOCATE(ROUSE(LCM))  
       ALLOCATE(RQCMUL(NQCTLM))  
       ALLOCATE(RQSMUL(NQSIJM))  
