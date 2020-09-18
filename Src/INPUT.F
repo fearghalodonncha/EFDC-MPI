@@ -1627,7 +1627,7 @@ C      SERIES IDENTIFIERS
      &                           ICCDA(L),JCCDA(L),(NCSERA(L,K),K=1,7)
          IF(ISO.GT.0) GOTO 100
         ENDDO
-        PRINT*,'Needs to be updated for MPI',PAUSE
+        PAUSE 'Needs to be updated for MPI'
       ENDIF
 C
 C67*  READ NEUTRALLY BUOYANT PARTICLE DRIFTER DATA
@@ -2107,6 +2107,8 @@ C
 C----------------------------------------------------------------------C
 C
       OPEN(1,FILE='CELLLT.INP',STATUS='UNKNOWN')
+      IF (PARTID ==0) PRINT *,'READING CELLLT.INP'
+
 C
 C **  SKIP OVER TITLE AND AND HEADER LINES AND DETERMINE FILE FORMAT
 C 
@@ -2255,7 +2257,7 @@ C
       CLOSE(122)  
       ENDIF  
  
- 
+
 C     DHC
       IF(ISWAVE.EQ.3.OR.ISPD.GE.2)THEN
         ! *** COMPUTE CELL AREAS AND CENTROIDS, REQUIRES CORNERS.INP FILE
@@ -2316,64 +2318,51 @@ C
         DO IS=1,4  
           READ(1,*)  
         ENDDO  
-        IF(ISVEG.EQ.0)THEN  
-          DO LT=1,LVC 
+        DO LT=1,LVC 
+          IF(ISVEG.EQ.0)THEN  
             READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ
             IF(ISO.GT.0) GOTO 830
-            I = XLOC(IGL)
-            J = YLOC(JGL)
-            IF (I >0 .AND. I <= IC) THEN
-              IF (J > 0 .AND. J <= JC )THEN  
-                L=LIJ(I,J) 
-                IF (L > 0) THEN
-                  DXP(L)=DXYCVT*DXIJ  
-                  DYP(L)=DXYCVT*DYIJ  
-                  HMP(L)=HADADJ + HCVRT*HIJ  
-                  HMP(L)=MAX(HMP(L),HMIN)  
-                  DXP_GLOB(IGL,JGL) = DXYCVT*DXIJ
-                  DYP_GLOB(IGL,JGL) = DXYCVT*DYIJ
-                  HMP_GLOB(IGL,JGL) = HMP(L)
-                  BELV(L)=BELADJ + BELCVRT*BELVIJ  
-                  BELV1(L)=BELADJ + BELCVRT*BELVIJ  
-                  ZBR(L)=ZBRADJ + ZBRCVRT*ZBRIJ  
-                END IF
-              END IF
-            END IF
-          ENDDO 
-       ELSE  
-          DO LT=1,LVC  
+          ELSE
             READ(1,*,IOSTAT=ISO)IGL,JGL,DXIJ,DYIJ,HIJ,BELVIJ,ZBRIJ,MVEGIJT !SCJ adding MHK devices when MVEGIJT>90  
-            IF(ISO.GT.0) GOTO 830  
-            I = XLOC(IGL)
-            J = YLOC(JGL)
-            L=LIJ(I,J)  
-            DXP(L)=DXYCVT*DXIJ  
-            DYP(L)=DXYCVT*DYIJ  
-            HMP(L)=HADADJ + HCVRT*HIJ  
-            HMP(L)=MAX(HMP(L),HMIN)  
-            DXP_GLOB(IGL,JGL) = DXYCVT*DXIJ
-            DYP_GLOB(IGL,JGL) = DXYCVT*DYIJ
-            HMP_GLOB(IGL,JGL) = HMP(L)  
-            BELV(L)=BELADJ + BELCVRT*BELVIJ  
-            BELV1(L)=BELADJ + BELCVRT*BELVIJ  
-            ZBR(L)=ZBRADJ + ZBRCVRT*ZBRIJ  
-            MVEGL(L)=MVEGIJT
-		  IF(MVEGIJT>90)THEN !MHK IF STATEMENT
-              LMHK=.TRUE.
-              ITURB=ITURB+1
-		    IJLTURB(ITURB,1)=I
-		    IJLTURB(ITURB,2)=J
-		    IJLTURB(ITURB,3)=LIJ(I,J)
-	      ENDIF
-          ENDDO  
-        ENDIF  
+            IF(ISO.GT.0) GOTO 830
+          ENDIF
+          I = XLOC(IGL)
+          J = YLOC(JGL)
+          IF (I >0 .AND. I <= IC) THEN
+            IF (J > 0 .AND. J <= JC )THEN  
+              L=LIJ(I,J) 
+              IF (L > 0) THEN
+                DXP(L)=DXYCVT*DXIJ  
+                DYP(L)=DXYCVT*DYIJ  
+                HMP(L)=HADADJ + HCVRT*HIJ  
+                HMP(L)=MAX(HMP(L),HMIN)  
+                DXP_GLOB(IGL,JGL) = DXYCVT*DXIJ
+                DYP_GLOB(IGL,JGL) = DXYCVT*DYIJ
+                HMP_GLOB(IGL,JGL) = HMP(L)
+                BELV(L)=BELADJ + BELCVRT*BELVIJ  
+                BELV1(L)=BELADJ + BELCVRT*BELVIJ  
+                ZBR(L)=ZBRADJ + ZBRCVRT*ZBRIJ
+                IF(ISVEG==1)THEN
+                  MVEGL(L)=MVEGIJT
+		        IF(MVEGIJT>90)THEN !MHK IF STATEMENT
+                    LMHK=.TRUE.
+                    ITURB=ITURB+1
+		          IJLTURB(ITURB,1)=I
+		          IJLTURB(ITURB,2)=J
+		          IJLTURB(ITURB,3)=LIJ(I,J)
+                  ENDIF
+                ENDIF
+              ENDIF
+            ENDIF
+          ENDIF
+        ENDDO 
       ENDIF
       DO I = 1,IC_GLOBAL
         DO J = 1,JC_GLOBAL
         ILOC = XLOC(I)
         JLOC = YLOC(J)
-        if (ILOC .GT. 0 .AND. ILOC .LE. IC) THEN
-          if (JLOC .GT. 0 .AND. JLOC .LE. JC) THEN
+        IF (ILOC .GT. 0 .AND. ILOC .LE. IC) THEN
+          IF (JLOC .GT. 0 .AND. JLOC .LE. JC) THEN
             L = LIJ(ILOC,JLOC)
             IF ( L > 0 ) THEN
               LS=LSC(L)  
@@ -2390,6 +2379,7 @@ C
         END IF
         ENDDO  
       END DO
+
 C#######################################################################
 C     SEI Change, 1204, CAJ SEDZLJ
 C     Change to implement Sedflume Data
@@ -2427,7 +2417,7 @@ C
            !IF(ISSKIP .GT. 0) CALL SKIPCOMM(117,CCMRM)
            IF(ISSKIP .GT. 0) CALL SKIPCOMM(117,'#')
            READ(117,*,IOSTAT=ISO)ENSIGHT1, ENSIGHT2, ENSIGHT3, ENSIGHT4,
-     &   ENSIGHT5, ENSIGHT6 , ENSIGHT7, ENSIGHT8, ENSIGHT9, ENSIGHT10,
+     & ENSIGHT5,  ENSIGHT6 , ENSIGHT7,  ENSIGHT8,  ENSIGHT9,  ENSIGHT10,
      & ENSIGHT11, ENSIGHT12, ENSIGHT13, ENSIGHT14, ENSIGHT15, ENSIGHT16,
      & ENSIGHT17, ENSIGHT18, ENSIGHT19, ENSIGHT20, ENSIGHT21, ENSIGHT22,
      & ENSIGHT23, ENSIGHT24, ENSIGHT25, ENSIGHT26, ENSIGHT27, ENSIGHT28,
