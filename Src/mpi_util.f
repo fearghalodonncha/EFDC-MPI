@@ -93,6 +93,7 @@ C    return (i,j)
         ILOCATION = IL(L)
         JLOCATION = JL(L)
         INSIDE=.FALSE.
+        IF(L==0)RETURN
         IF (ILOCATION >0 .AND. ILOCATION <= IC) THEN
            IF (JLOCATION >0 .AND. JLOCATION <= JC) THEN
               INSIDE=.TRUE.
