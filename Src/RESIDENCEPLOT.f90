@@ -64,7 +64,7 @@ SUBROUTINE DILUTION_RATE(CONC)
     write(*,*) 'Begin write to DILUTCONH FILE'
     IF(KC.EQ.1)THEN
         DO L=2,LA
-            DILUTE(1) = CONC(L,1)/(0.050 * 0.035)
+            DILUTE(1) = (CONC(L,1) * HP(L) * DXP(L) * DYP(L))/(0.050 * 0.035) ! The dilution should be the volume of cell / dolume that we introduce
             WRITE(LUN,200)XPAR(IL(L)),YPAR(JL(L)),DILUTE(1)
         ENDDO
     ELSE
