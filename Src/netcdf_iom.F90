@@ -178,7 +178,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   CHARACTER (LEN = *), PARAMETER :: VVEL_UNITS = "m/sec"
   CHARACTER (LEN = *), PARAMETER :: WVEL_UNITS = "m/sec"
   CHARACTER (LEN = *), PARAMETER :: TEMP_UNITS = "Degree Celsius"
-  CHARACTER (LEN = *), PARAMETER :: DYE_UNITS = "Concentration (%)"
+  CHARACTER (LEN = *), PARAMETER :: DYE_UNITS = "Concentration (kg/m^3)"
   CHARACTER (LEN = *), PARAMETER :: ELEV_UNITS = "m"
   CHARACTER (LEN = *), PARAMETER :: LAT_UNITS = "m"
   CHARACTER (LEN = *), PARAMETER :: LON_UNITS = "m"
@@ -193,7 +193,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
              LON_VARID, LAT_VARID, LVL_VARID,TIME_DIMID, &
              TIME_VARID,TRANME_VARID,IIB,II, &
              TEMP_VARID, UVEL_VARID, VVEL_VARID, WVEL_VARID, &   ! NETCDF
-             DYE_VARID,ELEV_VARID, SALINITY_VARID, &
+             DYE_VARID,ELEV_VARID, SALINITY_VARID,DIL_VARID, &
              DIMIDS_2D(3), &                  ! VARIABLES
              FILELOOP,  &
              UNITNAME, &  ! FILE ID IDENTS
@@ -210,7 +210,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   REAL,ALLOCATABLE,DIMENSION(:)::TEMP_VELS,TEMP_CONC,EASTING,NORTHING,LATS,LONS 
   INTEGER,ALLOCATABLE,DIMENSION(:)::DIMIDS
   REAL,ALLOCATABLE,DIMENSION(:,:,:)::MAP_U_VEL,MAP_V_VEL,MAP_W_VEL,MAP_TEMPERATURE,MAP_DYE, &
-                                     MAP_SALINITY
+                                     MAP_SALINITY, MAP_DILUT
   REAL,ALLOCATABLE,DIMENSION(:,:):: MAP_SURFEL
   REAL,ALLOCATABLE,DIMENSION(:,:,:,:)::MAP_WQ !WQ VARIABLES
   NFILES = NSNAPSHOTS + 1
@@ -230,6 +230,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
   ALLOCATE(MAP_TEMPERATURE (NLONS,NLATS,KC) )
   ALLOCATE(MAP_DYE (NLONS,NLATS,KC) )
   ALLOCATE(MAP_SURFEL (NLONS,NLATS) )
+  IF (KINSALE_DILUTION) ALLOCATE(MAP_DILUT (NLONS,NLATS, KC) )
   ALLOCATE(EASTING (NLONS) )
   ALLOCATE(NORTHING (NLATS) )
   ALLOCATE(LONS (NLONS) )
@@ -362,7 +363,18 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
               READ(UNITNAME,*)IMAP, JMAP, TEMP_SURF   ! READ SURFACE ELEVATION
               MAP_SURFEL(IMAP, JMAP)= TEMP_SURF
             END DO
-          END IF
+        END IF
+        IF (KINSALE_DILUTION)THEN
+            UNITNAME = UNITNAME  + 1
+            FILE_IN(FILELOOP)= 'DILUTECONH'//trim(FILEEXT(IIB))//'.OUT'
+            OPEN(UNITNAME, FILE = trim(FILE_IN(FILELOOP)), STATUS ='OLD')
+            READ(UNITNAME,*) VAR1,VAR2,PARTID,LA
+            DO I=2,LA
+              READ(UNITNAME,*)IMAP, JMAP, TEMP_CONC(:)   ! READ THE COMPUTED DILUTION RATE
+              MAP_DILUT(IMAP, JMAP, :)= TEMP_CONC(:)
+            END DO
+        END IF
+
       END IF  ! ENDIF ON CHECK WHETHER DOMAIN EXISTS ( IF (TILE2NODE(FILELOOP) /= -1)
     END DO  ! END LOOP ON FILES (I.E. ACROSS ALL PARTITIONS
     fileid_end = unitname  ! all open files are contained in unit identifiers fileid_begin:fileid_end
@@ -500,6 +512,16 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
       call check_nf90( nf90_put_att(ncid, elev_varid, UNITS, elev_units) )
     END IF
 
+    IF (KINSALE_DILUTION) THEN
+      call check_nf90( nf90_def_var(ncid, "dilution", nf90_real, dimids, dil_varid) )
+      call check_nf90( nf90_put_att(ncid, dil_varid, "_FillValue", FillValue_real) )
+      call check_nf90( nf90_put_att(ncid, dil_varid, "coordinates", "X Y time") )
+      call check_nf90( nf90_put_att(ncid, dil_varid, "grid_mapping", "transverse_mercator") )
+      call check_nf90( nf90_put_att(ncid, dil_varid, "long_name","dilution_rate_related_to_input_value") )
+      call check_nf90( nf90_put_att(ncid, dil_varid, "standard_name", "dilution_rate") )
+      call check_nf90( nf90_put_att(ncid, dil_varid, UNITS, "Dilution (-)") )
+    END IF
+
     call check_nf90( nf90_put_att(ncid, lon_varid, "axis", "X") )
     call check_nf90( nf90_put_att(ncid, lon_varid, "grid_spacing", trim(grid_x)))
     call check_nf90( nf90_put_att(ncid, lon_varid, "long_name", "x_projection_of_coordinate") )
@@ -559,7 +581,7 @@ SUBROUTINE ASCII2NCF  !(NSNAPSHOTS,NVARS,LC_GLOBAL,ISSPH,ISPPH, &
     IF (ISTRAN(2) == 1 .AND. ISSPH(2) > 0 )  call check_nf90( nf90_put_var(ncid, temp_varid, map_temperature))    ! Temperature data
     IF (ISTRAN(3) == 1 .AND. ISSPH(3) > 0 )  call check_nf90( nf90_put_var(ncid, dye_varid, map_dye))     ! Dye data
     IF (ISPPH > 0) call check_nf90( nf90_put_var(ncid, elev_varid, map_surfel))     ! Elevation data
-
+    IF (KINSALE_DILUTION) call check_nf90( nf90_put_var(ncid, dil_varid, map_dilut))     ! Elevation data
     dimlocs(1)=1; dimlocs(2)=2; dimlocs(3) = 3; dimlocs(4) = 4
 ! Close the file. This causes netCDF to flush all buffers and make
 ! sure your data are really written to disk.

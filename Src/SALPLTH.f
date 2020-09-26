@@ -42,10 +42,15 @@ C
         LUN=13  
         OPEN(LUN,FILE='DYECONH'//ANS(PARTID2)//'.OUT')  
         CLOSE(LUN,STATUS='DELETE')
-        IF (PARTID == 0) THEN
+        IF (COMP_RESIDENCE .AND. PARTID == 0) THEN   ! Prep to compute residence times
           open(LUN,File='DyeDecay.dat')
           CLOSE(LUN,STATUS='DELETE') 
         END IF
+        IF (KINSALE_DILUTION) THEN
+          LUN=133
+          OPEN(LUN,FILE='DILUTECONH'//ANS(PARTID2)//'.OUT')
+          CLOSE(LUN,STATUS = 'DELETE')
+        ENDIF
       ENDIF  
       IF(ICON.EQ.6.AND.ISPHXY(6).LE.2)THEN  
         TITLE='INSTANTANEOUS HORIZ COHESIVE SEDIMENT CONC CONTOURS'  
@@ -160,7 +165,8 @@ C
         LUN=13  
         OPEN(LUN,FILE='DYECONH'//ANS(PARTID2)//'.OUT',POSITION='APPEND')  
         WRITE (LUN,*)N,TIME,PARTID,LA  
-        CALL RESPLT
+        if (COMP_RESIDENCE) CALL RESPLT
+        IF (KINSALE_DILUTION) CALL DILUTION_RATE(CONC)
       ENDIF  
       IF(ICON.EQ.6.AND.ISPHXY(6).LE.2)THEN  
         LUN=14  
@@ -208,7 +214,7 @@ C
           ENDIF  
         ENDIF  
       ENDIF  
-      IF(ISPHXY(ICON).EQ.0)THEN  
+      IF(ISPHXY(ICON).EQ.0)THEN   ! Note that we cannot have ISPHXY == 0 for MPI as we lost I,J information for reconciliation
         IF(ICON.LE.3)THEN  
           IF(KC.EQ.1)THEN  
             DO L=2,LA  
@@ -310,7 +316,7 @@ C
           ENDDO  
         ENDIF  
       ENDIF  
-      IF(ISPHXY(ICON).EQ.1)THEN  
+      IF(ISPHXY(ICON).EQ.1)THEN  !! ISPHXY==1 includes I,J which are necessary for MPI
         IF(ICON.LE.3)THEN  
           IF(KC.EQ.1)THEN  
          DO L=2,LA

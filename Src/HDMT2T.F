@@ -77,7 +77,9 @@ C
 !      INTEGER GETCH*1  
 !      END  
 C
-      KINVARA_MC = .TRUE.
+      KINVARA_MC = .FALSE. ! This activates a check on freshwater mass balance and prints to file
+      KINSALE_DILUTION = .TRUE. ! This activates computation of dilution coefficient
+      COMP_RESIDENCE = .FALSE.
       IF (KINVARA_MC) THEN
          OPEN(777, FILE='CheckFreshwaterMassBal.txt', status='unknown')
          VFW2 = 0.

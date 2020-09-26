@@ -3893,4 +3893,9 @@ MODULE GLOBAL
     ! Begin variables related to WQ write
     INTEGER,ALLOCATABLE,DIMENSION(:)::IC_STRID  ! Provides starting I coordinate related to global domain
     INTEGER,ALLOCATABLE,DIMENSION(:)::JC_STRID  ! Provides starting j coordinate related to global domain
+
+    ! Logical to assign dilution rate
+    LOGICAL KINSALE_DILUTION
+    ! Logical to compute residence times
+    LOGICAL COMP_RESIDENCE
 END
