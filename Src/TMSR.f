@@ -933,8 +933,8 @@ C
   101 FORMAT('  AT LOCATION  ',A20)
   102 FORMAT('  TIME IN FIRST COLUMN HAS UNITS OF ',A10)
   103 FORMAT('  CELL I,J = ',2I5)
-  201 FORMAT(F12.5,100E12.4)
-  221 FORMAT(F12.5,I5,100E12.4)
+  201 FORMAT(F12.5,100ES14.4E3)
+  221 FORMAT(F12.5,I5,100ES14.4E3)
 C
 C**********************************************************************C
 C 
