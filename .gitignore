@@ -33,6 +33,8 @@
 *.cproject
 *.project
 
+*.ipynb_checkpoints
+
 # Exclude some specific output files and directories that are not relevant
 *.OUT
 *tar
