@@ -1,0 +1,12 @@
+LORP_sc_1_r.INP
+ LORP input data used for decomposing domain into optimal configuration with 1 processors
+ NH NV NActive Cost TotalAreaWeight TileAreaWeight TileGhostWeight TileWaterWeight TileNearLandWeight
+ 1 1 1 0.00421876 0 0 3.62319e-06 6.36364e-06 2.72727e-06
+*   IC:    an array of NPARTX size setting x-width for each partition
+65
+*   JC:    an array of NPARTY size setting y-height for each partition
+14
+*   List of active partition IDs, 0-based
+0
+*   Lookup table to go from your partition id to node id (so has full N entries and some are -1, 0-based)
+0
