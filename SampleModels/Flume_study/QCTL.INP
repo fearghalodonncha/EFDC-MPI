@@ -1,0 +1,42 @@
+C ** qctl.inp file, in free format across line, repeats nqctl times
+C ** 
+C ** ISTYP  MQCTL(NS)  HCTLUA  HCTLUM  HCTLDA  HCTLDM  RMULADJ  ADDADJ
+C ** 
+C ** if istyp.eq.1 then read depth weights and single value of QCTL
+C ** 
+C **  (WKQ(K), K=1,KC)
+C **  
+C **  HDIFCTL(M,NS)  QCTL(M,1,NS)  !(mqctl(ns) pairs for ns=1,nqser series
+C **   
+C **  else read a value of qser for each layer
+C **
+C **
+C **  HDIFCTL(M,NS)  QCTL(M,K,NS), K=1,KC)   !(MQCTL(NS) PAIRS)
+      1      23   0.0     1.0   0.0    1.0      1.0     0.0   0.0
+  0.025  0.025  0.025  0.025  0.025  0.025  0.025  0.025   0.025  0.025
+  0.025  0.025  0.025  0.025  0.025  0.025  0.025  0.025   0.025  0.025
+  0.025  0.025  0.025  0.025  0.025  0.025  0.025  0.025   0.025  0.025
+  0.025  0.025  0.025  0.025  0.025  0.025  0.025  0.025   0.025  0.025
+   0.000        0
+   0.030        0.001
+   0.039        0.0015
+   0.048        0.002
+   0.055        0.0025
+   0.062        0.003
+   0.069        0.0035
+   0.076        0.004
+   0.082        0.0045
+   0.088        0.005
+   0.139        0.01
+   0.183        0.015
+   0.221        0.02
+   0.408        0.05
+   0.647        0.1 
+   1.027        0.2
+   1.346        0.3
+   1.631        0.4
+   1.892        0.5
+   2.137        0.6
+   3.004        1.0
+   4.768        2.0
+  13.943       10.0
