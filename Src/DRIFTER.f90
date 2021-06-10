@@ -25,6 +25,8 @@ MODULE DRIFTER
     REAL(RKD) ,PRIVATE::XLA1,YLA1,ZLA1
     REAL(RKD) ,POINTER,PRIVATE::ZCTR(:)
 
+
+
 CONTAINS
   
     SUBROUTINE DRIFTERC   ! ***************************************************************************
@@ -54,6 +56,7 @@ CONTAINS
   
         !----------FIRST CALL--------------------
         IF(JSPD.EQ.1) THEN
+
             IF (MPI_PAR_FLAG == 1) THEN
                 CALL MAP_GLOBAL_LOCAL(0) ! (XLA, YLA, ZLA, XLA_ALL,YLA_ALL,ZLA_ALL)    !OUT:XLA,YLA,LLA,KLA,BELVLA,HPLA
                 ! Ensure cell is within local domain & boundary conditions
@@ -66,6 +69,8 @@ CONTAINS
                 YLA=YLA_ALL
                 ZLA=ZLA_ALL
                 CALL CONTAINER(XLA,YLA,ZLA,LLA,KLA) !OUT:LLA,KLA,BELVLA,HPLA
+
+
             ENDIF
             JSPD=0
             VER=101
@@ -205,6 +210,8 @@ CONTAINS
           END DO
           CALL MPI_ALLREDUCE(INIT_COMMUNICATE,INIT_COMMUNICATE_ALL,1,MPI_INT,MPI_SUM,EFDC_COMM,IERR)
           IF (INIT_COMMUNICATE_ALL > 0) THEN
+    !         write(*,*) 'we need to send drifters between subdomains for domain', PARTID, 'and timestep', N
+    !         write(*,*) 'Coordinates = ',TIMEDAY, XLA(:), YLA(:), PARTID
              CALL COMMUNICATE_DRIFTERS
           END IF
           ! At each timestep we need to make a check whether drifters have
@@ -220,7 +227,12 @@ CONTAINS
               CALL COMMUNICATE_DRIFTERS  ! We need to update global arrays if MPI
               IF (PARTID == MASTER_TASK) THEN ! Only master processor needs to update
                  WRITE(ULGR,*) TIMEDAY
-                 WRITE(ULGR,*)(XLA_ALL(NP),YLA_ALL(NP),REAL(ZLA_ALL(NP),4),NP=1,NPD_TOT)
+                 ! MPI GATHER of drifters doesn't preserve the order that drifters are read
+                 ! from DRIFTER.INP. Hence we implement a call to take the drifter tag id
+                 ! and take the drifter id (NPD_TAG_GLO) and extracted sorted indices (NPD_TAG_GLO_SORT)
+                 NPD_TAG_GLO_SORT = IARGSORT(NPD_TAG_GLO)
+                 WRITE(ULGR,*)(XLA_ALL(NPD_TAG_GLO_SORT(NP)),YLA_ALL(NPD_TAG_GLO_SORT(NP)), &
+                               REAL(ZLA_ALL(NPD_TAG_GLO_SORT(NP)),4),NP=1,NPD_TOT)
               END IF
            ELSE  ! Serial so we just write the computed local variables and don't need any MPI communication
               WRITE(ULGR,*)(XLA(NP),YLA(NP),REAL(ZLA(NP),4),NP=1,NPD)
@@ -256,6 +268,8 @@ CONTAINS
         ! ALLOCATE(LLA(NPD),KLA(NPD),HPLA(NPD),BELVLA(NPD))
         ALLOCATE(XLA_ALL(NPD_TOT*2),YLA_ALL(NPD_TOT*2),ZLA_ALL(NPD_TOT*2),DLA_ALL(NPD_TOT*2))
         ALLOCATE(ILA_ALL(NPD_TOT*2),JLA_ALL(NPD_TOT*2))
+        ALLOCATE(NPD_TAG_GLO(NPD_TOT)) !! Use to track order of drifters for read/write
+        ALLOCATE(NPD_TAG_GLO_SORT(NPD_TOT)) !! Use to track order of drifters for read/write
         XLA_ALL(1:NPD_TOT*2) = 0.; YLA_ALL(1:NPD_TOT*2) = 0.; ZLA_ALL(1:NPD_TOT*2) = 0; DLA_ALL(1:NPD_TOT*2) = 0.
         ILA_ALL(1:NPD_TOT*2) = 0; JLA_ALL(1:NPD_TOT*2) = 0
         IF (MPI_PAR_FLAG == 0) THEN ! Allocate serial variables now
@@ -264,6 +278,8 @@ CONTAINS
           XLA(1:NPD)=0.0;YLA(1:NPD)=0.0;ZLA(1:NPD)=0.0;DLA(1:NPD)=0.0 !Initialize these vectors
           ALLOCATE(LLA(NPD),KLA(NPD),HPLA(NPD),BELVLA(NPD))
           LLA(1:NPD)=0;KLA(1:NPD)=0;HPLA(1:NPD)=0.0;BELVLA(1:NPD)=0.0 !Initialize these vectors
+          ALLOCATE(NPD_TAG_LOC(NPD)) !! Use to track order of drifters for read/write
+          NPD_TAG_LOC(1:NPD) = 0
         END IF
         ALLOCATE(ZCTR(0:KC+1))
         ZCTR(0:KC+1) = 0.0 !Zero this vector
@@ -275,11 +291,13 @@ CONTAINS
             DO NP=1,NPD_TOT
                  ! *** Read Depths
                 READ(ULOC,*,ERR=999) XLA_ALL(NP),YLA_ALL(NP),DLA_ALL(NP) ! FOR MPI, NEED TO READ IN GLOBALLY
+                NPD_TAG_GLO(NP) = NP
             ENDDO
         ELSE
             DO NP=1,NPD_TOT
                  ! *** Read Elevations
                 READ(ULOC,*,ERR=999) XLA_ALL(NP),YLA_ALL(NP),ZLA_ALL(NP)
+                NPD_TAG_GLO(NP) = NP
             ENDDO
         ENDIF
         CLOSE(ULOC)
@@ -289,6 +307,7 @@ CONTAINS
              YLA(NP) = YLA_ALL(NP)
              ZLA(NP) = ZLA_ALL(NP)
              DLA(NP) = DLA_ALL(NP)
+             NPD_TAG_LOC(NP) = NP
           END DO
         END IF
         IF (PARTID == MASTER_TASK)  PRINT *,'DRIFTER: NUMBER OF DRIFTERS INITIALZED: ',NPD_TOT
@@ -477,8 +496,7 @@ CONTAINS
                 IF (ANY(LPBN==LLA(NI)).OR.ANY(LPBS==LLA(NI)).OR. &
                     ANY(LPBE==LLA(NI)).OR.ANY(LPBW==LLA(NI)))   THEN
                     CALL SET_DRIFTER_OUT
-                    PRINT '(A36,I6)','OPEN BOUNDARY, DRIFTER IS OUTSIDE:',NI
-
+                    PRINT '(A36,6I6)','OPEN BOUNDARY, DRIFTER IS OUTSIDE:',NI, LLA(NI), PARTID
                 ELSEIF(ANY(LQS==LLA(NI)).AND.QSUM(LLA(NI),KLA(NI))<0) THEN
                     CALL SET_DRIFTER_OUT
                     PRINT '(A36,I6)','WITHDAWAL CELL, DRIFTER IS OUTSIDE:',NI
@@ -542,10 +560,17 @@ CONTAINS
 
     CONTAINS
         SUBROUTINE SET_DRIFTER_OUT
+
             XLA(NI)= XLA1
             YLA(NI)= YLA1
             ZLA(NI)= ZLA1
-            LLA(NI)= 1
+            !! Ok, setting LLA(NI) = 1 causes an issue for the MPI parallel version
+            !! In original EFDC, setting = 1 simply skips computation and the drifter simply
+            !! stays in that location. In parallel, the drifter will not be allocated to any subdomain
+            !! and we then "lose" a drifter.
+            !! What happens if we just instead not update LLA value
+            !! LLA(NI)= 1
+
         END SUBROUTINE
    
     END SUBROUTINE
@@ -906,17 +931,15 @@ CONTAINS
         !        REAL(RKD) , INTENT(OUT)::XLA(:),YLA(:), ZLA(:)
         INTEGER(4)::NPSTAT, CHECK_WHETHER_IN_GHOST_CELLS
         INTEGER(4)::NI,LMILOC(1),L,N1,N2,I,J,ILN,JLN
-        INTEGER(4)::I1,I2,J1,J2
+        INTEGER::I1,I2,J1,J2
         REAL(RKD) ::RADLA(LA),CELL_SIZE
         IF(ALLOCATED(XLA))THEN
             ! NUMBER OF DRIFTERS IN EACH PARTITION CAN CHANGE EACH TIMESTEP
-            DEALLOCATE (XLA, YLA, ZLA, LLA, DLA, KLA , HPLA, BELVLA)
+            DEALLOCATE (XLA, YLA, ZLA, LLA, DLA, KLA , HPLA, BELVLA, NPD_TAG_LOC)
         END IF
-        ALLOCATE (XLA(0), YLA(0), ZLA(0), LLA(0) )
-        N1=1
-        N2=NPD_TOT
+        ALLOCATE (XLA(0), YLA(0), ZLA(0), LLA(0), NPD_TAG_LOC(0) )
         NPD = 0
-        DO NI=N1,N2
+        DO NI=1,NPD_TOT
 
             !FOR THE FIRST CALL DRIFT    CELL_CENTRE       DRIFTER  CELL_CENTRE
             RADLA(2:LA) = SQRT((XLA_ALL(NI)-XCOR(2:LA,5))**2+(YLA_ALL(NI)-YCOR(2:LA,5))**2) !MAY 11, 2009
@@ -949,6 +972,7 @@ CONTAINS
                                 YLA = [YLA, YLA_ALL(NI)]
                                 ZLA = [ZLA, ZLA_ALL(NI)]
                                 LLA = [LLA, L]
+                                NPD_TAG_LOC = [NPD_TAG_LOC, NPD_TAG_GLO(NI)] ! We add tag id to each cell -- basically id each drifter based on order in DRIFTER.INP
                             ENDIF
                         NPSTAT = 1
                         EXIT LOOP
@@ -956,10 +980,7 @@ CONTAINS
                 !                    END IF
                 ENDDO   ! DO I1, I2
             ENDDO LOOP  !
-
         END DO
-
-
         ALLOCATE(DLA(NPD))
         ALLOCATE(KLA(NPD),HPLA(NPD),BELVLA(NPD))
         DLA=0.
@@ -988,35 +1009,40 @@ CONTAINS
         ! BASED ON GLOBAL (I,J) INDICES
         !        REAL(RKD) ,ALLOCATABLE, INTENT(INOUT)::XLA(:),YLA(:), ZLA(:)
         !        REAL(RKD) ,INTENT(out):: XLA_ALL(:), YLA_ALL(:), ZLA_ALL(:)
+        INTEGER NCOMM_VARS
         REAL(RKD) ,ALLOCATABLE::DRIFT_PACK_LOCAL(:), DRIFT_PACK_GLOBAL(:)
         INTEGER(4), ALLOCATABLE:: DISPLS(:),RCOUNTS(:)
         INTEGER(4):: ERROR,I, IBEGIN, IEND, ISTEP, XL_IBEG, XL_END, L_TEMP, ILA_LOC, JLA_LOC
         INTEGER(4),ALLOCATABLE::PROC_SIZE_ARR(:)       !SIZE OF ARRAY ON EACH PROC FOR DRIFTER GATHER
+        NCOMM_VARS = 6 ! Number of variables that we are communicating (ILA, JLA, XLA, YLA, ZLA, and NPD_TAG_LOC)
         IF(ALLOCATED(DRIFT_PACK_LOCAL)) THEN
             DEALLOCATE(DRIFT_PACK_LOCAL)
             DEALLOCATE(DRIFT_PACK_GLOBAL)
         END IF
-        ALLOCATE(DRIFT_PACK_LOCAL(NPD*5),STAT=ERROR) ! Times 5 because it's 5 variables (ILA, JLA, XLA, YLA and ZLA)
+        ALLOCATE(DRIFT_PACK_LOCAL(NPD*NCOMM_VARS),STAT=ERROR) ! Times 5 because it's 5 variables (ILA, JLA, XLA, YLA and ZLA)
         IF(.NOT.ALLOCATED(PROC_SIZE_ARR))THEN
             ALLOCATE(PROC_SIZE_ARR(NPARTS),STAT=ERROR) ! Collects number of Drifters on each subdomain into single array
             ALLOCATE(rcounts(NPARTS),STAT=ERROR)       ! A count of number of variables in each subdomain used in MPI_GATHER
             ALLOCATE(displs(NPARTS),STAT=ERROR)        ! "Stride" length or displacement in packing variables in gathered array
             IF(ERROR.NE.0) WRITE(*,*) 'ALLOCATION ERROR DRIFT_PACK'
         END IF
-        DRIFT_PACK_LOCAL(1:NPD) = 0.
-        DRIFT_PACK_LOCAL(1:NPD) =         XPAR(IL(LLA(:)))  ! \  GLOBAL COORDINATES FOR I&J
-        DRIFT_PACK_LOCAL(NPD+1: 2*NPD)  = YPAR(JL(LLA(:)))  ! /  FOR DRIFTER LOCATIONS
+        DRIFT_PACK_LOCAL(1:NPD*NCOMM_VARS) = 0.
+        DRIFT_PACK_LOCAL(1:NPD) =         XPAR(IL(LLA(:)))  ! \  GLOBAL COORDINATES FOR I&J \ I don't know
+        DRIFT_PACK_LOCAL(NPD+1: 2*NPD)  = YPAR(JL(LLA(:)))  ! /  FOR DRIFTER LOCATIONS      / if we need these
 
         DRIFT_PACK_LOCAL((2*NPD+1): 3*NPD)  = XLA(:)
         DRIFT_PACK_LOCAL((3*NPD+1): 4*NPD) = YLA(:)
         DRIFT_PACK_LOCAL((4*NPD+1): 5*NPD) = ZLA(:)
+        DRIFT_PACK_LOCAL((5*NPD+1): 6*NPD) = NPD_TAG_LOC(:)
         DO I= 1, NPARTS
-            DISPLS(I) = (I-1)   ! INDEX
+            DISPLS(I) = (I-1)   ! INDEX (remembering that MPI is zero based
             RCOUNTS(I) = 1
         ENDDO
         ! For MPI Gather, we need to know how many drifters exist on each subdmoain. This varies
         ! as drifters enter/exit so we need to do for each timestep
         ! an MPI_Gather on NPD and gathered into array PROC_SIZE_ARR
+        ! Hence, PROC_SIZE_ARR is a vector of size NUM_DOMAINS that denotes
+        ! number of drifters within each subdomain (sum(PROC_SIZE_ARR) == total number of drifters)
         CALL MPI_ALLGATHERv(NPD, 1, MPI_INTEGER, PROC_SIZE_ARR, RCOUNTS,DISPLS, &
             MPI_INTEGER, MPI_COMM_WORLD, ERROR)
         IF (ERROR /= 0 ) THEN
@@ -1026,15 +1052,16 @@ CONTAINS
 
 
         DO I=1,NPARTS
-            RCOUNTS(I) =  PROC_SIZE_ARR(I)*5         ! Size of each array communicated based on NPD; times 5 for # variables
+            RCOUNTS(I) =  PROC_SIZE_ARR(I)*NCOMM_VARS         ! Size of each array communicated based on NPD or number of drifters in each domain; times 5 for # variables
         ENDDO
         DISPLS=0
         DO I=2,NPARTS
-           DISPLS(I) = DISPLS(I-1) + RCOUNTS(I-1)    ! Displacement index for communication
+           DISPLS(I) = DISPLS(I-1) + RCOUNTS(I-1)    ! Displacement index for communication; based on size of each domain array
         END DO
-        ALLOCATE(DRIFT_PACK_GLOBAL(sum(PROC_SIZE_ARR)*5),STAT=ERROR) ! Total number of drifters can vary due to Ghost zone implementation
+        ALLOCATE(DRIFT_PACK_GLOBAL(sum(PROC_SIZE_ARR)*NCOMM_VARS),STAT=ERROR) ! Total number of drifters can vary due to Ghost zone implementation
         DRIFT_PACK_GLOBAL(:) = 0. ! initialize
-        CALL MPI_ALLGATHERv(DRIFT_PACK_LOCAL, NPD*5, MPI_REAL8, DRIFT_PACK_GLOBAL, RCOUNTS,DISPLS, MPI_REAL8, MPI_COMM_WORLD, ERROR)
+        CALL MPI_ALLGATHERv(DRIFT_PACK_LOCAL, NPD*NCOMM_VARS, MPI_REAL8, DRIFT_PACK_GLOBAL, &
+                               RCOUNTS,DISPLS, MPI_REAL8, MPI_COMM_WORLD, ERROR)
         IF (ERROR /= 0 ) THEN
             PRINT '(A48)','ERROR DOING AN MPI GATHER OF ALL PARTICLES FOR DRIFTER MODULE'
             PRINT '(A12,I6, A36, f8.3)','PARTITION = ', PARTID, ' AND ',' COMMUNICATED PARTICLES = ', DRIFT_PACK_LOCAL
@@ -1045,6 +1072,8 @@ CONTAINS
         XLA_ALL(1:NPD_TOT*2) = 0.
         YLA_ALL(1:NPD_TOT*2) = 0.
         ZLA_ALL(1:NPD_TOT*2) = 0.
+        ZLA_ALL(1:NPD_TOT*2) = 0.
+        NPD_TAG_GLO(1:NPD_TOT) = 0.
 
         ! UNPACK INTO GLOBAL XLA AND YLA AND REMAP TO PARTITIONS
         ! This must follow the same logic as packing so that ILA, JLA, etc. correctly mapped
@@ -1052,35 +1081,50 @@ CONTAINS
         XL_IBEG = 1
         DO I =1,NPARTS
             IBEGIN =  DISPLS(I) + 1
-            XL_IBEG = (DISPLS(I)/5) +1
-            XL_END  = XL_IBEG + (RCOUNTS(I)/5) -1
-            ISTEP = (RCOUNTS(I)/5)
+            XL_IBEG = (DISPLS(I)/NCOMM_VARS) +1
+            XL_END  = XL_IBEG + (RCOUNTS(I)/NCOMM_VARS) -1
+            ISTEP = (RCOUNTS(I)/NCOMM_VARS)
             IEND = IBEGIN + ISTEP -1
             ILA_ALL(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IBEGIN:IEND)
             JLA_ALL(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IEND+1:IEND + ISTEP)
             XLA_ALL(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IEND+ISTEP+1:IEND+ (ISTEP*2))
             YLA_ALL(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IEND+(ISTEP*2)+1:IEND+ (ISTEP*3))
             ZLA_ALL(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IEND+(ISTEP*3)+1:IEND+ (ISTEP*4))
+            NPD_TAG_GLO(XL_IBEG:XL_END) = DRIFT_PACK_GLOBAL(IEND+(ISTEP*4)+1:IEND+ (ISTEP*5))
         ENDDO
-
         !     CALL MAP_GLOBAL_LOCAL(0) ! (XLA, YLA, ZLA, XLA_ALL,YLA_ALL,ZLA_ALL)    !OUT:XLA,YLA,LLA,KLA,BELVLA,HPLA
         NPD = 0
         IF(ALLOCATED(XLA))THEN
             ! NUMBER OF DRIFTERS IN EACH PARTITION CAN CHANGE EACH TIMESTEP
-            DEALLOCATE (XLA, YLA, ZLA, LLA, KLA , HPLA, BELVLA)
+            DEALLOCATE (XLA, YLA, ZLA, LLA, KLA , HPLA, BELVLA, NPD_TAG_LOC)
         END IF
-        ALLOCATE (XLA(0), YLA(0), ZLA(0), LLA(0) )
         ! Map from global coordinates to local (subdomain)
+        ! 1) First let's figure out the size of our arrays to allocate
         DO NP=1, sum(PROC_SIZE_ARR)
             ILA_LOC = XLOC( INT(ILA_ALL(NP)))
             JLA_LOC = YLOC(INT(JLA_ALL(NP)))
             L_TEMP = LIJ( ILA_LOC, JLA_LOC)
             IF (INSIDE_DOMAIN(L_TEMP)) THEN
                 NPD = NPD + 1
-                LLA = [LLA, L_TEMP]
-                XLA = [XLA, XLA_ALL(NP)]
-                YLA = [YLA, YLA_ALL(NP)]
-                ZLA = [ZLA, ZLA_ALL(NP)]
+            END IF
+        END DO
+        ! 2) Allocate our new arrays based on number of drifters within my subdomain
+        ALLOCATE (XLA(NPD), YLA(NPD), ZLA(NPD), LLA(NPD), NPD_TAG_LOC(NPD) )
+
+
+        ! 3) Now we map from global to local
+        NPD = 0
+        DO NP=1, sum(PROC_SIZE_ARR)
+            ILA_LOC = XLOC( INT(ILA_ALL(NP)))
+            JLA_LOC = YLOC(INT(JLA_ALL(NP)))
+            L_TEMP = LIJ( ILA_LOC, JLA_LOC)
+            IF (INSIDE_DOMAIN(L_TEMP)) THEN
+                NPD = NPD + 1
+                LLA(NPD) = L_TEMP
+                XLA(NPD) = XLA_ALL(NP)
+                YLA(NPD) = YLA_ALL(NP)
+                ZLA(NPD) = ZLA_ALL(NP)
+                NPD_TAG_LOC(NPD) = NPD_TAG_GLO(NP)
             END IF
         END DO
 
@@ -1107,10 +1151,10 @@ END SUBROUTINE
         ILOCATION = IL(L)
         JLOCATION = JL(L)
         INSIDE=.FALSE.
-        IF (ILOCATION <= 2 .OR. ILOCATION >= IC-2) THEN
+        IF (ILOCATION <= 2 .OR. ILOCATION >= IC-1) THEN
             INSIDE=.TRUE.
         END IF
-        IF (JLOCATION <= 2 .OR. JLOCATION >= JC-2) THEN
+        IF (JLOCATION <= 2 .OR. JLOCATION >= JC-1) THEN
             INSIDE=.TRUE.
         END IF
     END FUNCTION
@@ -1144,6 +1188,44 @@ END SUBROUTINE
               INSIDE=.TRUE.
            END IF
         END IF
+    END FUNCTION
+
+
+    FUNCTION IARGSORT(A) RESULT(B)
+    ! Taken from Fortran utils repository:
+    ! https://github.com/certik/fortran-utils/blob/master/src/sorting.f90
+    ! RETURNS THE INDICES THAT WOULD SORT AN ARRAY.
+    !
+    ! ARGUMENTS
+    ! ---------
+    !
+    INTEGER, INTENT(IN):: A(:)    ! ARRAY OF NUMBERS
+    INTEGER :: B(SIZE(A))         ! INDICES INTO THE ARRAY 'A' THAT SORT IT
+    !
+    ! EXAMPLE
+    ! -------
+    !
+    ! IARGSORT([10, 9, 8, 7, 6])   ! RETURNS [5, 4, 3, 2, 1]
+
+    INTEGER :: N                           ! NUMBER OF NUMBERS/VECTORS
+    INTEGER :: I,IMIN                      ! INDICES: I, I OF SMALLEST
+    INTEGER :: TEMP                        ! TEMPORARY
+    INTEGER :: A2(SIZE(A))
+    A2 = A
+    N=SIZE(A)
+    DO I = 1, N
+        B(I) = I
+    END DO
+    DO I = 1, N-1
+        ! FIND ITH SMALLEST IN 'A'
+        IMIN = MINLOC(A2(I:),1) + I - 1
+
+        ! SWAP TO POSITION I IN 'A' AND 'B', IF NOT ALREADY THERE
+        IF (IMIN /= I) THEN
+            TEMP = A2(I); A2(I) = A2(IMIN); A2(IMIN) = TEMP
+            TEMP = B(I); B(I) = B(IMIN); B(IMIN) = TEMP
+        END IF
+    END DO
     END FUNCTION
 
 END MODULE
